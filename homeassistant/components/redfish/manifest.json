@@ -1,0 +1,9 @@
+{
+  "domain": "redfish",
+  "name": "Redfish",
+  "config_flow": true,
+  "documentation": "https://www.home-assistant.io/integrations/redfish",
+  "codeowners": ["@Bre77"],
+  "requirements": [],
+  "quality_scale": "platinum"
+}
