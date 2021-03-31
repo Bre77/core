@@ -5,7 +5,7 @@ from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
 )
 
-from .const import DOMAIN as REDFISH_DOMAIN, REDFISH_STATE_ON
+from .const import DOMAIN as REDFISH_DOMAIN, REDFISH_POWER_OFF
 from .entity import RedfishEntity
 
 PARALLEL_UPDATES = 0
@@ -43,4 +43,4 @@ class RedfishIndicatorLED(RedfishEntity, BinarySensorEntity):
     @property
     def is_on(self):
         """Return if light is on."""
-        return self._data["IndicatorLED"] == REDFISH_STATE_ON
+        return self._data["IndicatorLED"] != REDFISH_POWER_OFF

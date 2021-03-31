@@ -9,9 +9,7 @@ from aiohttp import BasicAuth
 from homeassistant.const import CONF_PASSWORD, CONF_URL, CONF_USERNAME
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import (  # , UpdateFailed
-    DataUpdateCoordinator,
-)
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .const import DOMAIN
 
@@ -30,23 +28,32 @@ async def async_setup(hass, config):
 async def async_setup_entry(hass, entry):
     """Set up Redfish config."""
     url = entry.data[CONF_URL]
+    auth = BasicAuth(entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD])
 
-    session = async_get_clientsession(hass)
-    session.auth = BasicAuth(entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD])
+    session = async_get_clientsession(hass, verify_ssl=False)
 
     async def async_get():
         data = {}
-        async with session.get(f"{url}/redfish/v1/Systems") as systems:
-            for systemid in await systems.json()["Members"]:
-                async with session.get(f"{url}{systemid['@odata.id']}") as resp:
+        async with session.get(f"{url}/redfish/v1/Systems", auth=auth) as resp:
+            if resp.status >= 400:
+                raise UpdateFailed(resp.status)
+            systems = await resp.json()
+            for systemid in systems["Members"]:
+                async with session.get(
+                    f"{url}{systemid['@odata.id']}", auth=auth
+                ) as resp:
+                    if resp.status >= 400:
+                        raise UpdateFailed(resp.status)
                     system = await resp.json()
                     data[system["Id"]] = system
         return data
 
     async def async_change(endpoint, payload):
-        async with session.post(f"{url}{endpoint}", data=payload) as resp:
-            await resp.json()
-        await coordinator.async_refresh()
+        print(f"{url}{endpoint}")
+        async with session.post(f"{url}{endpoint}", json=payload, auth=auth) as resp:
+            print(await resp.text())
+        # await coordinator.async_refresh()
+        return True
 
     coordinator = DataUpdateCoordinator(
         hass,

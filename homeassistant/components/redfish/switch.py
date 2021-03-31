@@ -2,7 +2,7 @@
 
 from homeassistant.helpers.entity import ToggleEntity
 
-from .const import DOMAIN as REDFISH_DOMAIN, REDFISH_STATE_ON
+from .const import DOMAIN as REDFISH_DOMAIN, REDFISH_POWER_ON
 from .entity import RedfishEntity
 
 # REDFISH_RESETTYPE_ON = "On"
@@ -36,7 +36,7 @@ class RedfishPower(RedfishEntity, ToggleEntity):
     @property
     def is_on(self):
         """Return the power state."""
-        return self._data["PowerState"] == REDFISH_STATE_ON
+        return self._data["PowerState"] == REDFISH_POWER_ON
 
     @property
     def icon(self):

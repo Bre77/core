@@ -5,7 +5,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN
 
 
-class AdvantageAirEntity(CoordinatorEntity):
+class RedfishEntity(CoordinatorEntity):
     """Parent class for Redfish Entities."""
 
     def __init__(self, instance, id):
@@ -20,7 +20,7 @@ class AdvantageAirEntity(CoordinatorEntity):
 
     @property
     def _name(self):
-        return self._data["HostName"]
+        return self._data["HostName"] or self._data["Model"]
 
     @property
     def _uid(self):

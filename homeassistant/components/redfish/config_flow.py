@@ -1,6 +1,5 @@
 """Config Flow for Redfish integration."""
-from aiohttp import BasicAuth, ClientTimeout
-from aiohttp.web import HTTPError
+from aiohttp import BasicAuth
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -30,23 +29,20 @@ class RedfishConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input:
             url = user_input[CONF_URL]
+            auth = BasicAuth(user_input[CONF_USERNAME], user_input[CONF_PASSWORD])
 
-            try:
-                session = async_get_clientsession(self.hass)
-                session.auth = BasicAuth(
-                    user_input[CONF_USERNAME], user_input[CONF_PASSWORD]
-                )
-                session.get(f"{url}/redfish/v1", raise_for_status=True)
-            except (ClientTimeout, HTTPError):
-                errors["base"] = "cannot_connect"
-            else:
-                await self.async_set_unique_id(url)
-                self._abort_if_unique_id_configured()
+            session = async_get_clientsession(self.hass, verify_ssl=False)
+            async with session.get(f"{url}/redfish/v1", auth=auth) as resp:
+                if resp.status != 200:
+                    errors["base"] = "cannot_connect"
+                else:
+                    await self.async_set_unique_id(url)
+                    self._abort_if_unique_id_configured()
 
-                return self.async_create_entry(
-                    title=url,
-                    data=user_input,
-                )
+                    return self.async_create_entry(
+                        title=url,
+                        data=user_input,
+                    )
 
         return self.async_show_form(
             step_id="user",
