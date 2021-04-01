@@ -52,7 +52,14 @@ async def async_setup_entry(hass, entry):
                 async with session.get(
                     f"{url}/redfish/v1/Chassis/{id}/Power/PowerControl", auth=auth
                 ) as resp:
-                    system["power"] = await resp.json()
+                    system["PowerControl"] = await resp.json()
+
+                # Chassis Thermal data
+                async with session.get(
+                    f"{url}/redfish/v1/Chassis/{id}/Thermal", auth=auth
+                ) as resp:
+                    system["Thermal"] = await resp.json()
+
                 data[id] = system
         return data
 
