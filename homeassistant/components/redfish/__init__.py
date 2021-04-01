@@ -14,7 +14,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import DOMAIN
 
 REDFISH_SYNC_INTERVAL = 15
-PLATFORMS = ["binary_sensor", "switch"]  # "sensor"
+PLATFORMS = ["switch", "sensor", "binary_sensor"]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -39,13 +39,21 @@ async def async_setup_entry(hass, entry):
                 raise UpdateFailed(resp.status)
             systems = await resp.json()
             for systemid in systems["Members"]:
+                # Basic System data
                 async with session.get(
                     f"{url}{systemid['@odata.id']}", auth=auth
                 ) as resp:
                     if resp.status >= 400:
                         raise UpdateFailed(resp.status)
                     system = await resp.json()
-                    data[system["Id"]] = system
+                    id = system["Id"]
+
+                # Chassis PowerControl data
+                async with session.get(
+                    f"{url}/redfish/v1/Chassis/{id}/Power/PowerControl", auth=auth
+                ) as resp:
+                    system["power"] = await resp.json()
+                data[id] = system
         return data
 
     async def async_change(endpoint, payload):
