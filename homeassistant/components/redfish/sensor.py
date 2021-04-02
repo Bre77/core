@@ -1,5 +1,5 @@
 """Sensor platform for Redfish integration."""
-from homeassistant.components.sensor import SensorEntity
+
 from homeassistant.const import POWER_WATT, TEMP_CELSIUS
 
 from .const import DOMAIN as REDFISH_DOMAIN
@@ -24,7 +24,7 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     async_add_entities(entities)
 
 
-class RedfishPowerConsumedWatts(RedfishEntity, SensorEntity):
+class RedfishPowerConsumedWatts(RedfishEntity):
     """Representation of Redfish Zone Vent Sensor."""
 
     @property
@@ -53,7 +53,7 @@ class RedfishPowerConsumedWatts(RedfishEntity, SensorEntity):
         return "mdi:power-plug"
 
 
-class RedfishPowerTemperature(RedfishEntity, SensorEntity):
+class RedfishPowerTemperature(RedfishEntity):
     """Representation of Redfish Zone Vent Sensor."""
 
     def __init__(self, instance, id, index):
