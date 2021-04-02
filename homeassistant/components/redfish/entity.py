@@ -20,11 +20,11 @@ class RedfishEntity(CoordinatorEntity):
 
     @property
     def _name(self):
-        return self._data["HostName"] or self._data["Model"]
+        return self._data["Systems"]["HostName"] or self._data["Systems"]["Model"]
 
     @property
     def _uid(self):
-        return self._data["UUID"]
+        return self._data["Systems"]["UUID"]
 
     @property
     def device_info(self):
@@ -32,7 +32,7 @@ class RedfishEntity(CoordinatorEntity):
         return {
             "identifiers": {(DOMAIN, self._uid)},
             "name": self._name,
-            "manufacturer": self._data["Manufacturer"],
-            "model": self._data["Model"],
-            "sw_version": self._data["BiosVersion"],
+            "manufacturer": self._data["Systems"]["Manufacturer"],
+            "model": self._data["Systems"]["Model"],
+            "sw_version": self._data["Systems"]["BiosVersion"],
         }

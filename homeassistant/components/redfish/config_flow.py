@@ -1,4 +1,6 @@
 """Config Flow for Redfish integration."""
+import logging
+
 from aiohttp import BasicAuth
 import voluptuous as vol
 
@@ -16,6 +18,8 @@ REDFISH_SCHEMA = vol.Schema(
     }
 )
 
+_LOGGER = logging.getLogger(__name__)
+
 
 class RedfishConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config Redfish API connection."""
@@ -29,15 +33,24 @@ class RedfishConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
         if user_input:
             url = user_input[CONF_URL]
-            auth = BasicAuth(user_input[CONF_USERNAME], user_input[CONF_PASSWORD])
+            await self.async_set_unique_id(url)
+            self._abort_if_unique_id_configured()
 
+            auth = BasicAuth(user_input[CONF_USERNAME], user_input[CONF_PASSWORD])
             session = async_get_clientsession(self.hass, verify_ssl=False)
-            async with session.get(f"{url}/redfish/v1", auth=auth) as resp:
+
+            async with session.get(f"{url}/redfish/v1/Systems", auth=auth) as resp:
                 if resp.status != 200:
+                    _LOGGER.warn(resp.status)
+                    _LOGGER.warn(await resp.text())
                     errors["base"] = "cannot_connect"
                 else:
-                    await self.async_set_unique_id(url)
-                    self._abort_if_unique_id_configured()
+                    user_input["ids"] = list(
+                        map(
+                            lambda x: x["@odata.id"].split("/")[-1],
+                            (await resp.json())["Members"],
+                        )
+                    )
 
                     return self.async_create_entry(
                         title=url,

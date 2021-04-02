@@ -36,7 +36,7 @@ class RedfishPower(RedfishEntity, ToggleEntity):
     @property
     def is_on(self):
         """Return the power state."""
-        return self._data["PowerState"] == REDFISH_POWER_ON
+        return self._data["Systems"]["PowerState"] == REDFISH_POWER_ON
 
     @property
     def icon(self):
@@ -47,7 +47,7 @@ class RedfishPower(RedfishEntity, ToggleEntity):
         """Turn power on."""
         if not self.is_on:
             await self.async_change(
-                self._data["Actions"]["#ComputerSystem.Reset"]["target"],
+                self._data["Systems"]["Actions"]["#ComputerSystem.Reset"]["target"],
                 {"ResetType": "PushPowerButton"},
             )
 
@@ -55,6 +55,6 @@ class RedfishPower(RedfishEntity, ToggleEntity):
         """Turn power off."""
         if self.is_on:
             await self.async_change(
-                self._data["Actions"]["#ComputerSystem.Reset"]["target"],
+                self._data["Systems"]["Actions"]["#ComputerSystem.Reset"]["target"],
                 {"ResetType": "PushPowerButton"},
             )

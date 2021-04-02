@@ -29,38 +29,38 @@ async def async_setup_entry(hass, entry):
     """Set up Redfish config."""
     url = entry.data[CONF_URL]
     auth = BasicAuth(entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD])
+    ids = entry.data["ids"]
 
     session = async_get_clientsession(hass, verify_ssl=False)
 
     async def async_get():
         data = {}
-        async with session.get(f"{url}/redfish/v1/Systems", auth=auth) as resp:
-            if resp.status >= 400:
-                raise UpdateFailed(resp.status)
-            systems = await resp.json()
-            for systemid in systems["Members"]:
-                # Basic System data
-                async with session.get(
-                    f"{url}{systemid['@odata.id']}", auth=auth
-                ) as resp:
-                    if resp.status >= 400:
-                        raise UpdateFailed(resp.status)
-                    system = await resp.json()
-                    id = system["Id"]
+        for id in ids:
+            data[id] = {}
+            # System data
+            async with session.get(f"{url}/redfish/v1/Systems/{id}", auth=auth) as resp:
+                if resp.status >= 400:
+                    _LOGGER.error(f"Failed to get {resp.url} with status {resp.status}")
+                    raise UpdateFailed(resp.status)
+                data[id]["Systems"] = await resp.json()
 
-                # Chassis PowerControl data
-                async with session.get(
-                    f"{url}/redfish/v1/Chassis/{id}/Power/PowerControl", auth=auth
-                ) as resp:
-                    system["PowerControl"] = await resp.json()
+            # Chassis PowerControl data
+            async with session.get(
+                f"{url}/redfish/v1/Chassis/{id}/Power/PowerControl", auth=auth
+            ) as resp:
+                if resp.status >= 400:
+                    _LOGGER.error(f"Failed to get {resp.url} with status {resp.status}")
+                    raise UpdateFailed(resp.status)
+                data[id]["PowerControl"] = await resp.json()
 
-                # Chassis Thermal data
-                async with session.get(
-                    f"{url}/redfish/v1/Chassis/{id}/Thermal", auth=auth
-                ) as resp:
-                    system["Thermal"] = await resp.json()
-
-                data[id] = system
+            # Chassis Thermal data
+            async with session.get(
+                f"{url}/redfish/v1/Chassis/{id}/Thermal", auth=auth
+            ) as resp:
+                if resp.status >= 400:
+                    _LOGGER.error(f"Failed to get {resp.url} with status {resp.status}")
+                    raise UpdateFailed(resp.status)
+                data[id]["Thermal"] = await resp.json()
         return data
 
     async def async_change(endpoint, payload):

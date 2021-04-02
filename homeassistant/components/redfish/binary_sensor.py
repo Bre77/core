@@ -43,4 +43,4 @@ class RedfishIndicatorLED(RedfishEntity, BinarySensorEntity):
     @property
     def is_on(self):
         """Return if light is on."""
-        return self._data["IndicatorLED"] != REDFISH_POWER_OFF
+        return self._data["Systems"]["IndicatorLED"] != REDFISH_POWER_OFF
