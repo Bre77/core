@@ -778,6 +778,9 @@ pyatmo==5.2.3
 # homeassistant.components.apple_tv
 pyatv==0.8.2
 
+# homeassistant.components.aussie_broadband
+pyaussiebb==0.0.3
+
 # homeassistant.components.blackbird
 pyblackbird==0.5
 
