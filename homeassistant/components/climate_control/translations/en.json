@@ -1,0 +1,28 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Device is already configured"
+        },
+        "error": {
+            "cannot_connect": "Failed to connect"
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "climate_entity": "Climate Entity",
+                    "count": "Number of zones"
+                },
+                "description": "Select the central climate entity.",
+                "title": "Setup"
+            }
+        },
+        "zone": {
+            "data": {
+                "cover_entity": "Cover Entity",
+                "sensor_entity": "Temperature Sensor Entity"
+            },
+            "description": "Define the zones cover entity and temperature sensor entity.",
+            "title": "Zone Setup"
+        }
+    }
+}

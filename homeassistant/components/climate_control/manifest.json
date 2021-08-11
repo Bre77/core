@@ -1,0 +1,15 @@
+{
+    "domain": "climate_control",
+    "name": "Climate Control",
+    "config_flow": true,
+    "documentation": "https://www.home-assistant.io/integrations/climate_control",
+    "codeowners": [
+        "@Bre77"
+    ],
+    "requirements": [],
+    "quality_scale": "platinum",
+    "dependencies": [
+        "history"
+    ],
+    "iot_class": "calculated"
+}

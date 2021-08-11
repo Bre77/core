@@ -49,6 +49,7 @@ FLOWS = [
     "cast",
     "cert_expiry",
     "climacell",
+    "climate_control",
     "cloudflare",
     "co2signal",
     "coinbase",

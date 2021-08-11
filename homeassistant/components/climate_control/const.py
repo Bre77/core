@@ -1,0 +1,6 @@
+"""Constants used by Climate Control integration."""
+DOMAIN = "climate_control"
+CONF_CLIMATE_ENTITY = "climate_entity"
+CONF_ZONES = "zones"
+CONF_COVER_ENTITY = "cover_entity"
+CONF_SENSOR_ENTITY = "sensor_entity"
