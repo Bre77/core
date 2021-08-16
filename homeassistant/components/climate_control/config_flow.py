@@ -3,20 +3,20 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_COUNT
-import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.area_registry import async_get as async_get_area_registry
-from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry
 
 # from homeassistant.const import
 # from homeassistant.components.cover import DOMAIN as COVER
 # from homeassistant.components.sensor import DOMAIN as SENSOR
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.area_registry import async_get as async_get_area_registry
+import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry
 
 from .const import (
+    CONF_AREAS,
     CONF_CLIMATE_ENTITY,
     CONF_COVER_ENTITY,
     CONF_SENSOR_ENTITY,
-    CONF_AREAS,
     DOMAIN,
 )
 
@@ -88,7 +88,7 @@ class ClimateControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ),
                     vol.Required(CONF_SENSOR_ENTITY): cv.multi_select(
                         entity_registry.async_get_device_class_lookup(
-                            "cover", "temperature"
+                            ("cover", "temperature")
                         )
                     ),
                 }
