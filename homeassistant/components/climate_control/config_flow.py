@@ -13,12 +13,16 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry
 
 from .const import (
+    CONF_AREA,
     CONF_AREAS,
     CONF_CLIMATE_ENTITY,
     CONF_COVER_ENTITY,
     CONF_SENSOR_ENTITY,
+    CONF_ZONES,
     DOMAIN,
 )
+
+CONF_GUIDED = "guided"
 
 
 class ClimateControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -36,6 +40,9 @@ class ClimateControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.climate_entity = user_input[CONF_CLIMATE_ENTITY]
             self.areas = user_input[CONF_AREAS]
             self.zones = []
+            self.guided = user_input[CONF_GUIDED]
+            print(self.climate_entity)
+            print(self.areas)
 
             # Abort if already configured
             await self.async_set_unique_id(self.climate_entity)
@@ -43,21 +50,27 @@ class ClimateControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             return await self.async_step_zone()
 
-        climate_entities = self.hass.states.async_entity_ids("climate")
+        # Build Climate Entity List
+        entity_registry = async_get_entity_registry(self.hass)
+        climate_entities = {}
+        for entity_id in self.hass.states.async_entity_ids("climate"):
+            entity = entity_registry.async_get(entity_id)
+            climate_entities[entity_id] = entity.name or entity.original_name
 
+        # Build Area List
         areas = {}
         area_registry = async_get_area_registry(self.hass)
-        for entry in area_registry.async_list_areas():
-            areas[entry.id] = entry.name
+        for area in area_registry.async_list_areas():
+            print(area)
+            areas[area.id] = area.name
 
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_CLIMATE_ENTITY): cv.multi_select(
-                        climate_entities
-                    ),
+                    vol.Required(CONF_CLIMATE_ENTITY): vol.In(climate_entities),
                     vol.Required(CONF_AREAS): cv.multi_select(areas),
+                    vol.Optional(CONF_GUIDED, default=True): cv.boolean,
                 }
             ),
             errors=errors,
@@ -66,32 +79,55 @@ class ClimateControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_zone(self, user_input=None):
         """Get zone configuration from the user."""
         errors = {}
+        count = len(self.zones)
         if user_input is not None:
-            user_input["area"] = self.areas[len(self.zones)]
+            user_input[CONF_AREA] = self.areas[count]
             self.zones.append(user_input)
-            if len(self.zones) >= len(self.areas):
-                # return await self.async_step_zone()
+            count += 1
+            if count >= len(self.areas):
+                # Create the config entry
+                print(self.zones)
                 return self.async_create_entry(
                     title=self.climate_entity,
                     data={
                         CONF_CLIMATE_ENTITY: self.climate_entity,
-                        CONF_AREAS: self.zones,
+                        CONF_ZONES: self.zones,
                     },
                 )
+
+        area_id = self.areas[count]
+
         entity_registry = async_get_entity_registry(self.hass)
+        # Build Damper Cover entity list
+        cover_entities = {}
+        for entity_id in self.hass.states.async_entity_ids("cover"):
+            entity = entity_registry.async_get(entity_id)
+            print(entity)
+            if entity and (
+                not self.guided
+                or (entity.device_class == "damper" and entity.area_id == area_id)
+            ):
+                cover_entities[entity_id] = entity.name or entity.original_name
+
+        # Build Temperature Sensor entity list
+        sensor_entities = {}
+        for entity_id in self.hass.states.async_entity_ids("sensor"):
+            entity = entity_registry.async_get(entity_id)
+            print(entity)
+            if entity and (
+                not self.guided
+                or (entity.device_class == "temperature" and entity.area_id == area_id)
+            ):
+                sensor_entities[entity_id] = entity.name or entity.original_name
+
         return self.async_show_form(
             step_id="zone",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_COVER_ENTITY): cv.multi_select(
-                        self.hass.states.async_entity_ids("cover")
-                    ),
-                    vol.Required(CONF_SENSOR_ENTITY): cv.multi_select(
-                        entity_registry.async_get_device_class_lookup(
-                            ("cover", "temperature")
-                        )
-                    ),
+                    vol.Required(CONF_COVER_ENTITY): vol.In(cover_entities),
+                    vol.Required(CONF_SENSOR_ENTITY): vol.In(sensor_entities),
                 }
             ),
+            last_step=(count + 1 == len(self.areas)),
             errors=errors,
         )

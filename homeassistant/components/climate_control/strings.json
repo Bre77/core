@@ -9,16 +9,17 @@
         "step": {
             "user": {
                 "data": {
-                    "climate_entity": "Climate Entity",
-                    "areas": "Areas"
+                    "climate_entity": "Climate entity",
+                    "areas": "Areas",
+                    "guided": "Hide unrelated entities"
                 },
-                "description": "Select the central climate entity.",
+                "description": "Select the climate entity and areas for each zone.",
                 "title": "Setup"
             },
             "zone": {
                 "data": {
-                    "cover_entity": "Cover Entity",
-                    "sensor_entity": "Temperature Sensor Entity"
+                    "cover_entity": "Damper Cover entity",
+                    "sensor_entity": "Temperature Sensor entity"
                 },
                 "description": "Define the zones cover entity and temperature sensor entity.",
                 "title": "Zone Setup"
