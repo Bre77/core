@@ -10,7 +10,7 @@
             "user": {
                 "data": {
                     "climate_entity": "Climate Entity",
-                    "count": "Number of zones"
+                    "areas": "Areas"
                 },
                 "description": "Select the central climate entity.",
                 "title": "Setup"

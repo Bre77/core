@@ -3,6 +3,9 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_COUNT
+import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.area_registry import async_get as async_get_area_registry
+from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry
 
 # from homeassistant.const import
 # from homeassistant.components.cover import DOMAIN as COVER
@@ -13,7 +16,7 @@ from .const import (
     CONF_CLIMATE_ENTITY,
     CONF_COVER_ENTITY,
     CONF_SENSOR_ENTITY,
-    CONF_ZONES,
+    CONF_AREAS,
     DOMAIN,
 )
 
@@ -31,7 +34,7 @@ class ClimateControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
 
             self.climate_entity = user_input[CONF_CLIMATE_ENTITY]
-            self.count = user_input[CONF_COUNT]
+            self.areas = user_input[CONF_AREAS]
             self.zones = []
 
             # Abort if already configured
@@ -40,14 +43,21 @@ class ClimateControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             return await self.async_step_zone()
 
+        climate_entities = self.hass.states.async_entity_ids("climate")
+
+        areas = {}
+        area_registry = async_get_area_registry(self.hass)
+        for entry in area_registry.async_list_areas():
+            areas[entry.id] = entry.name
+
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_CLIMATE_ENTITY): str,
-                    vol.Required(CONF_COUNT): vol.All(
-                        vol.Coerce(int), vol.Range(min=1)
+                    vol.Required(CONF_CLIMATE_ENTITY): cv.multi_select(
+                        climate_entities
                     ),
+                    vol.Required(CONF_AREAS): cv.multi_select(areas),
                 }
             ),
             errors=errors,
@@ -57,22 +67,30 @@ class ClimateControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Get zone configuration from the user."""
         errors = {}
         if user_input is not None:
+            user_input["area"] = self.areas[len(self.zones)]
             self.zones.append(user_input)
-            if len(self.zones) < self.count:
-                return await self.async_step_zone()
-            return self.async_create_entry(
-                title=self.climate_entity,
-                data={
-                    CONF_CLIMATE_ENTITY: self.climate_entity,
-                    CONF_ZONES: self.zones,
-                },
-            )
+            if len(self.zones) >= len(self.areas):
+                # return await self.async_step_zone()
+                return self.async_create_entry(
+                    title=self.climate_entity,
+                    data={
+                        CONF_CLIMATE_ENTITY: self.climate_entity,
+                        CONF_AREAS: self.zones,
+                    },
+                )
+        entity_registry = async_get_entity_registry(self.hass)
         return self.async_show_form(
             step_id="zone",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_COVER_ENTITY): str,
-                    vol.Required(CONF_SENSOR_ENTITY): str,
+                    vol.Required(CONF_COVER_ENTITY): cv.multi_select(
+                        self.hass.states.async_entity_ids("cover")
+                    ),
+                    vol.Required(CONF_SENSOR_ENTITY): cv.multi_select(
+                        entity_registry.async_get_device_class_lookup(
+                            "cover", "temperature"
+                        )
+                    ),
                 }
             ),
             errors=errors,
