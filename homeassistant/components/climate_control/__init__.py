@@ -1,9 +1,6 @@
 """Climate Control climate integration."""
 
-from datetime import timedelta
 import logging
-
-from homeassistant.const import CONF_ENTITY_ID
 
 from .const import DOMAIN
 

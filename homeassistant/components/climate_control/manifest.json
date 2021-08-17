@@ -9,7 +9,9 @@
     "requirements": [],
     "quality_scale": "platinum",
     "dependencies": [
-        "history"
+        "climate",
+        "sensor",
+        "cover"
     ],
     "iot_class": "calculated"
 }
