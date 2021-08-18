@@ -63,6 +63,10 @@ class ClimateControlClimateEntity(RestoreEntity, ClimateEntity):
     _attr_hvac_modes = HVAC_MODES
     _attr_supported_features = SUPPORT_TARGET_TEMPERATURE
 
+    cover_position: float
+    climate_mode: str
+    climate_target: float
+
     def __init__(
         self,
         hass,
@@ -85,23 +89,15 @@ class ClimateControlClimateEntity(RestoreEntity, ClimateEntity):
 
         self.climate_entity_id = climate_entity_id
         self.climate_entity = self.entity_registry.async_get(climate_entity_id)
-        self.climate_mode = None
-        self.climate_target = None
 
         print(self.climate_entity)
         print(hass.states.get(climate_entity_id))
 
         self.cover_entity_id = cover_entity_id
-        self.cover_entity = self.entity_registry.async_get(cover_entity_id)
-        self.cover_position = None
-        print(self.cover_entity)
-        print(hass.states.get(cover_entity_id))
+        # self.cover_entity = self.entity_registry.async_get(cover_entity_id)
 
         self.sensor_entity_id = sensor_entity_id
-        self.sensor_entity = self.entity_registry.async_get(sensor_entity_id)
-
-        print(self.sensor_entity)
-        print(hass.states.get(sensor_entity_id))
+        # self.sensor_entity = self.entity_registry.async_get(sensor_entity_id)
 
         self._attr_name = f"{getattr(self.area,'name')} Climate Control"  # {['name']}
         self._attr_temperature_unit = TEMP_CELSIUS  # This isn't right
@@ -157,7 +153,7 @@ class ClimateControlClimateEntity(RestoreEntity, ClimateEntity):
         state = await self.async_get_last_state()
         if state:
             self._attr_hvac_mode = state.state
-            self._attr_current_temperature = state.attributes["current_temperature"]
+            # self._attr_current_temperature = state.attributes["current_temperature"]
             self._attr_target_temperature = state.attributes["temperature"]
 
     async def async_set_hvac_mode(self, hvac_mode):
