@@ -62,6 +62,10 @@ class ClimateControlClimateEntity(RestoreEntity, ClimateEntity):
 
     _attr_hvac_modes = HVAC_MODES
     _attr_supported_features = SUPPORT_TARGET_TEMPERATURE
+    _attr_temperature_unit = TEMP_CELSIUS
+
+    # _attr_target_temperature: float
+    # _attr_hvac_mode: str
 
     cover_position: float
     climate_mode: str
@@ -111,9 +115,6 @@ class ClimateControlClimateEntity(RestoreEntity, ClimateEntity):
             ATTR_MIN_TEMP
         ]
         self._attr_area_id = area_id
-
-        self._attr_hvac_mode = HVAC_MODE_AUTO  # This isn't right
-        self._attr_target_temperature = 24  # This isn't right
 
         async def event_listener(event):
             """Take action on state change events."""
