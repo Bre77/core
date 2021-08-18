@@ -1,4 +1,6 @@
 """Climate platform for Climate Control integration."""
+from time import time
+
 from homeassistant.components.climate import ClimateEntity
 from homeassistant.components.climate.const import (
     ATTR_MAX_TEMP,
@@ -67,9 +69,9 @@ class ClimateControlClimateEntity(RestoreEntity, ClimateEntity):
     # _attr_target_temperature: float
     # _attr_hvac_mode: str
 
-    cover_position: float
-    climate_mode: str
-    climate_target: float
+    _cover_position: float
+    _climate_mode: str
+    _climate_target: float
 
     def __init__(
         self,
@@ -86,7 +88,6 @@ class ClimateControlClimateEntity(RestoreEntity, ClimateEntity):
         self.area_registry = async_get_area_registry(hass)
 
         self.area = self.area_registry.async_get_area(area_id)
-        print(self.area)
         # self.store = Store()
 
         # restored = self.store.async_load()
@@ -94,17 +95,16 @@ class ClimateControlClimateEntity(RestoreEntity, ClimateEntity):
         self.climate_entity_id = climate_entity_id
         self.climate_entity = self.entity_registry.async_get(climate_entity_id)
 
-        print(self.climate_entity)
-        print(hass.states.get(climate_entity_id))
-
         self.cover_entity_id = cover_entity_id
         # self.cover_entity = self.entity_registry.async_get(cover_entity_id)
 
         self.sensor_entity_id = sensor_entity_id
+        self._sensor_updated_time = time()
+        self._sensor_elapsed_time = 0.0
         # self.sensor_entity = self.entity_registry.async_get(sensor_entity_id)
 
-        self._attr_name = f"{getattr(self.area,'name')} Climate Control"  # {['name']}
-        self._attr_temperature_unit = TEMP_CELSIUS  # This isn't right
+        self._attr_name = f"{getattr(self.area,'name')} Climate Control"
+
         self._attr_target_temperature_step = getattr(
             self.climate_entity, "capabilities"
         )[ATTR_TARGET_TEMP_STEP]
@@ -118,31 +118,37 @@ class ClimateControlClimateEntity(RestoreEntity, ClimateEntity):
 
         async def event_listener(event):
             """Take action on state change events."""
+            entity_id = event.data["entity_id"]
             state = event.data.get("new_state")
+
             if state is not None and state.state != "unknown":
-                if state.entity_id == climate_entity_id:
-                    print(state.entity_id, state.state, state.attributes)
-                    self.climate_mode = state.state
-                    self.climate_target = state.attributes[TEMPERATURE]
+                if entity_id == climate_entity_id:
+                    self._climate_mode = state.state
+                    self._climate_target = state.attributes[TEMPERATURE]
                     return
-                if state.entity_id == cover_entity_id:
-                    print(state.entity_id, state.attributes)
+                if entity_id == cover_entity_id:
                     if ATTR_CURRENT_POSITION in state.attributes:
-                        self.cover_position = float(
+                        self._cover_position = float(
                             state.attributes[ATTR_CURRENT_POSITION]
                         )
                     elif state.state == STATE_OPEN:
-                        self.cover_position = 100
+                        self._cover_position = 100
                     elif state.state == STATE_CLOSED:
-                        self.cover_position = 0
+                        self._cover_position = 0
                     return
-                if state.entity_id == sensor_entity_id:
+                if entity_id == sensor_entity_id:
+                    old_state = event.data.get("old_state")
+                    print(old_state)
                     try:
-                        _state = float(state.state)
+                        new_value = float(state.state)
+                        old_value = float(old_state.state)
                     except ValueError:
+                        print("Value Error!")
                         return
-                    self._attr_current_temperature = _state
-                    print(state.entity_id, state.state, _state)
+                    print(state.state, old_state.state, new_value, old_value)
+                    self._attr_current_temperature = new_value
+                    self._sensor_elapsed_time = time() - self._sensor_updated_time
+                    self._sensor_updated_time = time()
                     hass.async_create_task(self._run())
                     return
 
@@ -154,21 +160,23 @@ class ClimateControlClimateEntity(RestoreEntity, ClimateEntity):
         state = await self.async_get_last_state()
         if state:
             self._attr_hvac_mode = state.state
-            # self._attr_current_temperature = state.attributes["current_temperature"]
             self._attr_target_temperature = state.attributes["temperature"]
 
     async def async_set_hvac_mode(self, hvac_mode):
         """Set the HVAC Mode and State."""
         self._attr_hvac_mode = hvac_mode
-        self.hass.async_create_task(self._run())
+        if hvac_mode == HVAC_MODE_AUTO:
+            self.hass.async_create_task(self._run())
 
     async def async_set_temperature(self, **kwargs):
         """Set the Target Temperature."""
         self._attr_target_temperature = kwargs.get(ATTR_TEMPERATURE)
-        self.hass.async_create_task(self._run())
+        # self.hass.async_create_task(self._run())
 
     async def _run(self):
         """Run the automatic climate control."""
+        if self._attr_hvac_mode != HVAC_MODE_AUTO:
+            return
         # Positive numbers open damper, negative numbers close it
         self.climate_mode = HVAC_MODE_COOL  # TEST
         if self.climate_mode == HVAC_MODE_COOL:
@@ -178,11 +186,8 @@ class ClimateControlClimateEntity(RestoreEntity, ClimateEntity):
         else:
             return
 
-        position = round(self.cover_position + (change * 5))
+        position = round(self._cover_position + (change * 5))
         print(change, position, self.cover_entity_id, min(100, max(0, position)))
-
-        # self.climate_target
-        # 24 - 25
 
         await self.hass.services.async_call(
             COVER,
