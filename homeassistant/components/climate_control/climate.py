@@ -27,7 +27,7 @@ from homeassistant.const import (
 )
 from homeassistant.helpers.area_registry import async_get as async_get_area_registry
 from homeassistant.helpers.entity_registry import async_get as async_get_entity_registry
-from homeassistant.helpers.storage import Store
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import (
     CONF_AREA,
@@ -57,12 +57,11 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
     async_add_entities(entities)
 
 
-class ClimateControlClimateEntity(ClimateEntity):
+class ClimateControlClimateEntity(RestoreEntity, ClimateEntity):
     """Climate Control Climate Entity."""
 
     _attr_hvac_modes = HVAC_MODES
     _attr_supported_features = SUPPORT_TARGET_TEMPERATURE
-    store = Store
 
     def __init__(
         self,
@@ -79,6 +78,7 @@ class ClimateControlClimateEntity(ClimateEntity):
         self.area_registry = async_get_area_registry(hass)
 
         self.area = self.area_registry.async_get_area(area_id)
+        print(self.area)
         # self.store = Store()
 
         # restored = self.store.async_load()
@@ -103,13 +103,17 @@ class ClimateControlClimateEntity(ClimateEntity):
         print(self.sensor_entity)
         print(hass.states.get(sensor_entity_id))
 
-        self._attr_name = f"{self.area.get('name')} Climate Control"
+        self._attr_name = f"{getattr(self.area,'name')} Climate Control"  # {['name']}
         self._attr_temperature_unit = TEMP_CELSIUS  # This isn't right
-        self._attr_target_temperature_step = self.climate_entity.capabilities[
-            ATTR_TARGET_TEMP_STEP
+        self._attr_target_temperature_step = getattr(
+            self.climate_entity, "capabilities"
+        )[ATTR_TARGET_TEMP_STEP]
+        self._attr_max_temp = getattr(self.climate_entity, "capabilities")[
+            ATTR_MAX_TEMP
         ]
-        self._attr_max_temp = self.climate_entity.capabilities[ATTR_MAX_TEMP]
-        self._attr_min_temp = self.climate_entity.capabilities[ATTR_MIN_TEMP]
+        self._attr_min_temp = getattr(self.climate_entity, "capabilities")[
+            ATTR_MIN_TEMP
+        ]
         self._attr_area_id = area_id
 
         self._attr_hvac_mode = HVAC_MODE_AUTO  # This isn't right
@@ -147,6 +151,15 @@ class ClimateControlClimateEntity(ClimateEntity):
 
         hass.bus.async_listen(EVENT_STATE_CHANGED, event_listener)
 
+    async def async_added_to_hass(self):
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        state = await self.async_get_last_state()
+        if state:
+            self._attr_hvac_mode = state.state
+            self._attr_current_temperature = state.attributes["current_temperature"]
+            self._attr_target_temperature = state.attributes["temperature"]
+
     async def async_set_hvac_mode(self, hvac_mode):
         """Set the HVAC Mode and State."""
         self._attr_hvac_mode = hvac_mode
@@ -158,7 +171,7 @@ class ClimateControlClimateEntity(ClimateEntity):
         self.hass.async_create_task(self._run())
 
     async def _run(self):
-        """Run the automatic climate control"""
+        """Run the automatic climate control."""
         # Positive numbers open damper, negative numbers close it
         self.climate_mode = HVAC_MODE_COOL  # TEST
         if self.climate_mode == HVAC_MODE_COOL:
