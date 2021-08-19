@@ -118,7 +118,14 @@ class ClimateControlConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 not self.guided
                 or (entity.device_class == "temperature" and entity.area_id == area_id)
             ):
+                print(
+                    entity_id, "included", entity.area_id, area_id, entity.device_class
+                )
                 sensor_entities[entity_id] = entity.name or entity.original_name
+            else:
+                print(
+                    entity_id, "excluded", entity.area_id, area_id, entity.device_class
+                )
 
         return self.async_show_form(
             step_id="zone",
