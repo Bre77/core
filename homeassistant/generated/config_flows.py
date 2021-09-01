@@ -30,7 +30,6 @@ FLOWS = [
     "august",
     "aurora",
     "aussie_broadband",
-    "automate",
     "awair",
     "axis",
     "azure_devops",
