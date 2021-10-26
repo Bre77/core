@@ -107,6 +107,8 @@ HW_FAN_MODE_TO_HA = {
     "follow schedule": FAN_AUTO,
 }
 
+PARALLEL_UPDATES = 1
+
 
 async def async_setup_entry(hass, config, async_add_entities, discovery_info=None):
     """Set up the Honeywell thermostat."""
@@ -280,8 +282,7 @@ class HoneywellUSThermostat(ClimateEntity):
 
     def _set_temperature(self, **kwargs) -> None:
         """Set new target temperature."""
-        temperature = kwargs.get(ATTR_TEMPERATURE)
-        if temperature is None:
+        if (temperature := kwargs.get(ATTR_TEMPERATURE)) is None:
             return
         try:
             # Get current mode
@@ -308,11 +309,9 @@ class HoneywellUSThermostat(ClimateEntity):
 
         try:
             if HVAC_MODE_HEAT_COOL in self._hvac_mode_map:
-                temperature = kwargs.get(ATTR_TARGET_TEMP_HIGH)
-                if temperature:
+                if temperature := kwargs.get(ATTR_TARGET_TEMP_HIGH):
                     self._device.setpoint_cool = temperature
-                temperature = kwargs.get(ATTR_TARGET_TEMP_LOW)
-                if temperature:
+                if temperature := kwargs.get(ATTR_TARGET_TEMP_LOW):
                     self._device.setpoint_heat = temperature
         except somecomfort.SomeComfortError as err:
             _LOGGER.error("Invalid temperature %s: %s", temperature, err)
@@ -384,4 +383,4 @@ class HoneywellUSThermostat(ClimateEntity):
 
     async def async_update(self):
         """Get the latest state from the service."""
-        await self._data.update()
+        await self._data.async_update()

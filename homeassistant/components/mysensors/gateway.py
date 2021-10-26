@@ -3,11 +3,11 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
-from collections.abc import Coroutine
+from collections.abc import Callable, Coroutine
 import logging
 import socket
 import sys
-from typing import Any, Callable
+from typing import Any
 
 import async_timeout
 from mysensors import BaseAsyncGateway, Message, Sensor, mysensors
@@ -232,6 +232,8 @@ async def _get_gateway(
             protocol_version=version,
         )
     gateway.event_callback = event_callback
+    gateway.metric = hass.config.units.is_metric
+
     if persistence:
         await gateway.start_persistence()
 

@@ -1,4 +1,5 @@
 """Support for mill wifi-enabled home heaters."""
+import mill
 import voluptuous as vol
 
 from homeassistant.components.climate import ClimateEntity
@@ -14,6 +15,7 @@ from homeassistant.components.climate.const import (
 from homeassistant.const import ATTR_TEMPERATURE, PRECISION_WHOLE, TEMP_CELSIUS
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
@@ -45,10 +47,12 @@ async def async_setup_entry(hass, entry, async_add_entities):
 
     mill_data_coordinator = hass.data[DOMAIN]
 
-    dev = []
-    for heater in mill_data_coordinator.data.values():
-        dev.append(MillHeater(mill_data_coordinator, heater))
-    async_add_entities(dev)
+    entities = [
+        MillHeater(mill_data_coordinator, mill_device)
+        for mill_device in mill_data_coordinator.data.values()
+        if isinstance(mill_device, mill.Heater)
+    ]
+    async_add_entities(entities)
 
     async def set_room_temp(service):
         """Set room temp."""
@@ -83,12 +87,12 @@ class MillHeater(CoordinatorEntity, ClimateEntity):
         self._id = heater.device_id
         self._attr_unique_id = heater.device_id
         self._attr_name = heater.name
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, heater.device_id)},
-            "name": self.name,
-            "manufacturer": MANUFACTURER,
-            "model": f"generation {1 if heater.is_gen1 else 2}",
-        }
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, heater.device_id)},
+            manufacturer=MANUFACTURER,
+            model=f"generation {1 if heater.is_gen1 else 2}",
+            name=self.name,
+        )
         if heater.is_gen1:
             self._attr_hvac_modes = [HVAC_MODE_HEAT]
         else:
@@ -97,8 +101,7 @@ class MillHeater(CoordinatorEntity, ClimateEntity):
 
     async def async_set_temperature(self, **kwargs):
         """Set new target temperature."""
-        temperature = kwargs.get(ATTR_TEMPERATURE)
-        if temperature is None:
+        if (temperature := kwargs.get(ATTR_TEMPERATURE)) is None:
             return
         await self.coordinator.mill_data_connection.set_heater_temp(
             self._id, int(temperature)
