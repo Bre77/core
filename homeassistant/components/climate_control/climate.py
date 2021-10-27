@@ -64,10 +64,10 @@ class ClimateControlClimateEntity(RestoreEntity, ClimateEntity):
     """Climate Control Climate Entity."""
 
     _attr_hvac_modes = HVAC_MODES
+    _attr_hvac_mode = HVAC_MODE_OFF
     _attr_supported_features = SUPPORT_TARGET_TEMPERATURE
     _attr_temperature_unit = TEMP_CELSIUS
     _attr_target_temperature: float
-    _attr_hvac_mode: str
 
     _sensor_delta: float
     _sensor_duration: float
@@ -203,8 +203,6 @@ class ClimateControlClimateEntity(RestoreEntity, ClimateEntity):
         # change in degrees
         change_required = self._attr_target_temperature - self._attr_current_temperature
         action = (change_required - future) * mode
-        print(rate_of_change, future, change_required, action, position)
-
         position = round(self._cover_position + (action * 5))
         print(rate_of_change, future, change_required, action, position)
         # print(change, position, self._cover_entity_id, min(100, max(0, position)))
