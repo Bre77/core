@@ -7,7 +7,6 @@ from datetime import timedelta
 import functools
 import logging
 import os
-import re
 import time
 from typing import TYPE_CHECKING
 
@@ -49,8 +48,8 @@ MIN_VERSION_MARIA_DB = AwesomeVersion("10.3.0", AwesomeVersionStrategy.SIMPLEVER
 MIN_VERSION_MARIA_DB_ROWNUM = AwesomeVersion("10.2.0", AwesomeVersionStrategy.SIMPLEVER)
 MIN_VERSION_MYSQL = AwesomeVersion("8.0.0", AwesomeVersionStrategy.SIMPLEVER)
 MIN_VERSION_MYSQL_ROWNUM = AwesomeVersion("5.8.0", AwesomeVersionStrategy.SIMPLEVER)
-MIN_VERSION_PGSQL = AwesomeVersion(120000, AwesomeVersionStrategy.BUILDVER)
-MIN_VERSION_SQLITE = AwesomeVersion("3.32.1", AwesomeVersionStrategy.SIMPLEVER)
+MIN_VERSION_PGSQL = AwesomeVersion("12.0", AwesomeVersionStrategy.SIMPLEVER)
+MIN_VERSION_SQLITE = AwesomeVersion("3.31.0", AwesomeVersionStrategy.SIMPLEVER)
 MIN_VERSION_SQLITE_ROWNUM = AwesomeVersion("3.25.0", AwesomeVersionStrategy.SIMPLEVER)
 
 # This is the maximum time after the recorder ends the session
@@ -296,7 +295,7 @@ def _warn_unsupported_dialect(dialect):
         "Starting with Home Assistant 2022.2 this will prevent the recorder from "
         "starting. Please migrate your database to a supported software before then",
         dialect,
-        "MariaDB ≥ 10.3, MySQL ≥ 8.0, PostgreSQL ≥ 12, SQLite ≥ 3.32.1",
+        "MariaDB ≥ 10.3, MySQL ≥ 8.0, PostgreSQL ≥ 12, SQLite ≥ 3.31.0",
     )
 
 
@@ -322,20 +321,6 @@ def _extract_version_from_server_response(server_response):
         )
     except AwesomeVersionException:
         return None
-
-
-def _pgsql_numerical_version_to_string(version_num):
-    """Convert numerical PostgreSQL version to string."""
-    if version_num < 100000:
-        major = version_num // 10000
-        minor = version_num % 10000 // 100
-        patch = version_num % 100
-        return f"{major}.{minor}.{patch}"
-
-    # version 10+
-    major = version_num // 10000
-    patch = version_num % 10000
-    return f"{major}.{patch}"
 
 
 def setup_connection_for_dialect(
@@ -379,7 +364,7 @@ def setup_connection_for_dialect(
             result = query_on_connection(dbapi_connection, "SELECT VERSION()")
             version_string = result[0][0]
             version = _extract_version_from_server_response(version_string)
-            is_maria_db = re.search("MariaDb", version_string, re.IGNORECASE)
+            is_maria_db = "mariadb" in version_string.lower()
 
             if is_maria_db:
                 if version and version < MIN_VERSION_MARIA_DB_ROWNUM:
@@ -403,21 +388,12 @@ def setup_connection_for_dialect(
     elif dialect_name == "postgresql":
         if first_connection:
             # server_version_num was added in 2006
-            result = query_on_connection(dbapi_connection, "SHOW server_version_num")
+            result = query_on_connection(dbapi_connection, "SHOW server_version")
             version_string = result[0][0]
-            try:
-                version = AwesomeVersion(
-                    version_string, AwesomeVersionStrategy.BUILDVER
-                )
-            except AwesomeVersionException:
-                version = None
+            version = _extract_version_from_server_response(version_string)
             if not version or version < MIN_VERSION_PGSQL:
-                if version:
-                    version_string = _pgsql_numerical_version_to_string(int(version))
                 _warn_unsupported_version(
-                    version_string,
-                    "PostgreSQL",
-                    _pgsql_numerical_version_to_string(int(MIN_VERSION_PGSQL)),
+                    version or version_string, "PostgreSQL", MIN_VERSION_PGSQL
                 )
 
     else:
@@ -479,3 +455,14 @@ def perodic_db_cleanups(instance: Recorder):
         _LOGGER.debug("WAL checkpoint")
         with instance.engine.connect() as connection:
             connection.execute(text("PRAGMA wal_checkpoint(TRUNCATE);"))
+
+
+def async_migration_in_progress(hass: HomeAssistant) -> bool:
+    """Determine is a migration is in progress.
+
+    This is a thin wrapper that allows us to change
+    out the implementation later.
+    """
+    if DATA_INSTANCE not in hass.data:
+        return False
+    return hass.data[DATA_INSTANCE].migration_in_progress

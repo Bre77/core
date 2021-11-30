@@ -458,7 +458,9 @@ class EntityPlatform:
             device_id = None
 
             if config_entry_id is not None and device_info is not None:
-                processed_dev_info = {"config_entry_id": config_entry_id}
+                processed_dev_info: dict[str, str | None] = {
+                    "config_entry_id": config_entry_id
+                }
                 for key in (
                     "connections",
                     "default_manufacturer",
@@ -477,18 +479,21 @@ class EntityPlatform:
                         processed_dev_info[key] = device_info[key]  # type: ignore[misc]
 
                 if "configuration_url" in device_info:
-                    configuration_url = str(device_info["configuration_url"])
-                    if urlparse(configuration_url).scheme in [
-                        "http",
-                        "https",
-                        "homeassistant",
-                    ]:
-                        processed_dev_info["configuration_url"] = configuration_url
+                    if device_info["configuration_url"] is None:
+                        processed_dev_info["configuration_url"] = None
                     else:
-                        _LOGGER.warning(
-                            "Ignoring invalid device configuration_url '%s'",
-                            configuration_url,
-                        )
+                        configuration_url = str(device_info["configuration_url"])
+                        if urlparse(configuration_url).scheme in [
+                            "http",
+                            "https",
+                            "homeassistant",
+                        ]:
+                            processed_dev_info["configuration_url"] = configuration_url
+                        else:
+                            _LOGGER.warning(
+                                "Ignoring invalid device configuration_url '%s'",
+                                configuration_url,
+                            )
 
                 try:
                     device = device_registry.async_get_or_create(**processed_dev_info)  # type: ignore[arg-type]
@@ -504,18 +509,18 @@ class EntityPlatform:
                 self.domain,
                 self.platform_name,
                 entity.unique_id,
-                suggested_object_id=suggested_object_id,
+                capabilities=entity.capability_attributes,
                 config_entry=self.config_entry,
                 device_id=device_id,
-                known_object_ids=self.entities.keys(),
                 disabled_by=disabled_by,
-                capabilities=entity.capability_attributes,
-                supported_features=entity.supported_features,
-                device_class=entity.device_class,
-                unit_of_measurement=entity.unit_of_measurement,
-                original_name=entity.name,
-                original_icon=entity.icon,
                 entity_category=entity.entity_category,
+                known_object_ids=self.entities.keys(),
+                original_device_class=entity.device_class,
+                original_icon=entity.icon,
+                original_name=entity.name,
+                suggested_object_id=suggested_object_id,
+                supported_features=entity.supported_features,
+                unit_of_measurement=entity.unit_of_measurement,
             )
 
             entity.registry_entry = entry

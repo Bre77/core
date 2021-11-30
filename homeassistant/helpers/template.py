@@ -16,6 +16,7 @@ import math
 from operator import attrgetter
 import random
 import re
+import statistics
 import sys
 from typing import Any, cast
 from urllib.parse import urlencode as urllib_urlencode
@@ -51,7 +52,12 @@ from homeassistant.helpers import (
 )
 from homeassistant.helpers.typing import TemplateVarsType
 from homeassistant.loader import bind_hass
-from homeassistant.util import convert, dt as dt_util, location as loc_util
+from homeassistant.util import (
+    convert,
+    convert_to_int,
+    dt as dt_util,
+    location as loc_util,
+)
 from homeassistant.util.async_ import run_callback_threadsafe
 from homeassistant.util.thread import ThreadWithException
 
@@ -831,12 +837,7 @@ def _get_state_if_valid(hass: HomeAssistant, entity_id: str) -> TemplateState | 
 
 
 def _get_state(hass: HomeAssistant, entity_id: str) -> TemplateState | None:
-    state_obj = _get_template_state_from_state(
-        hass, entity_id, hass.states.get(entity_id)
-    )
-    if state_obj is None:
-        _LOGGER.warning("Template warning: entity '%s' doesn't exist", entity_id)
-    return state_obj
+    return _get_template_state_from_state(hass, entity_id, hass.states.get(entity_id))
 
 
 def _get_template_state_from_state(
@@ -861,7 +862,7 @@ def _resolve_state(
     return None
 
 
-def result_as_boolean(template_result: str | None) -> bool:
+def result_as_boolean(template_result: Any | None) -> bool:
     """Convert the template result to a boolean.
 
     True/not 0/'1'/'true'/'yes'/'on'/'enable' are considered truthy
@@ -890,8 +891,7 @@ def expand(hass: HomeAssistant, *args: Any) -> Iterable[State]:
         entity = search.pop()
         if isinstance(entity, str):
             entity_id = entity
-            entity = _get_state(hass, entity)
-            if entity is None:
+            if (entity := _get_state(hass, entity)) is None:
                 continue
         elif isinstance(entity, State):
             entity_id = entity.entity_id
@@ -919,6 +919,38 @@ def device_entities(hass: HomeAssistant, _device_id: str) -> Iterable[str]:
     entity_reg = entity_registry.async_get(hass)
     entries = entity_registry.async_entries_for_device(entity_reg, _device_id)
     return [entry.entity_id for entry in entries]
+
+
+def integration_entities(hass: HomeAssistant, entry_name: str) -> Iterable[str]:
+    """
+    Get entity ids for entities tied to an integration/domain.
+
+    Provide entry_name as domain to get all entity id's for a integration/domain
+    or provide a config entry title for filtering between instances of the same integration.
+    """
+    # first try if this is a config entry match
+    conf_entry = next(
+        (
+            entry.entry_id
+            for entry in hass.config_entries.async_entries()
+            if entry.title == entry_name
+        ),
+        None,
+    )
+    if conf_entry is not None:
+        ent_reg = entity_registry.async_get(hass)
+        entries = entity_registry.async_entries_for_config_entry(ent_reg, conf_entry)
+        return [entry.entity_id for entry in entries]
+
+    # fallback to just returning all entities for a domain
+    # pylint: disable=import-outside-toplevel
+    from homeassistant.helpers.entity import entity_sources
+
+    return [
+        entity_id
+        for entity_id, info in entity_sources(hass).items()
+        if info["domain"] == entry_name
+    ]
 
 
 def device_id(hass: HomeAssistant, entity_id_or_device_name: str) -> str | None:
@@ -1008,8 +1040,7 @@ def _get_area_name(area_reg: area_registry.AreaRegistry, valid_area_id: str) -> 
 def area_name(hass: HomeAssistant, lookup_value: str) -> str | None:
     """Get the area name from an area id, device id, or entity id."""
     area_reg = area_registry.async_get(hass)
-    area = area_reg.async_get_area(lookup_value)
-    if area:
+    if area := area_reg.async_get_area(lookup_value):
         return area.name
 
     dev_reg = device_registry.async_get(hass)
@@ -1230,8 +1261,7 @@ def is_state_attr(hass: HomeAssistant, entity_id: str, name: str, value: Any) ->
 
 def state_attr(hass: HomeAssistant, entity_id: str, name: str) -> Any:
     """Get a specific attribute from a state."""
-    state_obj = _get_state(hass, entity_id)
-    if state_obj is not None:
+    if (state_obj := _get_state(hass, entity_id)) is not None:
         return state_obj.attributes.get(name)
     return None
 
@@ -1437,9 +1467,7 @@ def timestamp_custom(value, date_format=DATE_STR_FORMAT, local=True, default=_SE
 def timestamp_local(value, default=_SENTINEL):
     """Filter to convert given timestamp to local date/time."""
     try:
-        return dt_util.as_local(dt_util.utc_from_timestamp(value)).strftime(
-            DATE_STR_FORMAT
-        )
+        return dt_util.as_local(dt_util.utc_from_timestamp(value)).isoformat()
     except (ValueError, TypeError):
         # If timestamp can't be converted
         if default is _SENTINEL:
@@ -1451,7 +1479,7 @@ def timestamp_local(value, default=_SENTINEL):
 def timestamp_utc(value, default=_SENTINEL):
     """Filter to convert given timestamp to UTC date/time."""
     try:
-        return dt_util.utc_from_timestamp(value).strftime(DATE_STR_FORMAT)
+        return dt_util.utc_from_timestamp(value).isoformat()
     except (ValueError, TypeError):
         # If timestamp can't be converted
         if default is _SENTINEL:
@@ -1471,6 +1499,16 @@ def forgiving_as_timestamp(value, default=_SENTINEL):
         return default
 
 
+def as_datetime(value):
+    """Filter and to convert a time string or UNIX timestamp to datetime object."""
+    try:
+        # Check for a valid UNIX timestamp string, int or float
+        timestamp = float(value)
+        return dt_util.utc_from_timestamp(timestamp)
+    except ValueError:
+        return dt_util.parse_datetime(value)
+
+
 def strptime(string, fmt, default=_SENTINEL):
     """Parse a time string to datetime."""
     try:
@@ -1487,6 +1525,24 @@ def fail_when_undefined(value):
     if isinstance(value, jinja2.Undefined):
         value()
     return value
+
+
+def average(*args: Any) -> float:
+    """
+    Filter and function to calculate the arithmetic mean of an iterable or of two or more arguments.
+
+    The parameters may be passed as an iterable or as separate arguments.
+    """
+    if len(args) == 0:
+        raise TypeError("average expected at least 1 argument, got 0")
+
+    if len(args) == 1:
+        if isinstance(args[0], Iterable):
+            return statistics.fmean(args[0])
+
+        raise TypeError(f"'{type(args[0]).__name__}' object is not iterable")
+
+    return statistics.fmean(args)
 
 
 def forgiving_float(value, default=_SENTINEL):
@@ -1511,8 +1567,15 @@ def forgiving_float_filter(value, default=_SENTINEL):
         return default
 
 
-def forgiving_int(value, default=_SENTINEL, base=10):
+def forgiving_int(value, default=_SENTINEL, base=10, little_endian=False):
     """Try to convert value to an int, and warn if it fails."""
+    if isinstance(value, bytes) and value:
+        if base != 10:
+            _LOGGER.warning(
+                "Template warning: 'int' got 'bytes' type input, ignoring base=%s parameter",
+                base,
+            )
+        return convert_to_int(value, little_endian=little_endian)
     result = jinja2.filters.do_int(value, default=default, base=base)
     if result is _SENTINEL:
         warn_no_default("int", value, value)
@@ -1520,8 +1583,15 @@ def forgiving_int(value, default=_SENTINEL, base=10):
     return result
 
 
-def forgiving_int_filter(value, default=_SENTINEL, base=10):
+def forgiving_int_filter(value, default=_SENTINEL, base=10, little_endian=False):
     """Try to convert value to an int, and warn if it fails."""
+    if isinstance(value, bytes) and value:
+        if base != 10:
+            _LOGGER.warning(
+                "Template warning: 'int' got 'bytes' type input, ignoring base=%s parameter",
+                base,
+            )
+        return convert_to_int(value, little_endian=little_endian)
     result = jinja2.filters.do_int(value, default=default, base=base)
     if result is _SENTINEL:
         warn_no_default("int", value, 0)
@@ -1578,14 +1648,18 @@ def regex_findall(value, find="", ignorecase=False):
     return re.findall(find, value, flags)
 
 
-def bitwise_and(first_value, second_value):
+def bitwise_and(first_value, second_value, little_endian=False):
     """Perform a bitwise and operation."""
-    return first_value & second_value
+    return convert_to_int(first_value, little_endian=little_endian) & convert_to_int(
+        second_value, little_endian=little_endian
+    )
 
 
-def bitwise_or(first_value, second_value):
+def bitwise_or(first_value, second_value, little_endian=False):
     """Perform a bitwise or operation."""
-    return first_value | second_value
+    return convert_to_int(first_value, little_endian=little_endian) | convert_to_int(
+        second_value, little_endian=little_endian
+    )
 
 
 def base64_encode(value):
@@ -1612,9 +1686,9 @@ def from_json(value):
     return json.loads(value)
 
 
-def to_json(value):
+def to_json(value, ensure_ascii=True):
     """Convert an object to a JSON string."""
-    return json.dumps(value)
+    return json.dumps(value, ensure_ascii=ensure_ascii)
 
 
 @pass_context
@@ -1629,16 +1703,16 @@ def random_every_time(context, values):
 
 def today_at(time_str: str = "") -> datetime:
     """Record fetching now where the time has been replaced with value."""
-    start = dt_util.start_of_local_day(datetime.now())
+    today = dt_util.start_of_local_day()
+    if not time_str:
+        return today
 
-    dttime = start.time() if time_str == "" else dt_util.parse_time(time_str)
+    if (time_today := dt_util.parse_time(time_str)) is None:
+        raise ValueError(
+            f"could not convert {type(time_str).__name__} to datetime: '{time_str}'"
+        )
 
-    if dttime:
-        return datetime.combine(start.date(), dttime, tzinfo=dt_util.DEFAULT_TIME_ZONE)
-
-    raise ValueError(
-        f"could not convert {type(time_str).__name__} to datetime: '{time_str}'"
-    )
+    return datetime.combine(today, time_today, today.tzinfo)
 
 
 def relative_time(value):
@@ -1748,7 +1822,7 @@ class TemplateEnvironment(ImmutableSandboxedEnvironment):
         self.filters["atan"] = arc_tangent
         self.filters["atan2"] = arc_tangent2
         self.filters["sqrt"] = square_root
-        self.filters["as_datetime"] = dt_util.parse_datetime
+        self.filters["as_datetime"] = as_datetime
         self.filters["as_timestamp"] = forgiving_as_timestamp
         self.filters["today_at"] = today_at
         self.filters["as_local"] = dt_util.as_local
@@ -1758,6 +1832,7 @@ class TemplateEnvironment(ImmutableSandboxedEnvironment):
         self.filters["to_json"] = to_json
         self.filters["from_json"] = from_json
         self.filters["is_defined"] = fail_when_undefined
+        self.filters["average"] = average
         self.filters["max"] = max
         self.filters["min"] = min
         self.filters["random"] = random_every_time
@@ -1788,7 +1863,7 @@ class TemplateEnvironment(ImmutableSandboxedEnvironment):
         self.globals["atan"] = arc_tangent
         self.globals["atan2"] = arc_tangent2
         self.globals["float"] = forgiving_float
-        self.globals["as_datetime"] = dt_util.parse_datetime
+        self.globals["as_datetime"] = as_datetime
         self.globals["as_local"] = dt_util.as_local
         self.globals["as_timestamp"] = forgiving_as_timestamp
         self.globals["today_at"] = today_at
@@ -1796,6 +1871,7 @@ class TemplateEnvironment(ImmutableSandboxedEnvironment):
         self.globals["timedelta"] = timedelta
         self.globals["strptime"] = strptime
         self.globals["urlencode"] = urlencode
+        self.globals["average"] = average
         self.globals["max"] = max
         self.globals["min"] = min
         self.globals["is_number"] = is_number
@@ -1839,6 +1915,11 @@ class TemplateEnvironment(ImmutableSandboxedEnvironment):
 
         self.globals["area_devices"] = hassfunction(area_devices)
         self.filters["area_devices"] = pass_context(self.globals["area_devices"])
+
+        self.globals["integration_entities"] = hassfunction(integration_entities)
+        self.filters["integration_entities"] = pass_context(
+            self.globals["integration_entities"]
+        )
 
         if limited:
             # Only device_entities is available to limited templates, mark other

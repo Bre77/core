@@ -13,7 +13,6 @@ import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
-    ATTR_ATTRIBUTION,
     CONF_DEVICE_ID,
     CONF_IP_ADDRESS,
     CONF_PASSWORD,
@@ -22,8 +21,12 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ConfigEntryNotReady
-from homeassistant.helpers import aiohttp_client, config_validation as cv
-import homeassistant.helpers.device_registry as dr
+from homeassistant.helpers import (
+    aiohttp_client,
+    config_validation as cv,
+    device_registry as dr,
+    entity_registry as er,
+)
 from homeassistant.helpers.entity import DeviceInfo, EntityDescription
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
@@ -54,6 +57,14 @@ DEFAULT_UPDATE_INTERVAL = timedelta(seconds=15)
 CONFIG_SCHEMA = cv.deprecated(DOMAIN)
 
 PLATFORMS = ["binary_sensor", "sensor", "switch"]
+
+UPDATE_INTERVALS = {
+    DATA_PROVISION_SETTINGS: timedelta(minutes=1),
+    DATA_PROGRAMS: timedelta(seconds=30),
+    DATA_RESTRICTIONS_CURRENT: timedelta(minutes=1),
+    DATA_RESTRICTIONS_UNIVERSAL: timedelta(minutes=1),
+    DATA_ZONES: timedelta(seconds=15),
+}
 
 # Constants expected by the RainMachine API for Service Data
 CONF_CONDITION = "condition"
@@ -127,9 +138,11 @@ def async_get_controller_for_service_call(
     device_registry = dr.async_get(hass)
 
     if device_entry := device_registry.async_get(device_id):
-        for entry_id in device_entry.config_entries:
-            if controller := hass.data[DOMAIN][entry_id][DATA_CONTROLLER]:
-                return cast(Controller, controller)
+        for entry in hass.config_entries.async_entries(DOMAIN):
+            if entry.entry_id in device_entry.config_entries:
+                return cast(
+                    Controller, hass.data[DOMAIN][entry.entry_id][DATA_CONTROLLER]
+                )
 
     raise ValueError(f"No controller for device ID: {device_id}")
 
@@ -156,9 +169,6 @@ async def async_update_programs_and_zones(
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up RainMachine as config entry."""
-    hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = {}
-
     websession = aiohttp_client.async_get_clientsession(hass)
     client = Client(session=websession)
 
@@ -174,9 +184,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # regenmaschine can load multiple controllers at once, but we only grab the one
     # we loaded above:
-    controller = hass.data[DOMAIN][entry.entry_id][
-        DATA_CONTROLLER
-    ] = get_client_controller(client)
+    controller = get_client_controller(client)
 
     entry_updates: dict[str, Any] = {}
     if not entry.unique_id or is_ip_address(entry.unique_id):
@@ -228,13 +236,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass,
             LOGGER,
             name=f'{controller.name} ("{api_category}")',
-            update_interval=DEFAULT_UPDATE_INTERVAL,
+            update_interval=UPDATE_INTERVALS[api_category],
             update_method=partial(async_update, api_category),
         )
         controller_init_tasks.append(coordinator.async_refresh())
 
     await asyncio.gather(*controller_init_tasks)
-    hass.data[DOMAIN][entry.entry_id][DATA_COORDINATOR] = coordinators
+
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][entry.entry_id] = {
+        DATA_CONTROLLER: controller,
+        DATA_COORDINATOR: coordinators,
+    }
 
     hass.config_entries.async_setup_platforms(entry, PLATFORMS)
 
@@ -314,6 +327,38 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unload_ok
 
 
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate an old config entry."""
+    version = entry.version
+
+    LOGGER.debug("Migrating from version %s", version)
+
+    # 1 -> 2: Update unique IDs to be consistent across platform (including removing
+    # the silly removal of colons in the MAC address that was added originally):
+    if version == 1:
+        version = entry.version = 2
+
+        ent_reg = er.async_get(hass)
+        for entity_entry in [
+            e for e in ent_reg.entities.values() if e.config_entry_id == entry.entry_id
+        ]:
+            unique_id_pieces = entity_entry.unique_id.split("_")
+            old_mac = unique_id_pieces[0]
+            new_mac = ":".join(old_mac[i : i + 2] for i in range(0, len(old_mac), 2))
+            unique_id_pieces[0] = new_mac
+
+            if entity_entry.entity_id.startswith("switch"):
+                unique_id_pieces[1] = unique_id_pieces[1][11:].lower()
+
+            ent_reg.async_update_entity(
+                entity_entry.entity_id, new_unique_id="_".join(unique_id_pieces)
+            )
+
+    LOGGER.info("Migration to version %s successful", version)
+
+    return True
+
+
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle an options update."""
     await hass.config_entries.async_reload(entry.entry_id)
@@ -344,12 +389,9 @@ class RainMachineEntity(CoordinatorEntity):
             ),
             sw_version=controller.software_version,
         )
-        self._attr_extra_state_attributes = {ATTR_ATTRIBUTION: DEFAULT_ATTRIBUTION}
+        self._attr_extra_state_attributes = {}
         self._attr_name = f"{controller.name} {description.name}"
-        # The colons are removed from the device MAC simply because that value
-        # (unnecessarily) makes up the existing unique ID formula and we want to avoid
-        # a breaking change:
-        self._attr_unique_id = f"{controller.mac.replace(':', '')}_{description.key}"
+        self._attr_unique_id = f"{controller.mac}_{description.key}"
         self._controller = controller
         self.entity_description = description
 
