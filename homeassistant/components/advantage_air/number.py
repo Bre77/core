@@ -25,9 +25,9 @@ class AdvantageAirTimeTo(AdvantageAirEntity, NumberEntity):
 
     _attr_unit_of_measurement = TIME_MINUTES
     _attr_entity_category = EntityCategory.CONFIG
-    _attr_step = 1
-    _attr_min_value = 0
-    _attr_max_value = 720
+    _attr_native_step = 1
+    _attr_native_min_value = 0
+    _attr_native_max_value = 720
 
     def __init__(self, instance: str, ac_key: str, action: str) -> None:
         """Initialize the Advantage Air timer number."""
@@ -39,7 +39,7 @@ class AdvantageAirTimeTo(AdvantageAirEntity, NumberEntity):
         )
 
     @property
-    def value(self):
+    def native_value(self):
         """Return the current value."""
         return self._ac.get(self._time_key)
 
@@ -50,6 +50,6 @@ class AdvantageAirTimeTo(AdvantageAirEntity, NumberEntity):
             return "mdi:timer-outline"
         return "mdi:timer-off-outline"
 
-    async def async_set_value(self, value: float):
+    async def async_set_native_value(self, value: float):
         """Set the timer value."""
         await self.async_change({self.ac_key: {"info": {self._time_key: int(value)}}})
