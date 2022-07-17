@@ -1,5 +1,7 @@
 """Switch platform for Advantage Air integration."""
-from homeassistant.components.switch import SwitchEntity
+from typing import Any
+
+from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -9,9 +11,10 @@ from .const import (
     ADVANTAGE_AIR_COORDINATOR,
     ADVANTAGE_AIR_STATE_OFF,
     ADVANTAGE_AIR_STATE_ON,
+    ADVANTAGE_AIR_THINGS,
     DOMAIN as ADVANTAGE_AIR_DOMAIN,
 )
-from .entity import AdvantageAirAirconEntity
+from .entity import AdvantageAirAirconEntity, AdvantageAirThing
 
 
 async def async_setup_entry(
@@ -30,6 +33,15 @@ async def async_setup_entry(
         ):
             if ac_device["info"]["freshAirStatus"] != "none":
                 entities.append(AdvantageAirFreshAir(instance, ac_key))
+
+    if ADVANTAGE_AIR_THINGS in instance[ADVANTAGE_AIR_COORDINATOR].data:
+        for thing in (
+            instance[ADVANTAGE_AIR_COORDINATOR]
+            .data[ADVANTAGE_AIR_THINGS]["things"]
+            .values()
+        ):
+            if thing["channelDipState"] == 8:
+                entities.append(AdvantageAirRelay(instance, thing))
     async_add_entities(entities)
 
 
@@ -62,3 +74,17 @@ class AdvantageAirFreshAir(AdvantageAirAirconEntity, SwitchEntity):
         await self.async_set_aircon(
             {self.ac_key: {"info": {"freshAirStatus": ADVANTAGE_AIR_STATE_OFF}}}
         )
+
+
+class AdvantageAirRelay(AdvantageAirThing, SwitchEntity):
+    """Representation of Advantage Air Thing."""
+
+    _attr_device_class = SwitchDeviceClass.SWITCH
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn the thing on."""
+        await self.async_set_thing({"id": self._id, "state": ADVANTAGE_AIR_STATE_ON})
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn the thing off."""
+        await self.async_set_thing({"id": self._id, "state": ADVANTAGE_AIR_STATE_OFF})

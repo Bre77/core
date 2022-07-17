@@ -15,6 +15,7 @@ from .const import (
     ADVANTAGE_AIR_RETRY,
     ADVANTAGE_AIR_SET_AIRCON,
     ADVANTAGE_AIR_SET_LIGHT,
+    ADVANTAGE_AIR_SET_THING,
     DOMAIN,
 )
 
@@ -74,6 +75,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ADVANTAGE_AIR_COORDINATOR: coordinator,
         ADVANTAGE_AIR_SET_AIRCON: error_handle_factory(api.aircon.async_set),
         ADVANTAGE_AIR_SET_LIGHT: error_handle_factory(api.lights.async_set),
+        ADVANTAGE_AIR_SET_THING: error_handle_factory(api.things.async_set),
     }
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
