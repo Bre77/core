@@ -24,7 +24,7 @@ class AdvantageAirEntity(CoordinatorEntity):
 
 
 class AdvantageAirAirconEntity(AdvantageAirEntity):
-    """Parent class for Advantage Air Aircon entities."""
+    """Parent class for Advantage Air MyAir entities."""
 
     def __init__(self, instance, ac_key, zone_key=None):
         """Initialize common aspects of an Advantage Air Aircon entity."""
