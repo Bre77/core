@@ -27,6 +27,7 @@ PLATFORMS = [
     Platform.SENSOR,
     Platform.SWITCH,
     Platform.LIGHT,
+    Platform.UPDATE,
 ]
 
 _LOGGER = logging.getLogger(__name__)
