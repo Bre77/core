@@ -68,6 +68,6 @@ class AdvantageAirThingEntity(AdvantageAirEntity):
             via_device=(DOMAIN, self.coordinator.data["system"]["rid"]),
             identifiers={(DOMAIN, self._attr_unique_id)},
             manufacturer="Advantage Air",
-            model=self.coordinator.data["system"]["sysType"],
+            model="MyPlace",
             name=thing["name"],
         )
