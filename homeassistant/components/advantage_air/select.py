@@ -49,7 +49,7 @@ class AdvantageAirMyZone(AdvantageAirEntity, SelectEntity):
 
     @property
     def current_option(self):
-        """Return the current MyZone."""
+        """Return the fresh air status."""
         return self._number_to_name[self._ac["myZone"]]
 
     async def async_select_option(self, option):
