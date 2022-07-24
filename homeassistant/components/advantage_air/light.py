@@ -6,13 +6,13 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     ADVANTAGE_AIR_STATE_OFF,
     ADVANTAGE_AIR_STATE_ON,
     DOMAIN as ADVANTAGE_AIR_DOMAIN,
 )
+from .entity import AdvantageAirEntity
 
 
 async def async_setup_entry(
@@ -34,7 +34,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class AdvantageAirLight(CoordinatorEntity, LightEntity):
+class AdvantageAirLight(AdvantageAirEntity, LightEntity):
     """Representation of Advantage Air Light."""
 
     _attr_has_entity_name = True
@@ -42,10 +42,10 @@ class AdvantageAirLight(CoordinatorEntity, LightEntity):
 
     def __init__(self, instance, light):
         """Initialize an Advantage Air Light."""
-        super().__init__(instance["coordinator"])
+        super().__init__(instance)
         self.async_change = instance["lights"]
         self._id = light["id"]
-        self._attr_unique_id = f'{self.coordinator.data["system"]["rid"]}-{self._id}'
+        self._attr_unique_id += f"-{self._id}"
         self._attr_device_info = DeviceInfo(
             identifiers={(ADVANTAGE_AIR_DOMAIN, self._attr_unique_id)},
             via_device=(ADVANTAGE_AIR_DOMAIN, self.coordinator.data["system"]["rid"]),
