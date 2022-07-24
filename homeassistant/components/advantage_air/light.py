@@ -6,11 +6,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import (
-    ADVANTAGE_AIR_STATE_OFF,
-    ADVANTAGE_AIR_STATE_ON,
-    DOMAIN as ADVANTAGE_AIR_DOMAIN,
-)
+from .const import ADVANTAGE_AIR_STATE_ON, DOMAIN as ADVANTAGE_AIR_DOMAIN
 from .entity import AdvantageAirThingEntity
 
 
@@ -51,14 +47,6 @@ class AdvantageAirLight(AdvantageAirThingEntity, LightEntity):
     def is_on(self) -> bool:
         """Return if the light is on."""
         return self._light["state"] == ADVANTAGE_AIR_STATE_ON
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn the light on."""
-        await self.async_change({"id": self._id, "state": ADVANTAGE_AIR_STATE_ON})
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn the light off."""
-        await self.async_change({"id": self._id, "state": ADVANTAGE_AIR_STATE_OFF})
 
 
 class AdvantageAirLightDimmable(AdvantageAirLight):

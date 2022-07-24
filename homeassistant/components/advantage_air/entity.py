@@ -1,9 +1,11 @@
 """Advantage Air parent entity class."""
 
+from typing import Any
+
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import ADVANTAGE_AIR_STATE_OFF, ADVANTAGE_AIR_STATE_ON, DOMAIN
 
 
 class AdvantageAirEntity(CoordinatorEntity):
@@ -71,3 +73,21 @@ class AdvantageAirThingEntity(AdvantageAirEntity):
             model="MyPlace",
             name=thing["name"],
         )
+
+    @property
+    def _thing(self):
+        """Return the light object."""
+        return self.coordinator.data["myThings"]["thing"][self._id]
+
+    @property
+    def is_on(self):
+        """Return the fresh air status."""
+        return self._thing["value"] > 0
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn the light on."""
+        await self.async_change({"id": self._id, "state": ADVANTAGE_AIR_STATE_ON})
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn the light off."""
+        await self.async_change({"id": self._id, "state": ADVANTAGE_AIR_STATE_OFF})
