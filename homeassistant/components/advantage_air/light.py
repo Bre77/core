@@ -4,7 +4,6 @@ from typing import Any
 from homeassistant.components.light import ATTR_BRIGHTNESS, ColorMode, LightEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
@@ -12,7 +11,7 @@ from .const import (
     ADVANTAGE_AIR_STATE_ON,
     DOMAIN as ADVANTAGE_AIR_DOMAIN,
 )
-from .entity import AdvantageAirEntity
+from .entity import AdvantageAirThingEntity
 
 
 async def async_setup_entry(
@@ -34,25 +33,14 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class AdvantageAirLight(AdvantageAirEntity, LightEntity):
+class AdvantageAirLight(AdvantageAirThingEntity, LightEntity):
     """Representation of Advantage Air Light."""
 
-    _attr_has_entity_name = True
     _attr_supported_color_modes = {ColorMode.ONOFF}
 
     def __init__(self, instance, light):
         """Initialize an Advantage Air Light."""
-        super().__init__(instance)
-        self.async_change = instance["lights"]
-        self._id = light["id"]
-        self._attr_unique_id += f"-{self._id}"
-        self._attr_device_info = DeviceInfo(
-            identifiers={(ADVANTAGE_AIR_DOMAIN, self._attr_unique_id)},
-            via_device=(ADVANTAGE_AIR_DOMAIN, self.coordinator.data["system"]["rid"]),
-            manufacturer="Advantage Air",
-            model=light.get("moduleType", "Unknown"),
-            name=light["name"],
-        )
+        super().__init__(instance, light, "lights")
 
     @property
     def _light(self):
