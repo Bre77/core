@@ -43,7 +43,7 @@ class AdvantageAirLight(CoordinatorEntity, LightEntity):
     def __init__(self, instance, light):
         """Initialize an Advantage Air Light."""
         super().__init__(instance["coordinator"])
-        self.async_set_light = instance["async_set_light"]
+        self.async_change = instance["lights"]
         self._id = light["id"]
         self._attr_unique_id = f'{self.coordinator.data["system"]["rid"]}-{self._id}'
         self._attr_device_info = DeviceInfo(
@@ -66,11 +66,11 @@ class AdvantageAirLight(CoordinatorEntity, LightEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the light on."""
-        await self.async_set_light({"id": self._id, "state": ADVANTAGE_AIR_STATE_ON})
+        await self.async_change({"id": self._id, "state": ADVANTAGE_AIR_STATE_ON})
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the light off."""
-        await self.async_set_light({"id": self._id, "state": ADVANTAGE_AIR_STATE_OFF})
+        await self.async_change({"id": self._id, "state": ADVANTAGE_AIR_STATE_OFF})
 
 
 class AdvantageAirLightDimmable(AdvantageAirLight):
@@ -88,4 +88,4 @@ class AdvantageAirLightDimmable(AdvantageAirLight):
         data = {"id": self._id, "state": ADVANTAGE_AIR_STATE_ON}
         if ATTR_BRIGHTNESS in kwargs:
             data["value"] = round(kwargs[ATTR_BRIGHTNESS] * 100 / 255)
-        await self.async_set_light(data)
+        await self.async_change(data)
