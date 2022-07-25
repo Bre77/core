@@ -5,7 +5,7 @@ from typing import Any
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import ADVANTAGE_AIR_STATE_OFF, ADVANTAGE_AIR_STATE_ON, DOMAIN
+from .const import DOMAIN
 
 
 class AdvantageAirEntity(CoordinatorEntity):
@@ -59,10 +59,10 @@ class AdvantageAirZoneEntity(AdvantageAirAcEntity):
 class AdvantageAirThingEntity(AdvantageAirEntity):
     """Parent class for Advantage Air Things Entities."""
 
-    def __init__(self, instance, thing, endpoint="things"):
+    def __init__(self, instance, thing):
         """Initialize common aspects of an Advantage Air Things entity."""
         super().__init__(instance)
-        self.async_change = instance[endpoint]
+        self.async_change = instance["things"]
         self._id = thing["id"]
         self._attr_unique_id += f"-{self._id}"
 
@@ -75,19 +75,19 @@ class AdvantageAirThingEntity(AdvantageAirEntity):
         )
 
     @property
-    def _thing(self):
+    def _data(self):
         """Return the light object."""
         return self.coordinator.data["myThings"]["thing"][self._id]
 
     @property
     def is_on(self):
         """Return the fresh air status."""
-        return self._thing["value"] > 0
+        return self._data["value"] > 0
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the light on."""
-        await self.async_change({"id": self._id, "state": ADVANTAGE_AIR_STATE_ON})
+        await self.async_change({"id": self._id, "value": 100})
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the light off."""
-        await self.async_change({"id": self._id, "state": ADVANTAGE_AIR_STATE_OFF})
+        await self.async_change({"id": self._id, "value": 0})

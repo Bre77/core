@@ -28,7 +28,7 @@ async def async_setup_entry(
                 entities.append(AdvantageAirFreshAir(instance, ac_key))
     if "MyThings" in instance["coordinator"].data:
         for thing in instance["coordinator"].data["MyThings"]["things"].values():
-            if thing["channelDipState"] == 8:
+            if thing["channelDipState"] == 8:  # 8 = Other relay
                 entities.append(AdvantageAirRelay(instance, thing))
     async_add_entities(entities)
 
