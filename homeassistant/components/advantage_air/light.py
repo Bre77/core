@@ -30,7 +30,7 @@ async def async_setup_entry(
                 entities.append(AdvantageAirLight(instance, light))
             else:
                 entities.append(AdvantageAirLightDimmable(instance, light))
-    if "MyThings" in instance["coordinator"].data:
+    if "myThings" in instance["coordinator"].data:
         for thing in instance["coordinator"].data["myThings"]["things"].values():
             if thing["channelDipState"] == 4:  # 4 = "Light (on/off)""
                 entities.append(AdvantageAirThingLight(instance, thing))
@@ -87,13 +87,13 @@ class AdvantageAirLightDimmable(AdvantageAirLight):
 
 
 class AdvantageAirThingLight(AdvantageAirThingEntity, LightEntity):
-    """Representation of Advantage Air Light controlled by MyThings."""
+    """Representation of Advantage Air Light controlled by myThings."""
 
     _attr_supported_color_modes = {ColorMode.ONOFF}
 
 
 class AdvantageAirThingLightDimmable(AdvantageAirThingEntity, LightEntity):
-    """Representation of Advantage Air Dimmable Light controlled by MyThings."""
+    """Representation of Advantage Air Dimmable Light controlled by myThings."""
 
     _attr_supported_color_modes = {ColorMode.ONOFF, ColorMode.BRIGHTNESS}
 
