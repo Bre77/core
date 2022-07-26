@@ -76,18 +76,18 @@ class AdvantageAirThingEntity(AdvantageAirEntity):
 
     @property
     def _data(self):
-        """Return the light object."""
+        """Return the thing data."""
         return self.coordinator.data["myThings"]["thing"][self._id]
 
     @property
     def is_on(self):
-        """Return the fresh air status."""
+        """Return if the thing is considered on."""
         return self._data["value"] > 0
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        """Turn the light on."""
+        """Turn the thing on."""
         await self.async_change({"id": self._id, "value": 100})
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        """Turn the light off."""
+        """Turn the thing off."""
         await self.async_change({"id": self._id, "value": 0})
