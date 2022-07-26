@@ -77,7 +77,7 @@ class AdvantageAirThingEntity(AdvantageAirEntity):
     @property
     def _data(self):
         """Return the thing data."""
-        return self.coordinator.data["myThings"]["thing"][self._id]
+        return self.coordinator.data["myThings"]["things"][self._id]
 
     @property
     def is_on(self):

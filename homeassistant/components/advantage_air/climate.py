@@ -196,7 +196,7 @@ class AdvantageAirAC(AdvantageAirAcEntity, ClimateEntity):
         """Return the temperature heat mode is enabled."""
         return self._ac.get(ADVANTAGE_AIR_HEAT_TARGET, 20)
 
-    async def async_set_hvac_mode(self, hvac_mode) -> None:
+    async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set the HVAC Mode and State."""
         if hvac_mode == HVACMode.OFF:
             await self.async_change(

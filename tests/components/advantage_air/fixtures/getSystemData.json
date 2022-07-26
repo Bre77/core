@@ -220,6 +220,74 @@
       }
     }
   },
+  "myThings": {
+    "things": {
+      "200": {
+        "buttonType": "upDown",
+        "channelDipState": 0,
+        "dimPercent": 0,
+        "id": "200",
+        "name": "Unused",
+        "value": 100
+      },
+      "201": {
+        "buttonType": "upDown",
+        "channelDipState": 1,
+        "dimPercent": 0,
+        "id": "201",
+        "name": "Blind 1",
+        "value": 100
+      },
+      "202": {
+        "buttonType": "upDown",
+        "channelDipState": 2,
+        "dimPercent": 0,
+        "id": "202",
+        "name": "Blind 2",
+        "value": 100
+      },
+      "203": {
+        "buttonType": "upDown",
+        "channelDipState": 3,
+        "dimPercent": 0,
+        "id": "203",
+        "name": "Garage",
+        "value": 0
+      },
+      "204": {
+        "buttonType": "upDown",
+        "channelDipState": 4,
+        "dimPercent": 0,
+        "id": "204",
+        "name": "Light Binary",
+        "value": 100
+      },
+      "205": {
+        "buttonType": "upDown",
+        "channelDipState": 5,
+        "dimPercent": 0,
+        "id": "205",
+        "name": "Light Dimmable",
+        "value": 50
+      },
+      "208": {
+        "buttonType": "upDown",
+        "channelDipState": 8,
+        "dimPercent": 0,
+        "id": "208",
+        "name": "Relay",
+        "value": 100
+      },
+      "209": {
+        "buttonType": "upDown",
+        "channelDipState": 8,
+        "dimPercent": 0,
+        "id": "209",
+        "name": "Fan",
+        "value": 100
+      }
+    }
+  },
   "system": {
     "hasAircons": true,
     "hasLights": true,
