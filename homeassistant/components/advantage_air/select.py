@@ -1,4 +1,6 @@
 """Select platform for Advantage Air integration."""
+import logging
+
 from homeassistant.components.select import SelectEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -8,6 +10,7 @@ from .const import DOMAIN as ADVANTAGE_AIR_DOMAIN
 from .entity import AdvantageAirAcEntity
 
 ADVANTAGE_AIR_INACTIVE = "Inactive"
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -22,6 +25,7 @@ async def async_setup_entry(
     entities: list[SelectEntity] = []
     if "aircons" in instance["coordinator"].data:
         for ac_key in instance["coordinator"].data["aircons"]:
+            _LOGGER.debug(ac_key)
             entities.append(AdvantageAirMyZone(instance, ac_key))
     async_add_entities(entities)
 
@@ -30,17 +34,18 @@ class AdvantageAirMyZone(AdvantageAirAcEntity, SelectEntity):
     """Representation of Advantage Air MyZone control."""
 
     _attr_icon = "mdi:home-thermometer"
-    _attr_options = [ADVANTAGE_AIR_INACTIVE]
-    _number_to_name = {0: ADVANTAGE_AIR_INACTIVE}
-    _name_to_number = {ADVANTAGE_AIR_INACTIVE: 0}
     _attr_name = "MyZone"
 
     def __init__(self, instance, ac_key):
         """Initialize an Advantage Air MyZone control."""
         super().__init__(instance, ac_key)
         self._attr_unique_id += "-myzone"
+        self._attr_options = [ADVANTAGE_AIR_INACTIVE]
+        self._number_to_name = {0: ADVANTAGE_AIR_INACTIVE}
+        self._name_to_number = {ADVANTAGE_AIR_INACTIVE: 0}
 
         for zone in instance["coordinator"].data["aircons"][ac_key]["zones"].values():
+            _LOGGER.debug(zone)
             if zone["type"] > 0:
                 self._name_to_number[zone["name"]] = zone["number"]
                 self._number_to_name[zone["number"]] = zone["name"]
