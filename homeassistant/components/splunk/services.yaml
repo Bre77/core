@@ -1,0 +1,47 @@
+send:
+  name: Send HTTP Event
+  description: Send a custom payload to your Splunk HTTP Event Collector
+  fields:
+    time:
+      name: Time
+      description: The event time in UNIX epoch.
+      required: false
+      selector:
+        number:
+          unit_of_measurement: s
+    host:
+      name: Host
+      description: The host value to assign to the event data.
+      required: false
+      selector:
+        text:
+    source:
+      name: Source
+      description: The source value to assign to the event data.
+      required: false
+      selector:
+        text:
+    sourcetype:
+      name: Sourcetype
+      description: The sourcetype value to assign to the event data.
+      required: false
+      selector:
+        text:
+    index:
+      name: Index
+      description: The name of the index by which the event data is to be indexed.
+      required: false
+      selector:
+        text:
+    fields:
+      name: Fields
+      description: This key specifies a JSON object that contains a flat (not nested) list of explicit custom fields to be defined at index time.
+      required: false
+      selector:
+        object:
+    event:
+      name: Event
+      description: The event data, represented as either an object or a string.
+      required: true
+      selector:
+        object:

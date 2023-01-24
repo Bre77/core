@@ -9,6 +9,16 @@ from aiohttp import ClientConnectionError, ClientResponseError
 from hass_splunk import SplunkPayloadError, hass_splunk
 import voluptuous as vol
 
+from .const import (
+    HEC_TIME,
+    HEC_HOST,
+    HEC_SOURCE,
+    HEC_SOURCETYPE,
+    HEC_INDEX,
+    HEC_FIELDS,
+    HEC_EVENT
+)
+
 from homeassistant.const import (
     CONF_HOST,
     CONF_NAME,
@@ -36,6 +46,7 @@ DEFAULT_PORT = 8088
 DEFAULT_SSL = False
 DEFAULT_NAME = "HASS"
 
+
 CONFIG_SCHEMA = vol.Schema(
     {
         DOMAIN: vol.Schema(
@@ -51,6 +62,18 @@ CONFIG_SCHEMA = vol.Schema(
         )
     },
     extra=vol.ALLOW_EXTRA,
+)
+
+SERVICE_SCHEMA = vol.Schema(
+    {
+        vol.Optional(HEC_TIME): vol.All(cv.number, vol.Length(min=1)),
+        vol.Optional(HEC_HOST): vol.All(cv.string, vol.Length(min=1)),
+        vol.Optional(HEC_SOURCE): vol.All(cv.string, vol.Length(min=1)),
+        vol.Optional(HEC_SOURCETYPE): vol.All(cv.string, vol.Length(min=1)),
+        vol.Optional(HEC_INDEX): vol.All(cv.string, vol.Length(min=1)),
+        vol.Optional(HEC_FIELDS, default={}): dict,
+        vol.Required(HEC_FIELDS, default={}): dict,
+    }
 )
 
 
