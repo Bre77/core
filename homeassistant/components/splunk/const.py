@@ -1,0 +1,7 @@
+HEC_TIME = "time"
+HEC_HOST = "host"
+HEC_SOURCE = "source"
+HEC_SOURCETYPE = "sourcetype"
+HEC_INDEX = "index"
+HEC_FIELDS = "fields"
+HEC_EVENT = "event"

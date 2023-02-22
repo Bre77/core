@@ -9,16 +9,6 @@ from aiohttp import ClientConnectionError, ClientResponseError
 from hass_splunk import SplunkPayloadError, hass_splunk
 import voluptuous as vol
 
-from .const import (
-    HEC_TIME,
-    HEC_HOST,
-    HEC_SOURCE,
-    HEC_SOURCETYPE,
-    HEC_INDEX,
-    HEC_FIELDS,
-    HEC_EVENT
-)
-
 from homeassistant.const import (
     CONF_HOST,
     CONF_NAME,
@@ -35,6 +25,8 @@ import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entityfilter import FILTER_SCHEMA
 from homeassistant.helpers.json import JSONEncoder
 from homeassistant.helpers.typing import ConfigType
+
+from .const import HEC_FIELDS, HEC_HOST, HEC_INDEX, HEC_SOURCE, HEC_SOURCETYPE, HEC_TIME
 
 _LOGGER = logging.getLogger(__name__)
 
