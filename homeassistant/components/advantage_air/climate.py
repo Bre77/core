@@ -161,7 +161,7 @@ class AdvantageAirAC(AdvantageAirAcEntity, ClimateEntity):
 
     async def async_turn_on(self) -> None:
         """Set the HVAC State to on."""
-        await self.aircon(
+        await self.set(
             {
                 self.ac_key: {
                     "info": {
@@ -173,7 +173,7 @@ class AdvantageAirAC(AdvantageAirAcEntity, ClimateEntity):
 
     async def async_turn_off(self) -> None:
         """Set the HVAC State to off."""
-        await self.aircon(
+        await self.set(
             {
                 self.ac_key: {
                     "info": {
@@ -186,11 +186,9 @@ class AdvantageAirAC(AdvantageAirAcEntity, ClimateEntity):
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set the HVAC Mode and State."""
         if hvac_mode == HVACMode.OFF:
-            await self.aircon(
-                {self.ac_key: {"info": {"state": ADVANTAGE_AIR_STATE_OFF}}}
-            )
+            await self.set({self.ac_key: {"info": {"state": ADVANTAGE_AIR_STATE_OFF}}})
         else:
-            await self.aircon(
+            await self.set(
                 {
                     self.ac_key: {
                         "info": {
@@ -203,18 +201,16 @@ class AdvantageAirAC(AdvantageAirAcEntity, ClimateEntity):
 
     async def async_set_fan_mode(self, fan_mode: str) -> None:
         """Set the Fan Mode."""
-        await self.aircon(
-            {self.ac_key: {"info": {"fan": HASS_FAN_MODES.get(fan_mode)}}}
-        )
+        await self.set({self.ac_key: {"info": {"fan": HASS_FAN_MODES.get(fan_mode)}}})
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set the Temperature."""
         if ATTR_TEMPERATURE in kwargs:
-            await self.aircon(
+            await self.set(
                 {self.ac_key: {"info": {"setTemp": kwargs[ATTR_TEMPERATURE]}}}
             )
         if ATTR_TARGET_TEMP_LOW in kwargs and ATTR_TARGET_TEMP_HIGH in kwargs:
-            await self.aircon(
+            await self.set(
                 {
                     self.ac_key: {
                         "info": {
@@ -260,7 +256,7 @@ class AdvantageAirZone(AdvantageAirZoneEntity, ClimateEntity):
 
     async def async_turn_on(self) -> None:
         """Set the HVAC State to on."""
-        await self.aircon(
+        await self.set(
             {
                 self.ac_key: {
                     "zones": {self.zone_key: {"state": ADVANTAGE_AIR_STATE_OPEN}}
@@ -270,7 +266,7 @@ class AdvantageAirZone(AdvantageAirZoneEntity, ClimateEntity):
 
     async def async_turn_off(self) -> None:
         """Set the HVAC State to off."""
-        await self.aircon(
+        await self.set(
             {
                 self.ac_key: {
                     "zones": {self.zone_key: {"state": ADVANTAGE_AIR_STATE_CLOSE}}
@@ -288,4 +284,4 @@ class AdvantageAirZone(AdvantageAirZoneEntity, ClimateEntity):
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set the Temperature."""
         temp = kwargs.get(ATTR_TEMPERATURE)
-        await self.aircon({self.ac_key: {"zones": {self.zone_key: {"setTemp": temp}}}})
+        await self.set({self.ac_key: {"zones": {self.zone_key: {"setTemp": temp}}}})

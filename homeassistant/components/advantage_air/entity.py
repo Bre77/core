@@ -25,7 +25,7 @@ class AdvantageAirAcEntity(AdvantageAirEntity):
     def __init__(self, instance: dict[str, Any], ac_key: str) -> None:
         """Initialize common aspects of an Advantage Air ac entity."""
         super().__init__(instance)
-        self.aircon = instance["aircon"]
+        self.set = instance["aircon"]
         self.ac_key: str = ac_key
         self._attr_unique_id += f"-{ac_key}"
 
