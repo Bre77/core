@@ -123,6 +123,19 @@ class AdvantageAirAC(AdvantageAirAcEntity, ClimateEntity):
             self._attr_fan_modes += [FAN_AUTO]
 
     @property
+    def current_temperature(self) -> float | None:
+        """Return the average temperature."""
+        temps = [
+            zone["measuredTemp"]
+            for zone in self.coordinator.data["aircons"][self.ac_key]["zones"].values()
+            if zone["type"] > 0
+        ]
+
+        if len(temps):
+            return sum(temps) / len(temps)
+        return None
+
+    @property
     def target_temperature(self) -> float | None:
         """Return the current target temperature."""
         return self._ac["setTemp"]
