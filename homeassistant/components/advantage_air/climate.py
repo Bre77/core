@@ -125,14 +125,25 @@ class AdvantageAirAC(AdvantageAirAcEntity, ClimateEntity):
     @property
     def current_temperature(self) -> float | None:
         """Return the average temperature."""
-        temps = [
-            zone["measuredTemp"]
-            for zone in self.coordinator.data["aircons"][self.ac_key]["zones"].values()
-            if zone["type"] > 0
-        ]
 
-        if len(temps):
-            return sum(temps) / len(temps)
+        # If MyAuto is eanbled, return the average of all zones, since that is how MyAuto calculates the current temp
+        if self._ac.get(ADVANTAGE_AIR_MYAUTO_ENABLED):
+            temps = [
+                zone["measuredTemp"]
+                for zone in self.coordinator.data["aircons"][self.ac_key][
+                    "zones"
+                ].values()
+                if zone["type"] > 0
+            ]
+
+            if len(temps):
+                return sum(temps) / len(temps)
+
+        # If MyTemp or MyZone has selected a zone with a current temperature, return that
+        if target_zone := self.coordinator.data["aircons"][self.ac_key]["zones"].get(
+            f"z{self._ac['myZone']:02d}"
+        ):
+            return target_zone["measuredTemp"]
         return None
 
     @property

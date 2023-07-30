@@ -199,6 +199,36 @@
           "state": "close",
           "type": 0,
           "value": 0
+        },
+        "z03": {
+          "error": 0,
+          "maxDamper": 100,
+          "measuredTemp": 26,
+          "minDamper": 0,
+          "motion": 0,
+          "motionConfig": 0,
+          "name": "Zone Y2",
+          "number": 3,
+          "rssi": 0,
+          "setTemp": 24,
+          "state": "open",
+          "type": 1,
+          "value": 100
+        },
+        "z04": {
+          "error": 0,
+          "maxDamper": 100,
+          "measuredTemp": 25,
+          "minDamper": 0,
+          "motion": 0,
+          "motionConfig": 0,
+          "name": "Zone Z2",
+          "number": 4,
+          "rssi": 0,
+          "setTemp": 24,
+          "state": "close",
+          "type": 1,
+          "value": 0
         }
       }
     }

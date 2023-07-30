@@ -226,6 +226,7 @@ async def test_climate_async_setup_entry(
     assert state
     assert state.attributes.get(ATTR_TARGET_TEMP_LOW) == 20
     assert state.attributes.get(ATTR_TARGET_TEMP_HIGH) == 24
+    assert state.attributes.get(ATTR_CURRENT_TEMPERATURE) == 25.5
 
     entry = registry.async_get(entity_id)
     assert entry
