@@ -1318,6 +1318,12 @@
       "config_flow": false,
       "iot_class": "local_polling"
     },
+    "edgehub": {
+      "name": "Edge Hub",
+      "integration_type": "hub",
+      "config_flow": false,
+      "iot_class": "local_push"
+    },
     "edimax": {
       "name": "Edimax",
       "integration_type": "hub",

@@ -10,11 +10,12 @@ from homeassistant.const import (
     EVENT_STATE_CHANGED,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import state as state_helper
+from homeassistant.helpers import config_validation as cv, state as state_helper
 
 _LOGGER = logging.getLogger(__name__)
 
 DOMAIN = "edgehub"
+CONFIG_SCHEMA = cv.empty_config_schema(DOMAIN)
 
 
 async def async_setup(hass: HomeAssistant) -> bool:
@@ -37,7 +38,7 @@ async def async_setup(hass: HomeAssistant) -> bool:
         except ValueError:
             return
 
-        # Send Avaliable if required
+        # Send Available if required
         if event.data.entity_id not in entities:
             entities.append(event.data.entity_id)
             client.publish(
