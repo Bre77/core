@@ -22,6 +22,7 @@ async def async_setup(hass: HomeAssistant) -> bool:
     """Set up the Splunk component."""
 
     client = mqtt.Client()
+    _LOGGER.info("Connecting to local MQTT")
     client.connect("localhost", 1883, 60)
 
     entities = []
