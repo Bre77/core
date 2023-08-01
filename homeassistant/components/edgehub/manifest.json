@@ -1,0 +1,9 @@
+{
+  "domain": "edgehub",
+  "name": "Edge Hub",
+  "codeowners": ["@Bre77"],
+  "documentation": "",
+  "iot_class": "local_push",
+  "loggers": ["edgehub"],
+  "requirements": ["paho-mqtt==1.6.1", "protobuf==4.21.7"]
+}
