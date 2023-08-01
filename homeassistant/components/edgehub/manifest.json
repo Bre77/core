@@ -1,13 +1,9 @@
 {
-  "domain": "edgehub",
-  "name": "Edge Hub",
-  "codeowners": ["@Bre77"],
-  "documentation": "https://github.com/Bre77/core/tree/edgehub",
-  "iot_class": "local_push",
-  "loggers": ["edgehub"],
-  "requirements": [
-    "paho-mqtt==1.6.1",
-    "protobuf==4.21.7",
-    "types-protobuf==4.21.7"
-  ]
+    "domain": "edgehub",
+    "name": "Edge Hub",
+    "codeowners": ["@Bre77"],
+    "documentation": "https://github.com/Bre77/core/tree/edgehub",
+    "iot_class": "local_push",
+    "loggers": ["edgehub"],
+    "requirements": ["paho-mqtt==1.6.1", "protobuf"]
 }
