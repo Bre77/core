@@ -48,19 +48,19 @@ class TessieDeviceTrackerLocationEntity(TessieEntity, TrackerEntity):
     @property
     def longitude(self) -> float | None:
         """Return the state of the sensor."""
-        return self.get("longitude")
+        return self.getSpecific("longitude")
 
     @property
     def latitude(self) -> float | None:
         """Return the state of the sensor."""
-        return self.get("latitude")
+        return self.getSpecific("latitude")
 
     @property
     def extra_state_attributes(self) -> dict[str, StateType] | None:
         """Return device state attributes."""
         return {
-            "heading": self.get("heading"),
-            "speed": self.get("speed"),
+            "heading": self.getSpecific("heading"),
+            "speed": self.getSpecific("speed"),
         }
 
 
@@ -78,9 +78,9 @@ class TessieDeviceTrackerRouteEntity(TessieEntity, TrackerEntity):
     @property
     def longitude(self) -> float | None:
         """Return the state of the sensor."""
-        return self.get("active_route_longitude")
+        return self.getSpecific("active_route_longitude")
 
     @property
     def latitude(self) -> float | None:
         """Return the state of the sensor."""
-        return self.get("active_route_latitude")
+        return self.getSpecific("active_route_latitude")
