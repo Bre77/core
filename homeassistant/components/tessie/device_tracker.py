@@ -17,7 +17,7 @@ PARALLEL_UPDATES = 0
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    """Set up the Tessie sensor platform from a config entry."""
+    """Set up the Tessie device tracker platform from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id].coordinator
 
     async_add_entities(
@@ -33,54 +33,66 @@ async def async_setup_entry(
 
 
 class TessieDeviceTrackerLocationEntity(TessieEntity, TrackerEntity):
-    """Base class for Tessie metric sensors."""
+    """Vehicle Location Device Tracker Class."""
 
-    source_type = SourceType.GPS
+    _attr_name = "Location"
 
     def __init__(
         self,
         coordinator,
         vin: str,
     ) -> None:
-        """Initialize the sensor."""
+        """Initialize the device tracker."""
         super().__init__(coordinator, vin, TessieApi.DRIVE_STATE, "location")
 
     @property
+    def source_type(self) -> SourceType | str:
+        """Return the source type of the device tracker."""
+        return SourceType.GPS
+
+    @property
     def longitude(self) -> float | None:
-        """Return the state of the sensor."""
-        return self.get("longitude")
+        """Return the state of the device tracker."""
+        return self.get_other("longitude")
 
     @property
     def latitude(self) -> float | None:
-        """Return the state of the sensor."""
-        return self.get("latitude")
+        """Return the state of the device tracker."""
+        return self.get_other("latitude")
 
     @property
     def extra_state_attributes(self) -> dict[str, StateType] | None:
         """Return device state attributes."""
         return {
-            "heading": self.get("heading"),
-            "speed": self.get("speed"),
+            "heading": self.get_other("heading"),
+            "speed": self.get_other("speed"),
         }
 
 
 class TessieDeviceTrackerRouteEntity(TessieEntity, TrackerEntity):
-    """Base class for Tessie metric sensors."""
+    """Vehicle Navigation Device Tracker Class."""
+
+    _attr_name = "Route"
 
     def __init__(
         self,
         coordinator,
         vin: str,
     ) -> None:
-        """Initialize the sensor."""
+        """Initialize the device tracker."""
         super().__init__(coordinator, vin, TessieApi.DRIVE_STATE, "route")
 
     @property
+    def source_type(self) -> SourceType | str:
+        """Return the source type of the device tracker."""
+        return SourceType.GPS
+
+    @property
     def longitude(self) -> float | None:
-        """Return the state of the sensor."""
-        return self.get("active_route_longitude")
+        """Return the state of the device tracker."""
+        return self.get_other("active_route_longitude")
 
     @property
     def latitude(self) -> float | None:
-        """Return the state of the sensor."""
-        return self.get("active_route_latitude")
+        """Return the state of the device tracker."""
+        return self.get_other("active_route_latitude")
