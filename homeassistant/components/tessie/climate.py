@@ -14,7 +14,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, TessieApi
+from .const import DOMAIN, TessieGroup
+from .coordinator import TessieDataUpdateCoordinator
 from .entity import TessieEntity
 
 PARALLEL_UPDATES = 0
@@ -28,14 +29,14 @@ async def async_setup_entry(
     api_key = entry.data[CONF_ACCESS_TOKEN]
 
     async_add_entities(
-        [TessieClimateEntity(coordinator, vin, api_key) for vin in coordinator.data]
+        [TessieClimateEntity(api_key, coordinator, vin) for vin in coordinator.data]
     )
 
 
 class TessieClimateEntity(TessieEntity, ClimateEntity):
     """Vehicle Location Climate Class."""
 
-    _attr_name = "Climate"
+    _attr_translation_key = "climate"
     _attr_precision = 0.5
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = [HVACMode.HEAT_COOL, HVACMode.OFF]
@@ -46,13 +47,14 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
 
     def __init__(
         self,
-        coordinator,
-        vin: str,
         api_key: str,
+        coordinator: TessieDataUpdateCoordinator,
+        vin: str,
     ) -> None:
         """Initialize the Climate entity."""
-        super().__init__(coordinator, vin, TessieApi.CLIMATE_STATE, "is_climate_on")
-        self.api_key = api_key
+        super().__init__(
+            api_key, coordinator, vin, TessieGroup.CLIMATE_STATE, "is_climate_on"
+        )
 
     @property
     def hvac_mode(self) -> HVACMode | None:

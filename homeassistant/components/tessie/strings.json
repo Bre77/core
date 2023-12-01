@@ -25,6 +25,7 @@
     }
   },
   "entity": {
+    "climate": { "climate": { "name": "Climate" } },
     "sensor": {
       "state": {
         "name": "Status",
