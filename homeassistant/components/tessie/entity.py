@@ -15,6 +15,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .const import DOMAIN, MODELS
 from .coordinator import TessieDataUpdateCoordinator
 
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
 
 class TessieEntity(CoordinatorEntity[TessieDataUpdateCoordinator]):
     """Parent class for Tessie Entities."""
