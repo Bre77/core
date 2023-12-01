@@ -1,7 +1,11 @@
 """Climate platform for Tessie integration."""
 from __future__ import annotations
 
-from tessie_api import set_climate_keeper_mode
+from tessie_api import (
+    set_climate_keeper_mode,
+    start_climate_preconditioning,
+    stop_climate,
+)
 
 from homeassistant.components.climate import (
     ClimateEntity,
@@ -90,8 +94,22 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
             return self._attr_preset_modes[mode]
         return self._attr_preset_modes[0]
 
+    async def async_turn_on(self) -> None:
+        """Set the climate state to on."""
+        await self.run(start_climate_preconditioning)
+
+    async def async_turn_off(self) -> None:
+        """Set the climate state to off."""
+        await self.run(stop_climate)
+
+    async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
+        """Set the climate mode and state."""
+        if hvac_mode == HVACMode.OFF:
+            return await self.async_turn_off()
+        return await self.async_turn_on()
+
     async def async_set_preset_mode(self, preset_mode: str) -> None:
-        """Set new preset mode."""
+        """Set the climate preset mode."""
         return await self.run(
             set_climate_keeper_mode, mode=self._attr_preset_modes.index(preset_mode)
         )
