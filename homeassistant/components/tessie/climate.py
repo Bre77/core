@@ -1,8 +1,11 @@
 """Climate platform for Tessie integration."""
 from __future__ import annotations
 
-from tessie_api import (
+from typing import Any
+
+from tessie_api.climate import (
     set_climate_keeper_mode,
+    set_temperature,
     start_climate_preconditioning,
     stop_climate,
 )
@@ -13,7 +16,7 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_ACCESS_TOKEN, UnitOfTemperature
+from homeassistant.const import ATTR_TEMPERATURE, CONF_ACCESS_TOKEN, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -22,6 +25,7 @@ from .coordinator import TessieDataUpdateCoordinator
 from .entity import TessieEntity
 
 PARALLEL_UPDATES = 0
+CLIMATE_MODES: list = ["Normal", "Keep", "Dog", "Camp"]
 
 
 async def async_setup_entry(
@@ -46,7 +50,7 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
     )
-    _attr_preset_modes: list = ["Normal", "Keep", "Dog", "Camp"]
+    _attr_preset_modes = CLIMATE_MODES
 
     def __init__(
         self,
@@ -91,8 +95,8 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
         """Return the current preset mode."""
         mode = self.get("climate_keeper_mode")
         if isinstance(mode, int):
-            return self._attr_preset_modes[mode]
-        return self._attr_preset_modes[0]
+            return CLIMATE_MODES[mode]
+        return CLIMATE_MODES[0]
 
     async def async_turn_on(self) -> None:
         """Set the climate state to on."""
@@ -101,6 +105,10 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
     async def async_turn_off(self) -> None:
         """Set the climate state to off."""
         await self.run(stop_climate)
+
+    async def async_set_temperature(self, **kwargs: Any) -> None:
+        """Set the climate temperature."""
+        await self.run(set_temperature, temperature=kwargs[ATTR_TEMPERATURE])
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set the climate mode and state."""
