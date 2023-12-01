@@ -4,11 +4,13 @@ from __future__ import annotations
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_ACCESS_TOKEN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
-from .const import DOMAIN, TessieApi
+from .const import DOMAIN, TessieGroup
+from .coordinator import TessieDataUpdateCoordinator
 from .entity import TessieEntity
 
 PARALLEL_UPDATES = 0
@@ -19,10 +21,11 @@ async def async_setup_entry(
 ) -> None:
     """Set up the Tessie device tracker platform from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id].coordinator
+    api_key = entry.data[CONF_ACCESS_TOKEN]
 
     async_add_entities(
         [
-            EntityClass(coordinator, vin)
+            EntityClass(api_key, coordinator, vin)
             for EntityClass in (
                 TessieDeviceTrackerLocationEntity,
                 TessieDeviceTrackerRouteEntity,
@@ -32,67 +35,61 @@ async def async_setup_entry(
     )
 
 
-class TessieDeviceTrackerLocationEntity(TessieEntity, TrackerEntity):
-    """Vehicle Location Device Tracker Class."""
-
-    _attr_name = "Location"
+class TessieDeviceTrackerEntity(TessieEntity, TrackerEntity):
+    """Base class for Tessie Tracker Entities."""
 
     def __init__(
         self,
-        coordinator,
+        api_key: str,
+        coordinator: TessieDataUpdateCoordinator,
         vin: str,
     ) -> None:
         """Initialize the device tracker."""
-        super().__init__(coordinator, vin, TessieApi.DRIVE_STATE, "location")
+        super().__init__(api_key, coordinator, vin, TessieGroup.DRIVE_STATE, self.key)
 
     @property
     def source_type(self) -> SourceType | str:
         """Return the source type of the device tracker."""
         return SourceType.GPS
 
+
+class TessieDeviceTrackerLocationEntity(TessieDeviceTrackerEntity):
+    """Vehicle Location Device Tracker Class."""
+
+    _attr_translation_key = "location"
+    key = "location"
+
     @property
     def longitude(self) -> float | None:
-        """Return the state of the device tracker."""
-        return self.get_other("longitude")
+        """Return the longitude of the device tracker."""
+        return self.get("longitude")
 
     @property
     def latitude(self) -> float | None:
-        """Return the state of the device tracker."""
-        return self.get_other("latitude")
+        """Return the latitude of the device tracker."""
+        return self.get("latitude")
 
     @property
     def extra_state_attributes(self) -> dict[str, StateType] | None:
         """Return device state attributes."""
         return {
-            "heading": self.get_other("heading"),
-            "speed": self.get_other("speed"),
+            "heading": self.get("heading"),
+            "speed": self.get("speed"),
         }
 
 
-class TessieDeviceTrackerRouteEntity(TessieEntity, TrackerEntity):
+class TessieDeviceTrackerRouteEntity(TessieDeviceTrackerEntity):
     """Vehicle Navigation Device Tracker Class."""
 
-    _attr_name = "Route"
-
-    def __init__(
-        self,
-        coordinator,
-        vin: str,
-    ) -> None:
-        """Initialize the device tracker."""
-        super().__init__(coordinator, vin, TessieApi.DRIVE_STATE, "route")
-
-    @property
-    def source_type(self) -> SourceType | str:
-        """Return the source type of the device tracker."""
-        return SourceType.GPS
+    _attr_translation_key = "route"
+    key = "route"
 
     @property
     def longitude(self) -> float | None:
-        """Return the state of the device tracker."""
-        return self.get_other("active_route_longitude")
+        """Return the longitude of the device tracker."""
+        return self.get("active_route_longitude")
 
     @property
     def latitude(self) -> float | None:
-        """Return the state of the device tracker."""
-        return self.get_other("active_route_latitude")
+        """Return the latitude of the device tracker."""
+        return self.get("active_route_latitude")
