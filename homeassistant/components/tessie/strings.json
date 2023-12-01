@@ -1,108 +1,27 @@
 {
-    "config": {
-        "error": {
-            "invalid_access_token": "[%key:common::config_flow::error::invalid_access_token%]",
-            "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
-            "unknown": "[%key:common::config_flow::error::unknown%]"
-        },
-        "abort": {
-            "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
-        },
-        "step": {
-            "user": {
-                "data": {
-                    "access_token": "[%key:common::config_flow::data::access_token%]"
-                },
-                "description": "Enter your access token from [my.tessie.com/settings/api](https://my.tessie.com/settings/api)."
-            },
-            "reauth_confirm": {
-                "data": {
-                    "access_token": "[%key:common::config_flow::data::access_token%]"
-                },
-                "description": "Enter your access token from [my.tessie.com/settings/api](https://my.tessie.com/settings/api)",
-                "title": "[%key:common::config_flow::title::reauth%]"
-            }
-        }
+  "config": {
+    "error": {
+      "invalid_access_token": "[%key:common::config_flow::error::invalid_access_token%]",
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
     },
-    "entity": {
-        "climate": { "climate": { "name": "Climate" } },
-        "sensor": {
-            "battery_level": {
-                "name": "Battery Level"
-            },
-            "charge_energy_added": {
-                "name": "Charge Energy Added"
-            },
-            "charger_power": {
-                "name": "Charger Power"
-            },
-            "charger_voltage": {
-                "name": "Charger Voltage"
-            },
-            "charger_current": {
-                "name": "Charger Current"
-            },
-            "charge_rate": {
-                "name": "Charge Rate"
-            },
-            "battery_range": {
-                "name": "Battery Range"
-            },
-            "speed": {
-                "name": "Speed"
-            },
-            "power": {
-                "name": "Power"
-            },
-            "shift_state": {
-                "name": "Shift State"
-            },
-            "odometer": {
-                "name": "Odometer"
-            },
-            "tpms_pressure_fl": {
-                "name": "Tyre Pressure Front Left"
-            },
-            "tpms_pressure_fr": {
-                "name": "Tyre Pressure Front Right"
-            },
-            "tpms_pressure_rl": {
-                "name": "Tyre Pressure Rear Left"
-            },
-            "tpms_pressure_rr": {
-                "name": "Tyre Pressure Rear Right"
-            },
-            "inside_temp": {
-                "name": "Inside Temperature"
-            },
-            "outside_temp": {
-                "name": "Outside Temperature"
-            },
-            "driver_temp_setting": {
-                "name": "Driver Temperature Setting"
-            },
-            "passenger_temp_setting": {
-                "name": "Passenger Temperature Setting"
-            }
-        }
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
     },
-    "issues": {
-        "virtual_key": {
-            "title": "Virtual Key is required",
-            "description": "Add Tessie's Virtual Key to your Tesla to enable secure, end-to-end encrypted commands over the internet.",
-            "fix_flow": {
-                "step": {
-                    "next_gen": {
-                        "title": "Change to Next-Gen Connectivity",
-                        "description": "Please change to Next-Gen Connectivity at https://dash.tessie.com/settings/connectivity"
-                    },
-                    "virtual_key": {
-                        "title": "Add Virtual Key",
-                        "description": "Visit https://tesla.com/_ak/tessie.com and follow the instructions."
-                    }
-                }
-            }
-        }
+    "step": {
+      "user": {
+        "data": {
+          "access_token": "[%key:common::config_flow::data::access_token%]"
+        },
+        "description": "Enter your access token from [my.tessie.com/settings/api](https://my.tessie.com/settings/api)."
+      },
+      "reauth_confirm": {
+        "data": {
+          "access_token": "[%key:common::config_flow::data::access_token%]"
+        },
+        "description": "Enter your access token from [my.tessie.com/settings/api](https://my.tessie.com/settings/api)",
+        "title": "[%key:common::config_flow::title::reauth%]"
+      }
     }
   },
   "entity": {

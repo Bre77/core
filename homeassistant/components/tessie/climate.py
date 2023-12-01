@@ -26,7 +26,6 @@ async def async_setup_entry(
     """Set up the Tessie Climate platform from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
     api_key = entry.data[CONF_ACCESS_TOKEN]
-    
 
     async_add_entities(
         [TessieClimateEntity(api_key, coordinator, vin) for vin in coordinator.data]
@@ -86,7 +85,10 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
     @property
     def preset_mode(self) -> str | None:
         """Return the current preset mode."""
-        return self._attr_preset_modes[self.get("climate_keeper_mode")]
+        mode = self.get("climate_keeper_mode")
+        if isinstance(mode, int):
+            return self._attr_preset_modes[mode]
+        return self._attr_preset_modes[0]
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set new preset mode."""
