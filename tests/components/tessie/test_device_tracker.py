@@ -30,3 +30,14 @@ async def test_device_tracker(hass: HomeAssistant) -> None:
         state.attributes.get(ATTR_LONGITUDE)
         == STATES[TessieGroup.DRIVE_STATE]["longitude"]
     )
+
+    entity_id = "device_tracker.test_route"
+    state = hass.states.get(entity_id)
+    assert (
+        state.attributes.get(ATTR_LATITUDE)
+        == STATES[TessieGroup.DRIVE_STATE]["active_route_latitude"]
+    )
+    assert (
+        state.attributes.get(ATTR_LONGITUDE)
+        == STATES[TessieGroup.DRIVE_STATE]["active_route_longitude"]
+    )
