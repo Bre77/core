@@ -49,7 +49,10 @@ async def test_climate(hass: HomeAssistant) -> None:
     # Test setting climate on
     with patch(
         "homeassistant.components.tessie.climate.start_climate_preconditioning"
-    ) as mock_set:
+    ) as mock_set, patch(
+        "homeassistant.components.tessie.coordinator.get_state_of_all_vehicles",
+        return_value=TEST_STATE_OF_ALL_VEHICLES,
+    ) as mock_get:
         await hass.services.async_call(
             CLIMATE_DOMAIN,
             SERVICE_SET_HVAC_MODE,
@@ -57,9 +60,15 @@ async def test_climate(hass: HomeAssistant) -> None:
             blocking=True,
         )
         mock_set.assert_called_once()
+        mock_get.assert_called_once()
 
     # Test setting climate temp
-    with patch("homeassistant.components.tessie.climate.set_temperature") as mock_set:
+    with patch(
+        "homeassistant.components.tessie.climate.set_temperature"
+    ) as mock_set, patch(
+        "homeassistant.components.tessie.coordinator.get_state_of_all_vehicles",
+        return_value=TEST_STATE_OF_ALL_VEHICLES,
+    ) as mock_get:
         await hass.services.async_call(
             CLIMATE_DOMAIN,
             SERVICE_SET_TEMPERATURE,
@@ -67,11 +76,15 @@ async def test_climate(hass: HomeAssistant) -> None:
             blocking=True,
         )
         mock_set.assert_called_once()
+        mock_get.assert_called_once()
 
     # Test setting climate preset
     with patch(
         "homeassistant.components.tessie.climate.set_climate_keeper_mode"
-    ) as mock_set:
+    ) as mock_set, patch(
+        "homeassistant.components.tessie.coordinator.get_state_of_all_vehicles",
+        return_value=TEST_STATE_OF_ALL_VEHICLES,
+    ) as mock_get:
         await hass.services.async_call(
             CLIMATE_DOMAIN,
             SERVICE_SET_PRESET_MODE,
@@ -79,9 +92,15 @@ async def test_climate(hass: HomeAssistant) -> None:
             blocking=True,
         )
         mock_set.assert_called_once()
+        mock_get.assert_called_once()
 
     # Test setting climate off
-    with patch("homeassistant.components.tessie.climate.stop_climate") as mock_set:
+    with patch(
+        "homeassistant.components.tessie.climate.stop_climate"
+    ) as mock_set, patch(
+        "homeassistant.components.tessie.coordinator.get_state_of_all_vehicles",
+        return_value=TEST_STATE_OF_ALL_VEHICLES,
+    ) as mock_get:
         await hass.services.async_call(
             CLIMATE_DOMAIN,
             SERVICE_SET_HVAC_MODE,
@@ -89,6 +108,7 @@ async def test_climate(hass: HomeAssistant) -> None:
             blocking=True,
         )
         mock_set.assert_called_once()
+        mock_get.assert_called_once()
 
 
 async def test_virtual_key_error(hass: HomeAssistant) -> None:
