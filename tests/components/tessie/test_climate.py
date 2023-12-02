@@ -1,0 +1,114 @@
+"""Test the Tessie climate platform."""
+from unittest.mock import patch
+
+from homeassistant.components.climate import (
+    ATTR_HVAC_MODE,
+    ATTR_MAX_TEMP,
+    ATTR_MIN_TEMP,
+    ATTR_PRESET_MODE,
+    ATTR_TEMPERATURE,
+    DOMAIN as CLIMATE_DOMAIN,
+    SERVICE_SET_HVAC_MODE,
+    SERVICE_SET_PRESET_MODE,
+    SERVICE_SET_TEMPERATURE,
+    SERVICE_TURN_ON,
+    HVACMode,
+)
+from homeassistant.components.tessie.climate import KEEPER_MODES
+from homeassistant.components.tessie.const import DOMAIN, TessieGroup
+from homeassistant.const import ATTR_ENTITY_ID, STATE_OFF
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
+
+from .common import ERROR_VIRTUAL_KEY, TEST_STATE_OF_ALL_VEHICLES, setup_platform
+
+STATES = TEST_STATE_OF_ALL_VEHICLES["results"][0]["last_state"]
+
+
+async def test_climate(hass: HomeAssistant) -> None:
+    """Tests that the sensors are correct."""
+
+    assert len(hass.states.async_all("climate")) == 0
+
+    await setup_platform(hass)
+
+    assert len(hass.states.async_all("climate")) == 1
+
+    entity_id = "climate.test_climate"
+    state = hass.states.get(entity_id)
+    assert state.state == STATE_OFF
+    assert (
+        state.attributes.get(ATTR_MIN_TEMP)
+        == STATES[TessieGroup.CLIMATE_STATE]["min_avail_temp"]
+    )
+    assert (
+        state.attributes.get(ATTR_MAX_TEMP)
+        == STATES[TessieGroup.CLIMATE_STATE]["max_avail_temp"]
+    )
+
+    # Test setting climate on
+    with patch(
+        "homeassistant.components.tessie.climate.start_climate_preconditioning"
+    ) as mock_set:
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_SET_HVAC_MODE,
+            {ATTR_ENTITY_ID: [entity_id], ATTR_HVAC_MODE: HVACMode.HEAT_COOL},
+            blocking=True,
+        )
+        mock_set.assert_called_once()
+
+    # Test setting climate temp
+    with patch("homeassistant.components.tessie.climate.set_temperature") as mock_set:
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_SET_TEMPERATURE,
+            {ATTR_ENTITY_ID: [entity_id], ATTR_TEMPERATURE: 20},
+            blocking=True,
+        )
+        mock_set.assert_called_once()
+
+    # Test setting climate preset
+    with patch(
+        "homeassistant.components.tessie.climate.set_climate_keeper_mode"
+    ) as mock_set:
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_SET_PRESET_MODE,
+            {ATTR_ENTITY_ID: [entity_id], ATTR_PRESET_MODE: KEEPER_MODES[1]},
+            blocking=True,
+        )
+        mock_set.assert_called_once()
+
+    # Test setting climate off
+    with patch("homeassistant.components.tessie.climate.stop_climate") as mock_set:
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_SET_HVAC_MODE,
+            {ATTR_ENTITY_ID: [entity_id], ATTR_HVAC_MODE: HVACMode.OFF},
+            blocking=True,
+        )
+        mock_set.assert_called_once()
+
+
+async def test_virtual_key_error(hass: HomeAssistant) -> None:
+    """Tests virtual key error is handled."""
+
+    await setup_platform(hass)
+    entity_id = "climate.test_climate"
+
+    # Test setting climate on with virtual key error
+    with patch(
+        "homeassistant.components.tessie.climate.start_climate_preconditioning",
+        side_effect=ERROR_VIRTUAL_KEY,
+    ) as mock_set:
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: [entity_id]},
+            blocking=True,
+        )
+        mock_set.assert_called_once()
+
+    issue_reg = ir.async_get(hass)
+    assert issue_reg.async_get_issue(DOMAIN, "virtual_key")

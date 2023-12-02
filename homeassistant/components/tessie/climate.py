@@ -25,7 +25,7 @@ from .coordinator import TessieDataUpdateCoordinator
 from .entity import TessieEntity
 
 PARALLEL_UPDATES = 0
-CLIMATE_MODES: list = ["Normal", "Keep", "Dog", "Camp"]
+KEEPER_MODES: list = ["Normal", "Keep", "Dog", "Camp"]
 
 
 async def async_setup_entry(
@@ -50,7 +50,7 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
     )
-    _attr_preset_modes = CLIMATE_MODES
+    _attr_preset_modes = KEEPER_MODES
 
     def __init__(
         self,
@@ -95,8 +95,8 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
         """Return the current preset mode."""
         mode = self.get("climate_keeper_mode")
         if isinstance(mode, int):
-            return CLIMATE_MODES[mode]
-        return CLIMATE_MODES[0]
+            return KEEPER_MODES[mode]
+        return KEEPER_MODES[0]
 
     async def async_turn_on(self) -> None:
         """Set the climate state to on."""
