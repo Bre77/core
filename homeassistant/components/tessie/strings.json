@@ -87,7 +87,7 @@
         "name": "Passenger Temperature Setting"
       }
     },
-    "binary_sensors": {
+    "binary_sensor": {
       "battery_heater_on": {
         "name": "Battery Heater"
       },
