@@ -82,6 +82,62 @@
       "billing_cycle_remaining": {
         "name": "Billing cycle remaining"
       }
+    },
+    "binary_sensors": {
+      "battery_heater_on": {
+        "name": "Battery Heater"
+      },
+      "charge_enable_request": {
+        "name": "Charge Enable Request"
+      },
+      "charge_port_door_open": {
+        "name": "Charge Port Door"
+      },
+      "charging_state": {
+        "name": "Charging"
+      },
+      "preconditioning_enabled": {
+        "name": "Preconditioning Enabled"
+      },
+      "scheduled_charging_pending": {
+        "name": "Scheduled Charging Pending"
+      },
+      "trip_charging": {
+        "name": "Trip Charging"
+      },
+      "auto_seat_climate_left": {
+        "name": "Auto Left Seat Heater"
+      },
+      "auto_seat_climate_right": {
+        "name": "Auto Right Seat Heater"
+      },
+      "auto_steering_wheel_heater": {
+        "name": "Auto Steering Wheel Heater"
+      },
+      "cabin_overheat_protection": {
+        "name": "Cabin Overheat Protection"
+      },
+      "cabin_overheat_protection_actively_cooling": {
+        "name": "Cabin Overheat Protection Actively Cooling"
+      },
+      "dashcam_state": {
+        "name": "Dashcam"
+      },
+      "is_user_present": {
+        "name": "User Present"
+      },
+      "tpms_soft_warning_fl": {
+        "name": "Front Left Tyre Preasure Warning "
+      },
+      "tpms_soft_warning_fr": {
+        "name": "Front Right Tyre Preasure Warning"
+      },
+      "tpms_soft_warning_rl": {
+        "name": "Rear Left Tyre Preasure Warning"
+      },
+      "tpms_soft_warning_rr": {
+        "name": "Rear Right Tyre Preasure Warning"
+      }
     }
   }
 }
