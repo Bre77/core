@@ -1,6 +1,7 @@
 """Binary Sensor platform for Tessie integration."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from homeassistant.components.binary_sensor import (
@@ -23,7 +24,7 @@ PARALLEL_UPDATES = 0
 class TessieBinarySensorEntityDescription(BinarySensorEntityDescription):
     """Describes Tessie binary sensor entity."""
 
-    value: str | None = None
+    is_on: Callable[..., bool] = lambda x: x
 
 
 DESCRIPTIONS: dict[TessieGroup, tuple[TessieBinarySensorEntityDescription, ...]] = {
@@ -47,7 +48,7 @@ DESCRIPTIONS: dict[TessieGroup, tuple[TessieBinarySensorEntityDescription, ...]]
             key="charging_state",
             translation_key="charging_state",
             device_class=BinarySensorDeviceClass.BATTERY_CHARGING,
-            value="Charging",
+            is_on=lambda x: x == "Charging",
         ),
         TessieBinarySensorEntityDescription(
             key="preconditioning_enabled",
@@ -81,7 +82,7 @@ DESCRIPTIONS: dict[TessieGroup, tuple[TessieBinarySensorEntityDescription, ...]]
             key="cabin_overheat_protection",
             translation_key="cabin_overheat_protection",
             device_class=BinarySensorDeviceClass.RUNNING,
-            value="On",
+            is_on=lambda x: x == "On",
         ),
         TessieBinarySensorEntityDescription(
             key="cabin_overheat_protection_actively_cooling",
@@ -94,7 +95,7 @@ DESCRIPTIONS: dict[TessieGroup, tuple[TessieBinarySensorEntityDescription, ...]]
             key="dashcam_state",
             translation_key="dashcam_state",
             device_class=BinarySensorDeviceClass.RUNNING,
-            value="Recording",
+            is_on=lambda x: x == "Recording",
         ),
         TessieBinarySensorEntityDescription(
             key="is_user_present",
@@ -162,6 +163,4 @@ class TessieBinarySensorEntity(TessieEntity, BinarySensorEntity):
     @property
     def is_on(self) -> bool | None:
         """Return the state of the binary sensor."""
-        if self.entity_description.value:
-            return self.get() == self.entity_description.value
-        return self.get()
+        return self.entity_description.is_on(self.get())
