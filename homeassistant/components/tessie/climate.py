@@ -16,7 +16,7 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_TEMPERATURE, CONF_ACCESS_TOKEN, UnitOfTemperature
+from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
@@ -33,10 +33,9 @@ async def async_setup_entry(
 ) -> None:
     """Set up the Tessie Climate platform from a config entry."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
-    api_key = entry.data[CONF_ACCESS_TOKEN]
 
     async_add_entities(
-        [TessieClimateEntity(api_key, coordinator, vin) for vin in coordinator.data]
+        [TessieClimateEntity(coordinator, vin) for vin in coordinator.data]
     )
 
 
@@ -54,14 +53,11 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
 
     def __init__(
         self,
-        api_key: str,
         coordinator: TessieDataUpdateCoordinator,
         vin: str,
     ) -> None:
         """Initialize the Climate entity."""
-        super().__init__(
-            api_key, coordinator, vin, TessieGroup.CLIMATE_STATE, "is_climate_on"
-        )
+        super().__init__(coordinator, vin, TessieGroup.CLIMATE_STATE, "is_climate_on")
 
     @property
     def hvac_mode(self) -> HVACMode | None:
