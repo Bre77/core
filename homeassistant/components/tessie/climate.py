@@ -25,7 +25,9 @@ from .coordinator import TessieDataUpdateCoordinator
 from .entity import TessieEntity
 
 PARALLEL_UPDATES = 0
-KEEPER_MODES: list = ["Normal", "Keep", "Dog", "Camp"]
+KEEPER_MODES = ["Normal", "Keep", "Dog", "Camp"]
+KEEPER_VALUE_TO_NAME = {"off": "Normal", "on": "Keep", "dog": "Dog", "camp": "Camp"}
+KEEPER_NAME_TO_INDEX = {"Normal": 0, "Keep": 1, "Dog": 2, "Camp": 3}
 
 
 async def async_setup_entry(
@@ -89,10 +91,7 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
     @property
     def preset_mode(self) -> str | None:
         """Return the current preset mode."""
-        mode = self.get("climate_keeper_mode")
-        if isinstance(mode, int):
-            return KEEPER_MODES[mode]
-        return KEEPER_MODES[0]
+        return KEEPER_VALUE_TO_NAME.get(self.get("climate_keeper_mode"))
 
     async def async_turn_on(self) -> None:
         """Set the climate state to on."""
@@ -119,6 +118,6 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set the climate preset mode."""
-        keeper_index = KEEPER_MODES.index(preset_mode)
+        keeper_index = KEEPER_NAME_TO_INDEX[preset_mode]
         if await self.run(set_climate_keeper_mode, mode=keeper_index):
             await self.set(key="climate_keeper_mode", value=keeper_index)
