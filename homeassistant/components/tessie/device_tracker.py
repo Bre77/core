@@ -4,7 +4,6 @@ from __future__ import annotations
 from homeassistant.components.device_tracker import SourceType
 from homeassistant.components.device_tracker.config_entry import TrackerEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_ACCESS_TOKEN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
@@ -20,12 +19,11 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the Tessie device tracker platform from a config entry."""
-    coordinator = hass.data[DOMAIN][entry.entry_id].coordinator
-    api_key = entry.data[CONF_ACCESS_TOKEN]
+    coordinator = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
         [
-            EntityClass(api_key, coordinator, vin)
+            EntityClass(coordinator, vin)
             for EntityClass in (
                 TessieDeviceTrackerLocationEntity,
                 TessieDeviceTrackerRouteEntity,
@@ -40,12 +38,11 @@ class TessieDeviceTrackerEntity(TessieEntity, TrackerEntity):
 
     def __init__(
         self,
-        api_key: str,
         coordinator: TessieDataUpdateCoordinator,
         vin: str,
     ) -> None:
         """Initialize the device tracker."""
-        super().__init__(api_key, coordinator, vin, TessieGroup.DRIVE_STATE, self.key)
+        super().__init__(coordinator, vin, TessieGroup.DRIVE_STATE, self.key)
 
     @property
     def source_type(self) -> SourceType | str:
