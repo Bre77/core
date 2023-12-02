@@ -34,10 +34,14 @@ ERROR_UNKNOWN = ClientResponseError(
     request_info=TEST_REQUEST_INFO, history=None, status=HTTPStatus.BAD_REQUEST
 )
 ERROR_VIRTUAL_KEY = ClientResponseError(
-    request_info=None,
+    request_info=TEST_REQUEST_INFO,
     history=None,
     status=HTTPStatus.INTERNAL_SERVER_ERROR,
 )
+ERROR_TIMEOUT = ClientResponseError(
+    request_info=TEST_REQUEST_INFO, history=None, status=HTTPStatus.REQUEST_TIMEOUT
+)
+
 ERROR_CONNECTION = ClientConnectionError()
 
 

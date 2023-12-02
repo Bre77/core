@@ -1,6 +1,7 @@
 """Climate platform for Tessie integration."""
 from __future__ import annotations
 
+from collections import OrderedDict
 from typing import Any
 
 from tessie_api.climate import (
@@ -25,9 +26,14 @@ from .coordinator import TessieDataUpdateCoordinator
 from .entity import TessieEntity
 
 PARALLEL_UPDATES = 0
-KEEPER_MODES = ["Normal", "Keep", "Dog", "Camp"]
-KEEPER_VALUE_TO_NAME = {"off": "Normal", "on": "Keep", "dog": "Dog", "camp": "Camp"}
-KEEPER_NAME_TO_INDEX = {"Normal": 0, "Keep": 1, "Dog": 2, "Camp": 3}
+
+KEEPER_MODES = OrderedDict(
+    [("off", "Normal"), ("on", "Keep"), ("dog", "Dog"), ("camp", "Camp")]
+)
+
+KEEPER_NAMES = list(KEEPER_MODES.values())
+KEEPER_NAME_TO_VALUE = {v: k for k, v in KEEPER_MODES.items()}
+KEEPER_NAME_TO_INDEX = {v: i for i, (k, v) in enumerate(KEEPER_MODES.items())}
 
 
 async def async_setup_entry(
@@ -51,7 +57,7 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
     )
-    _attr_preset_modes: list = KEEPER_MODES
+    _attr_preset_modes: list = KEEPER_NAMES
 
     def __init__(
         self,
@@ -91,23 +97,23 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
     @property
     def preset_mode(self) -> str | None:
         """Return the current preset mode."""
-        return KEEPER_VALUE_TO_NAME.get(self.get("climate_keeper_mode"))
+        return KEEPER_MODES.get(self.get("climate_keeper_mode"))
 
     async def async_turn_on(self) -> None:
         """Set the climate state to on."""
         if await self.run(start_climate_preconditioning):
-            await self.set(True)
+            await self.set(("is_climate_on", True))
 
     async def async_turn_off(self) -> None:
         """Set the climate state to off."""
         if await self.run(stop_climate):
-            await self.set(False)
+            await self.set(("is_climate_on", False), ("climate_keeper_mode", "off"))
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set the climate temperature."""
         temp = kwargs[ATTR_TEMPERATURE]
         if await self.run(set_temperature, temperature=temp):
-            await self.set(key="driver_temp_setting", value=temp)
+            await self.set(("driver_temp_setting", temp))
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set the climate mode and state."""
@@ -118,6 +124,10 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set the climate preset mode."""
-        keeper_index = KEEPER_NAME_TO_INDEX[preset_mode]
-        if await self.run(set_climate_keeper_mode, mode=keeper_index):
-            await self.set(key="climate_keeper_mode", value=keeper_index)
+        if await self.run(
+            set_climate_keeper_mode, mode=KEEPER_NAME_TO_INDEX[preset_mode]
+        ):
+            await self.set(
+                ("climate_keeper_mode", KEEPER_NAME_TO_VALUE[preset_mode]),
+                ("is_climate_on", preset_mode != "Normal"),
+            )
