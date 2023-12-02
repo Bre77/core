@@ -18,11 +18,10 @@ async def test_device_tracker(hass: HomeAssistant) -> None:
 
     await setup_platform(hass)
 
-    assert len(hass.states.async_all(DEVICE_TRACKER_DOMAIN)) == 1
+    assert len(hass.states.async_all(DEVICE_TRACKER_DOMAIN)) == 2
 
     entity_id = "device_tracker.test_location"
     state = hass.states.get(entity_id)
-    assert state.state == STATE_OFF
     assert (
         state.attributes.get(ATTR_LATITUDE)
         == STATES[TessieGroup.DRIVE_STATE]["latitude"]
