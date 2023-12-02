@@ -49,7 +49,7 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
     _attr_supported_features = (
         ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
     )
-    _attr_preset_modes = KEEPER_MODES
+    _attr_preset_modes: list = KEEPER_MODES
 
     def __init__(
         self,
@@ -96,24 +96,29 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
 
     async def async_turn_on(self) -> None:
         """Set the climate state to on."""
-        await self.run(start_climate_preconditioning)
+        if await self.run(start_climate_preconditioning):
+            await self.set(True)
 
     async def async_turn_off(self) -> None:
         """Set the climate state to off."""
-        await self.run(stop_climate)
+        if await self.run(stop_climate):
+            await self.set(False)
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set the climate temperature."""
-        await self.run(set_temperature, temperature=kwargs[ATTR_TEMPERATURE])
+        temp = kwargs[ATTR_TEMPERATURE]
+        if await self.run(set_temperature, temperature=temp):
+            await self.set(key="driver_temp_setting", value=temp)
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set the climate mode and state."""
         if hvac_mode == HVACMode.OFF:
-            return await self.async_turn_off()
-        return await self.async_turn_on()
+            await self.async_turn_off()
+        else:
+            await self.async_turn_on()
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set the climate preset mode."""
-        return await self.run(
-            set_climate_keeper_mode, mode=self._attr_preset_modes.index(preset_mode)
-        )
+        keeper_index = KEEPER_MODES.index(preset_mode)
+        if await self.run(set_climate_keeper_mode, mode=keeper_index):
+            await self.set(key="climate_keeper_mode", value=keeper_index)
