@@ -35,13 +35,13 @@ STATES = TEST_STATE_OF_ALL_VEHICLES["results"][0]["last_state"]
 
 
 async def test_climate(hass: HomeAssistant) -> None:
-    """Tests that the sensors are correct."""
+    """Tests that the climate entity is correct."""
 
-    assert len(hass.states.async_all("climate")) == 0
+    assert len(hass.states.async_all(CLIMATE_DOMAIN)) == 0
 
     await setup_platform(hass)
 
-    assert len(hass.states.async_all("climate")) == 1
+    assert len(hass.states.async_all(CLIMATE_DOMAIN)) == 1
 
     entity_id = "climate.test_climate"
     state = hass.states.get(entity_id)
