@@ -22,7 +22,7 @@ class TessieStatus(StrEnum):
 
 
 class TessieKey(StrEnum):
-    """API response keys in the root."""
+    """API response keys."""
 
     VIN = "vin"
     STATE = "state"
