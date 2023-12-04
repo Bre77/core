@@ -140,3 +140,42 @@ class TessieNumberEntity(TessieEntity, NumberEntity):
             self.entity_description.update_func,
             **{self.entity_description.update_param: value},
         )
+
+
+class TessieCurrentChargeNumberEntity(TessieEntity, NumberEntity):
+    """Number entity for current charge."""
+
+    _attr_native_min_value = 0
+    _attr_native_step = 1
+    _attr_ative_unit_of_measurement = (UnitOfElectricCurrent.AMPERE,)
+    _attr_device_class = NumberDeviceClass.CURRENT
+
+    def __init__(
+        self,
+        coordinator: TessieDataUpdateCoordinator,
+        vin: str,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(
+            coordinator, vin, TessieCategory.CHARGE_STATE, "charge_current_request"
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        """Return the state of the number."""
+        self.get()
+
+    @property
+    def native_max_value(self) -> float:
+        """Return the maximum value."""
+        self.get("charge_current_request_max")
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Set new value."""
+        assert self.entity_description.update_func
+        assert self.entity_description.update_param
+
+        await self.run(
+            self.entity_description.update_func,
+            **{self.entity_description.update_param: value},
+        )
