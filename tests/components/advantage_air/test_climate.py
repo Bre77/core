@@ -25,23 +25,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 
-from . import add_mock_config, patch_get, patch_update
+from . import add_mock_config, patch_update
 
 
-@pytest.fixture
-def mock_get():
-    """Fixture to patch the Advantage Air async_get method."""
-    with patch_get() as mock_get:
-        yield mock_get
-
-
-@pytest.fixture
-def mock_update():
-    """Fixture to patch the Advantage Air async_get method."""
-    with patch_update() as mock_get:
-        yield mock_get
-
-
+@pytest.mark.usefixtures("mock_get", "mock_update")
 async def test_climate_myzone_main(
     hass: HomeAssistant, entity_registry: er.EntityRegistry, mock_get, mock_update
 ) -> None:

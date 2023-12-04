@@ -10,14 +10,15 @@ from . import add_mock_config, patch_get
 
 from tests.common import load_json_object_fixture
 
-TEST_NEEDS_UPDATE = load_json_object_fixture("needsUpdate.json", DOMAIN)
-
 
 @pytest.fixture
 def mock_get():
     """Fixture to patch the Advantage Air async_get method."""
     with patch_get(return_value=TEST_NEEDS_UPDATE) as mock_get:
         yield mock_get
+
+
+TEST_NEEDS_UPDATE = load_json_object_fixture("needsUpdate.json", DOMAIN)
 
 
 async def test_update_platform(

@@ -9,18 +9,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from . import add_mock_config, patch_get
+from . import add_mock_config
 
 from tests.common import async_fire_time_changed
 
 
-@pytest.fixture
-def mock_get():
-    """Fixture to patch the Advantage Air async_get method."""
-    with patch_get() as mock_get:
-        yield mock_get
-
-
+@pytest.mark.usefixtures("mock_get")
 async def test_binary_sensor_async_setup_entry(
     hass: HomeAssistant, entity_registry: er.EntityRegistry, mock_get
 ) -> None:

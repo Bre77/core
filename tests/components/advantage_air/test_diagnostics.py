@@ -4,19 +4,13 @@ from syrupy.assertion import SnapshotAssertion
 
 from homeassistant.core import HomeAssistant
 
-from . import add_mock_config, patch_get
+from . import add_mock_config
 
 from tests.components.diagnostics import get_diagnostics_for_config_entry
 from tests.typing import ClientSessionGenerator
 
 
-@pytest.fixture
-def mock_get():
-    """Fixture to patch the Advantage Air async_get method."""
-    with patch_get() as mock_get:
-        yield mock_get
-
-
+@pytest.mark.usefixtures("mock_get")
 async def test_select_async_setup_entry(
     hass: HomeAssistant,
     hass_client: ClientSessionGenerator,
