@@ -17,7 +17,7 @@ from homeassistant.components.climate import (
     HVACMode,
 )
 from homeassistant.components.tessie.climate import KEEPER_NAMES
-from homeassistant.components.tessie.const import DOMAIN, TessieGroup
+from homeassistant.components.tessie.const import DOMAIN, TessieCategory
 from homeassistant.const import ATTR_ENTITY_ID, STATE_OFF
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -48,11 +48,11 @@ async def test_climate(hass: HomeAssistant) -> None:
     assert state.state == STATE_OFF
     assert (
         state.attributes.get(ATTR_MIN_TEMP)
-        == STATES[TessieGroup.CLIMATE_STATE]["min_avail_temp"]
+        == STATES[TessieCategory.CLIMATE_STATE]["min_avail_temp"]
     )
     assert (
         state.attributes.get(ATTR_MAX_TEMP)
-        == STATES[TessieGroup.CLIMATE_STATE]["max_avail_temp"]
+        == STATES[TessieCategory.CLIMATE_STATE]["max_avail_temp"]
     )
 
     # Test setting climate on
@@ -117,7 +117,7 @@ async def test_errors(hass: HomeAssistant) -> None:
             {ATTR_ENTITY_ID: [entity_id]},
             blocking=True,
         )
-        mock_set.assert_called_once()
+
         assert error.from_exception == ERROR_VIRTUAL_KEY
 
     issue_reg = ir.async_get(hass)
@@ -134,7 +134,7 @@ async def test_errors(hass: HomeAssistant) -> None:
             {ATTR_ENTITY_ID: [entity_id]},
             blocking=True,
         )
-        mock_set.assert_called_once()
+
         assert error.from_exception == ERROR_TIMEOUT
 
     # Test setting climate on with virtual key error

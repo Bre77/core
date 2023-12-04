@@ -21,7 +21,7 @@ from homeassistant.const import ATTR_TEMPERATURE, UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, TessieGroup
+from .const import DOMAIN, TessieCategory
 from .coordinator import TessieDataUpdateCoordinator
 from .entity import TessieEntity
 
@@ -65,7 +65,9 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
         vin: str,
     ) -> None:
         """Initialize the Climate entity."""
-        super().__init__(coordinator, vin, TessieGroup.CLIMATE_STATE, "is_climate_on")
+        super().__init__(
+            coordinator, vin, TessieCategory.CLIMATE_STATE, "is_climate_on"
+        )
 
     @property
     def hvac_mode(self) -> HVACMode | None:
