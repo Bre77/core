@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
-from .const import DOMAIN, TessieGroup
+from .const import DOMAIN, TessieCategory
 from .coordinator import TessieDataUpdateCoordinator
 from .entity import TessieEntity
 
@@ -42,7 +42,7 @@ class TessieDeviceTrackerEntity(TessieEntity, TrackerEntity):
         vin: str,
     ) -> None:
         """Initialize the device tracker."""
-        super().__init__(coordinator, vin, TessieGroup.DRIVE_STATE, self.key)
+        super().__init__(coordinator, vin, TessieCategory.DRIVE_STATE, self.key)
 
     @property
     def source_type(self) -> SourceType | str:
@@ -53,7 +53,6 @@ class TessieDeviceTrackerEntity(TessieEntity, TrackerEntity):
 class TessieDeviceTrackerLocationEntity(TessieDeviceTrackerEntity):
     """Vehicle Location Device Tracker Class."""
 
-    _attr_translation_key = "location"
     key = "location"
 
     @property
@@ -78,7 +77,6 @@ class TessieDeviceTrackerLocationEntity(TessieDeviceTrackerEntity):
 class TessieDeviceTrackerRouteEntity(TessieDeviceTrackerEntity):
     """Vehicle Navigation Device Tracker Class."""
 
-    _attr_translation_key = "route"
     key = "route"
 
     @property

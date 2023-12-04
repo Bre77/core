@@ -2,7 +2,7 @@
 
 
 from homeassistant.components.device_tracker import DOMAIN as DEVICE_TRACKER_DOMAIN
-from homeassistant.components.tessie.const import TessieGroup
+from homeassistant.components.tessie.const import TessieCategory
 from homeassistant.const import ATTR_LATITUDE, ATTR_LONGITUDE
 from homeassistant.core import HomeAssistant
 
@@ -24,20 +24,20 @@ async def test_device_tracker(hass: HomeAssistant) -> None:
     state = hass.states.get(entity_id)
     assert (
         state.attributes.get(ATTR_LATITUDE)
-        == STATES[TessieGroup.DRIVE_STATE]["latitude"]
+        == STATES[TessieCategory.DRIVE_STATE]["latitude"]
     )
     assert (
         state.attributes.get(ATTR_LONGITUDE)
-        == STATES[TessieGroup.DRIVE_STATE]["longitude"]
+        == STATES[TessieCategory.DRIVE_STATE]["longitude"]
     )
 
     entity_id = "device_tracker.test_route"
     state = hass.states.get(entity_id)
     assert (
         state.attributes.get(ATTR_LATITUDE)
-        == STATES[TessieGroup.DRIVE_STATE]["active_route_latitude"]
+        == STATES[TessieCategory.DRIVE_STATE]["active_route_latitude"]
     )
     assert (
         state.attributes.get(ATTR_LONGITUDE)
-        == STATES[TessieGroup.DRIVE_STATE]["active_route_longitude"]
+        == STATES[TessieCategory.DRIVE_STATE]["active_route_longitude"]
     )
