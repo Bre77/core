@@ -13,7 +13,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, TessieGroup
+from .const import DOMAIN, TessieCategory
 from .coordinator import TessieDataUpdateCoordinator
 from .entity import TessieEntity
 
@@ -27,8 +27,8 @@ class TessieBinarySensorEntityDescription(BinarySensorEntityDescription):
     is_on: Callable[..., bool] = lambda x: x
 
 
-DESCRIPTIONS: dict[TessieGroup, tuple[TessieBinarySensorEntityDescription, ...]] = {
-    TessieGroup.CHARGE_STATE: (
+DESCRIPTIONS: dict[TessieCategory, tuple[TessieBinarySensorEntityDescription, ...]] = {
+    TessieCategory.CHARGE_STATE: (
         TessieBinarySensorEntityDescription(
             key="battery_heater_on",
             translation_key="battery_heater_on",
@@ -62,7 +62,7 @@ DESCRIPTIONS: dict[TessieGroup, tuple[TessieBinarySensorEntityDescription, ...]]
             key="trip_charging", translation_key="trip_charging"
         ),
     ),
-    TessieGroup.CLIMATE_STATE: (
+    TessieCategory.CLIMATE_STATE: (
         TessieBinarySensorEntityDescription(
             key="auto_seat_climate_left",
             translation_key="auto_seat_climate_left",
@@ -90,7 +90,7 @@ DESCRIPTIONS: dict[TessieGroup, tuple[TessieBinarySensorEntityDescription, ...]]
             device_class=BinarySensorDeviceClass.HEAT,
         ),
     ),
-    TessieGroup.VEHICLE_STATE: (
+    TessieCategory.VEHICLE_STATE: (
         TessieBinarySensorEntityDescription(
             key="dashcam_state",
             translation_key="dashcam_state",
