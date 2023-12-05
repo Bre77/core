@@ -86,6 +86,20 @@
       "climate_state-passenger_temp_setting": {
         "name": "Passenger Temperature Setting"
       }
+    },
+    "switch": {
+      "charge_enable_request": {
+        "name": "Charge"
+      },
+      "defrost_mode": {
+        "name": "Defrost Mode"
+      },
+      "sentry_mode": {
+        "name": "Sentry Mode"
+      },
+      "valet_mode": {
+        "name": "Valet Mode"
+      }
     }
   },
   "issues": {
