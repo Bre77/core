@@ -40,7 +40,7 @@ class TessieCurrentChargeNumberEntity(TessieEntity, NumberEntity):
 
     _attr_native_min_value = 0
     _attr_native_step = 1
-    _attr_ative_unit_of_measurement = UnitOfElectricCurrent.AMPERE
+    _attr_native_unit_of_measurement = UnitOfElectricCurrent.AMPERE
     _attr_device_class = NumberDeviceClass.CURRENT
 
     def __init__(
