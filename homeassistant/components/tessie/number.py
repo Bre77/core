@@ -66,7 +66,7 @@ class TessieCurrentChargeNumberEntity(TessieEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
         if await self.run(set_charging_amps, amps=value):
-            await self.set((self.key, value))
+            self.set((self.key, value))
 
 
 class TessieChargeLimitSocNumberEntity(TessieEntity, NumberEntity):
@@ -104,7 +104,7 @@ class TessieChargeLimitSocNumberEntity(TessieEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
         if await self.run(set_charge_limit, percent=value):
-            await self.set((self.key, value))
+            self.set((self.key, value))
 
 
 class TessieSpeedLimitModeNumberEntity(TessieEntity, NumberEntity):
