@@ -104,18 +104,18 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
     async def async_turn_on(self) -> None:
         """Set the climate state to on."""
         if await self.run(start_climate_preconditioning):
-            await self.set(("is_climate_on", True))
+            self.set(("is_climate_on", True))
 
     async def async_turn_off(self) -> None:
         """Set the climate state to off."""
         if await self.run(stop_climate):
-            await self.set(("is_climate_on", False), ("climate_keeper_mode", "off"))
+            self.set(("is_climate_on", False), ("climate_keeper_mode", "off"))
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set the climate temperature."""
         temp = kwargs[ATTR_TEMPERATURE]
         if await self.run(set_temperature, temperature=temp):
-            await self.set(("driver_temp_setting", temp))
+            self.set(("driver_temp_setting", temp))
 
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set the climate mode and state."""
@@ -129,7 +129,7 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
         if await self.run(
             set_climate_keeper_mode, mode=KEEPER_NAME_TO_INDEX[preset_mode]
         ):
-            await self.set(
+            self.set(
                 ("climate_keeper_mode", KEEPER_NAME_TO_VALUE[preset_mode]),
                 ("is_climate_on", preset_mode != "Normal"),
             )
