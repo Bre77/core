@@ -118,8 +118,6 @@ async def test_errors(hass: HomeAssistant) -> None:
             blocking=True,
         )
 
-        assert error.from_exception == ERROR_VIRTUAL_KEY
-
     issue_reg = ir.async_get(hass)
     assert issue_reg.async_get_issue(DOMAIN, "virtual_key")
 
@@ -134,8 +132,6 @@ async def test_errors(hass: HomeAssistant) -> None:
             {ATTR_ENTITY_ID: [entity_id]},
             blocking=True,
         )
-
-        assert error.from_exception == ERROR_TIMEOUT
 
     # Test setting climate on with virtual key error
     with patch(
