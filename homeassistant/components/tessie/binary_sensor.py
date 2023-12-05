@@ -31,95 +31,78 @@ DESCRIPTIONS: dict[TessieCategory, tuple[TessieBinarySensorEntityDescription, ..
     TessieCategory.CHARGE_STATE: (
         TessieBinarySensorEntityDescription(
             key="battery_heater_on",
-            translation_key="battery_heater_on",
             device_class=BinarySensorDeviceClass.HEAT,
         ),
         TessieBinarySensorEntityDescription(
             key="charge_enable_request",
-            translation_key="charge_enable_request",
             device_class=BinarySensorDeviceClass.POWER,
         ),
         TessieBinarySensorEntityDescription(
             key="charge_port_door_open",
-            translation_key="charge_port_door_open",
             device_class=BinarySensorDeviceClass.OPENING,
         ),
         TessieBinarySensorEntityDescription(
             key="charging_state",
-            translation_key="charging_state",
             device_class=BinarySensorDeviceClass.BATTERY_CHARGING,
             is_on=lambda x: x == "Charging",
         ),
         TessieBinarySensorEntityDescription(
             key="preconditioning_enabled",
-            translation_key="preconditioning_enabled",
         ),
         TessieBinarySensorEntityDescription(
             key="scheduled_charging_pending",
-            translation_key="scheduled_charging_pending",
         ),
         TessieBinarySensorEntityDescription(
-            key="trip_charging", translation_key="trip_charging"
+            key="trip_charging",
         ),
     ),
     TessieCategory.CLIMATE_STATE: (
         TessieBinarySensorEntityDescription(
             key="auto_seat_climate_left",
-            translation_key="auto_seat_climate_left",
             device_class=BinarySensorDeviceClass.HEAT,
         ),
         TessieBinarySensorEntityDescription(
             key="auto_seat_climate_right",
-            translation_key="auto_seat_climate_right",
             device_class=BinarySensorDeviceClass.HEAT,
         ),
         TessieBinarySensorEntityDescription(
             key="auto_steering_wheel_heat",
-            translation_key="auto_steering_wheel_heat",
             device_class=BinarySensorDeviceClass.HEAT,
         ),
         TessieBinarySensorEntityDescription(
             key="cabin_overheat_protection",
-            translation_key="cabin_overheat_protection",
             device_class=BinarySensorDeviceClass.RUNNING,
             is_on=lambda x: x == "On",
         ),
         TessieBinarySensorEntityDescription(
             key="cabin_overheat_protection_actively_cooling",
-            translation_key="cabin_overheat_protection_actively_cooling",
             device_class=BinarySensorDeviceClass.HEAT,
         ),
     ),
     TessieCategory.VEHICLE_STATE: (
         TessieBinarySensorEntityDescription(
             key="dashcam_state",
-            translation_key="dashcam_state",
             device_class=BinarySensorDeviceClass.RUNNING,
             is_on=lambda x: x == "Recording",
         ),
         TessieBinarySensorEntityDescription(
             key="is_user_present",
-            translation_key="is_user_present",
             device_class=BinarySensorDeviceClass.PRESENCE,
         ),
         TessieBinarySensorEntityDescription(
             key="tpms_soft_warning_fl",
-            translation_key="tpms_soft_warning_fl",
             device_class=BinarySensorDeviceClass.PROBLEM,
         ),
         TessieBinarySensorEntityDescription(
             key="tpms_soft_warning_fr",
-            translation_key="tpms_soft_warning_fr",
             device_class=BinarySensorDeviceClass.PROBLEM,
         ),
         TessieBinarySensorEntityDescription(
             key="tpms_soft_warning_rl",
-            translation_key="tpms_soft_warning_rl",
             device_class=BinarySensorDeviceClass.PROBLEM,
         ),
         TessieBinarySensorEntityDescription(
             key="tpms_soft_warning_rr",
-            translation_key="tpms_soft_warning_rr",
             device_class=BinarySensorDeviceClass.PROBLEM,
         ),
     ),

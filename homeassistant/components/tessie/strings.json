@@ -110,10 +110,10 @@
         "name": "Trip Charging"
       },
       "auto_seat_climate_left": {
-        "name": "Auto Left Seat Heater"
+        "name": "Auto Seat Climate Left"
       },
       "auto_seat_climate_right": {
-        "name": "Auto Right Seat Heater"
+        "name": "Auto Seat Climate Right"
       },
       "auto_steering_wheel_heater": {
         "name": "Auto Steering Wheel Heater"
@@ -131,16 +131,16 @@
         "name": "User Present"
       },
       "tpms_soft_warning_fl": {
-        "name": "Front Left Tyre Preasure Warning "
+        "name": "Tyre Preasure Warning Front Left "
       },
       "tpms_soft_warning_fr": {
-        "name": "Front Right Tyre Preasure Warning"
+        "name": "Tyre Preasure Warning Front Right"
       },
       "tpms_soft_warning_rl": {
-        "name": "Rear Left Tyre Preasure Warning"
+        "name": "Tyre Preasure Warning Rear Left"
       },
       "tpms_soft_warning_rr": {
-        "name": "Rear Right Tyre Preasure Warning"
+        "name": "Tyre Preasure Warning Rear Right"
       }
     }
   },
