@@ -14,7 +14,10 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .const import TessieStatus
 
-TESSIE_SYNC_INTERVAL = 10
+# This matches the update interval Tessie performs server side
+TESSIE_ONLINE_SYNC_INTERVAL = timedelta(seconds=10)
+# Reduce the number of API calls when the vehicle is asleep
+TESSIE_ASLEEP_SYNC_INTERVAL = timedelta(seconds=60)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,7 +38,7 @@ class TessieDataUpdateCoordinator(DataUpdateCoordinator):
             _LOGGER,
             name="Tessie",
             update_method=self.async_update_data,
-            update_interval=timedelta(seconds=TESSIE_SYNC_INTERVAL),
+            update_interval=TESSIE_ONLINE_SYNC_INTERVAL,
         )
         self.api_key: str = api_key
         self.vin: str = vin
@@ -53,16 +56,22 @@ class TessieDataUpdateCoordinator(DataUpdateCoordinator):
             )
         except ClientResponseError as e:
             if e.status == HTTPStatus.REQUEST_TIMEOUT:
+                # Vehicle is offline, only update state and dont throw error
                 self.data["state"] = "offline"
                 return self.data
+
             if e.status == HTTPStatus.UNAUTHORIZED:
+                # Auth Token is no longer valid
                 raise ConfigEntryAuthFailed from e
             raise e
 
         if vehicle["state"] == TessieStatus.ONLINE:
+            # Vehicle is online, all data is fresh
+            self.update_interval = TESSIE_ONLINE_SYNC_INTERVAL
             return self._flattern(vehicle)
 
-        # Use existing data but update state
+        # Vehicle is asleep, only update state
+        self.update_interval = TESSIE_ASLEEP_SYNC_INTERVAL
         self.data["state"] = vehicle["state"]
         return self.data
 
