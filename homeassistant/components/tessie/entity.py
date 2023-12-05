@@ -53,11 +53,13 @@ class TessieEntity(CoordinatorEntity[TessieDataUpdateCoordinator]):
     async def run(self, func: Callable, **kargs: Any):
         """Run a tessie_api function and handle exceptions."""
         try:
-            return await func(
-                session=self.session,
-                vin=self.vin,
-                api_key=self.coordinator.api_key,
-                **kargs,
+            return (
+                await func(
+                    session=self.session,
+                    vin=self.vin,
+                    api_key=self.coordinator.api_key,
+                    **kargs,
+                )
             )["result"]
         except ClientResponseError as e:
             if e.status == HTTPStatus.INTERNAL_SERVER_ERROR:
