@@ -85,8 +85,8 @@ class TessieEntity(CoordinatorEntity[TessieDataUpdateCoordinator]):
                     translation_key="virtual_key",
                 )
             raise HomeAssistantError from e
-        # Refresh data before modifying it to avoid the Tessie cache clobbering the change
-        await self.coordinator.async_request_refresh()
+        # Reschedule coordinator update to avoid the Tessie cache clobbering the change
+        self.coordinator.reschedule_refresh()
         return response.get("result")
 
     def set(self, *args):
