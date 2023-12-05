@@ -24,8 +24,8 @@ async def async_setup_entry(
 
     async_add_entities(
         [
-            Entity(coordinator, vin)
-            for Entity in (
+            EntityClass(coordinator, vin)
+            for EntityClass in (
                 TessieChargeLimitSocNumberEntity,
                 TessieSpeedLimitModeNumberEntity,
                 TessieCurrentChargeNumberEntity,

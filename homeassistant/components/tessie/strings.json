@@ -86,6 +86,17 @@
       "climate_state-passenger_temp_setting": {
         "name": "Passenger Temperature Setting"
       }
+    },
+    "number": {
+      "charge_current_request": {
+        "name": "Charge Current"
+      },
+      "charge_limit_soc": {
+        "name": "Charge Limit"
+      },
+      "speed_limit_mode": {
+        "name": "Speed Limit"
+      }
     }
   },
   "issues": {
