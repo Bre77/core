@@ -80,7 +80,7 @@ class TessieEntity(CoordinatorEntity[TessieDataUpdateCoordinator]):
                 )
             raise HomeAssistantError from e
 
-    async def set(self, *args):
+    def set(self, *args):
         """Set a value in coordinator data."""
         for key, value in args:
             self.coordinator.data[self.vin][self.category][key] = value
