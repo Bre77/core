@@ -51,6 +51,7 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
     """Vehicle Location Climate Class."""
 
     _attr_precision = 0.5
+    _attr_translation_key = "climate"
     _attr_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_hvac_modes = [HVACMode.HEAT_COOL, HVACMode.OFF]
     _attr_supported_features = (
