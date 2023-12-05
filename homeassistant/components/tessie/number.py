@@ -65,7 +65,8 @@ class TessieCurrentChargeNumberEntity(TessieEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
-        await self.run(set_charging_amps, amps=value)
+        if await self.run(set_charging_amps, amps=value):
+            await self.set((self.key, value))
 
 
 class TessieChargeLimitSocNumberEntity(TessieEntity, NumberEntity):
@@ -102,7 +103,8 @@ class TessieChargeLimitSocNumberEntity(TessieEntity, NumberEntity):
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
-        await self.run(set_charge_limit, percent=value)
+        if await self.run(set_charge_limit, percent=value):
+            await self.set((self.key, value))
 
 
 class TessieSpeedLimitModeNumberEntity(TessieEntity, NumberEntity):
@@ -131,13 +133,17 @@ class TessieSpeedLimitModeNumberEntity(TessieEntity, NumberEntity):
     @property
     def native_min_value(self) -> float:
         """Return the minimum value."""
-        return self.get()["max_limit_mph"]
+        return self.get()["min_limit_mph"]
 
     @property
     def native_max_value(self) -> float:
         """Return the maximum value."""
-        return self.get()["min_limit_mph"]
+        return self.get()["max_limit_mph"]
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
-        await self.run(set_speed_limit, mph=value)
+        if await self.run(set_speed_limit, mph=value):
+            self.coordinator.data[self.vin][self.category][self.key][
+                "current_limit_mph"
+            ] = value
+            self.async_write_ha_state()
