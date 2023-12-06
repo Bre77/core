@@ -1,6 +1,13 @@
 """Test the Tessie switch platform."""
+from unittest.mock import patch
+
+from homeassistant.components.switch import (
+    DOMAIN as SWITCH_DOMAIN,
+    SERVICE_TURN_OFF,
+    SERVICE_TURN_ON,
+)
 from homeassistant.components.tessie.switch import DESCRIPTIONS
-from homeassistant.const import STATE_ON
+from homeassistant.const import ATTR_ENTITY_ID, STATE_ON
 from homeassistant.core import HomeAssistant
 
 from .common import TEST_VEHICLE_STATE_ONLINE, setup_platform
@@ -21,3 +28,29 @@ async def test_switches(hass: HomeAssistant) -> None:
     assert (hass.states.get("switch.test_sentry_mode").state == STATE_ON) == (
         TEST_VEHICLE_STATE_ONLINE["vehicle_state"]["sentry_mode"]
     )
+
+    # Test Switch On
+    with patch(
+        "homeassistant.components.tessie.switch.start_charging", return_value=True
+    ) as mock_func:
+        await hass.services.async_call(
+            SWITCH_DOMAIN,
+            SERVICE_TURN_ON,
+            {ATTR_ENTITY_ID: ["switch.test_charge"]},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        mock_func.assert_called_once()
+
+    # Test Switch Off
+    with patch(
+        "homeassistant.components.tessie.switch.stop_charging", return_value=True
+    ) as mock_func:
+        await hass.services.async_call(
+            SWITCH_DOMAIN,
+            SERVICE_TURN_OFF,
+            {ATTR_ENTITY_ID: ["switch.test_charge"]},
+            blocking=True,
+        )
+        await hass.async_block_till_done()
+        mock_func.assert_called_once()

@@ -36,8 +36,8 @@ PARALLEL_UPDATES = 0
 class TessieSwitchEntityDescription(SwitchEntityDescription):
     """Describes Tessie Switch entity."""
 
-    on_func: Callable = lambda x: None
-    off_func: Callable = lambda x: None
+    on_func: Callable | None = None
+    off_func: Callable | None = None
     device_class: SwitchDeviceClass = SwitchDeviceClass.SWITCH
 
 
@@ -106,8 +106,10 @@ class TessieSwitchEntity(TessieEntity, SwitchEntity):
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn on the Switch."""
+        assert self.entity_description.on_func is not None
         await self.run(self.entity_description.on_func)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn off the Switch."""
+        assert self.entity_description.off_func is not None
         await self.run(self.entity_description.off_func)
