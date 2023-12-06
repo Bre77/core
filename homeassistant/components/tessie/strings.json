@@ -26,6 +26,14 @@
   },
   "entity": {
     "climate": { "climate": { "name": "Climate" } },
+    "device_tracker": {
+      "location": {
+        "name": "Location"
+      },
+      "route": {
+        "name": "Route"
+      }
+    },
     "sensor": {
       "state": {
         "name": "Status",
