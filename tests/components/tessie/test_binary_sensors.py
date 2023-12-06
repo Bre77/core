@@ -1,4 +1,4 @@
-"""Test the Tessie sensor platform."""
+"""Test the Tessie binary sensor platform."""
 import itertools
 
 from homeassistant.components.tessie.binary_sensor import DESCRIPTIONS
