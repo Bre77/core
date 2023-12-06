@@ -58,7 +58,7 @@ class TessieEntity(CoordinatorEntity[TessieDataUpdateCoordinator]):
 
     def get(self, key: str | None = None) -> Any:
         """Return value from coordinator data."""
-        return self.coordinator.data[key or self.key]
+        return self.coordinator.data.get(key or self.key)
 
     async def run(self, func: Callable, **kargs: Any):
         """Run a tessie_api function and handle exceptions."""
