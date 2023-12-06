@@ -32,15 +32,19 @@ class TessieButtonEntityDescription(ButtonEntityDescription):
     func: Callable | None = None
 
 
-DESCRIPTIONS: tuple[ButtonEntityDescription, ...] = (
-    TessieButtonEntityDescription(key="wake", func=wake),
-    TessieButtonEntityDescription(key="flash_lights", func=flash_lights),
-    TessieButtonEntityDescription(key="honk", func=honk),
-    TessieButtonEntityDescription(key="trigger_homelink", func=trigger_homelink),
+DESCRIPTIONS: tuple[TessieButtonEntityDescription, ...] = (
+    TessieButtonEntityDescription(key="wake", func=wake, icon="mdi:sleep-off"),
     TessieButtonEntityDescription(
-        key="enable_keyless_driving", func=enable_keyless_driving
+        key="flash_lights", func=flash_lights, icon="mdi:flashlight"
     ),
-    TessieButtonEntityDescription(key="boombox", func=boombox),
+    TessieButtonEntityDescription(key="honk", func=honk, icon="mdi:bullhorn"),
+    TessieButtonEntityDescription(
+        key="trigger_homelink", func=trigger_homelink, icon="mdi:garage"
+    ),
+    TessieButtonEntityDescription(
+        key="enable_keyless_driving", func=enable_keyless_driving, icon="mdi:car-key"
+    ),
+    TessieButtonEntityDescription(key="boombox", func=boombox, icon="mdi:volume-high"),
 )
 
 
@@ -62,12 +66,12 @@ async def async_setup_entry(
 class TessieButtonEntity(TessieEntity, ButtonEntity):
     """Base class for Tessie Buttons."""
 
-    entity_description: ButtonEntityDescription
+    entity_description: TessieButtonEntityDescription
 
     def __init__(
         self,
         coordinator: TessieDataUpdateCoordinator,
-        description: ButtonEntityDescription,
+        description: TessieButtonEntityDescription,
     ) -> None:
         """Initialize the Button."""
         super().__init__(coordinator, description.key)
@@ -75,4 +79,5 @@ class TessieButtonEntity(TessieEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Press the button."""
+        assert self.entity_description.func
         await self.run(self.entity_description.func)

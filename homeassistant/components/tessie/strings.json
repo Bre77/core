@@ -91,9 +91,9 @@
       "wake": { "name": "Wake" },
       "flash_lights": { "name": "Flash Lights" },
       "honk": { "name": "Honk Horn" },
-      "trigger_homelink": { "name": "Trigger Homelink" },
-      "enable_keyless_driving": { "name": "Enable Keyless Driving" },
-      "boombox": { "name": "Fart" }
+      "trigger_homelink": { "name": "Homelink" },
+      "enable_keyless_driving": { "name": "Keyless Driving" },
+      "boombox": { "name": "Play Fart" }
     }
   },
   "issues": {
