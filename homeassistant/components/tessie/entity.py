@@ -28,21 +28,19 @@ class TessieEntity(CoordinatorEntity[TessieDataUpdateCoordinator]):
     ) -> None:
         """Initialize common aspects of a Tessie entity."""
         super().__init__(coordinator)
-        self.vin = coordinator.vin
-        self.key = key
-
-        car_type = coordinator.data["vehicle_config-car_type"]
+        self.vin: str = coordinator.vin
+        self.key: str = key
+        self.session: ClientSession = coordinator.session
 
         if self._attr_translation_key is None:
             self._attr_translation_key = key
 
         self._attr_unique_id = f"{self.vin}-{key}"
 
-        self._attr_unique_id = f"{vin}:{category}:{key}"
-
         if not hasattr(self, "_attr_translation_key"):
             self._attr_translation_key = key
 
+        car_type = coordinator.data["vehicle_config-car_type"]
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self.vin)},
             manufacturer="Tesla",
@@ -65,7 +63,7 @@ class TessieEntity(CoordinatorEntity[TessieDataUpdateCoordinator]):
     async def run(self, func: Callable, **kargs: Any):
         """Run a tessie_api function and handle exceptions."""
         try:
-            response = await func(
+            return await func(
                 session=self.session,
                 vin=self.vin,
                 api_key=self.coordinator.api_key,
@@ -85,9 +83,6 @@ class TessieEntity(CoordinatorEntity[TessieDataUpdateCoordinator]):
                     translation_key="virtual_key",
                 )
             raise HomeAssistantError from e
-        # Reschedule coordinator update to avoid the Tessie cache clobbering the change
-        self.coordinator.reschedule_refresh()
-        return response.get("result")
 
     def set(self, *args):
         """Set a value in coordinator data."""
