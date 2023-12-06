@@ -88,16 +88,16 @@
       }
     },
     "switch": {
-      "charge_enable_request": {
+      "charge_state-charge_enable_request": {
         "name": "Charge"
       },
-      "defrost_mode": {
+      "climate_state-defrost_mode": {
         "name": "Defrost Mode"
       },
-      "sentry_mode": {
+      "vehicle_state-sentry_mode": {
         "name": "Sentry Mode"
       },
-      "valet_mode": {
+      "vehicle_state-valet_mode": {
         "name": "Valet Mode"
       }
     }

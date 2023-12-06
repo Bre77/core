@@ -25,7 +25,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, TessieCategory
+from .const import DOMAIN
 from .coordinator import TessieDataUpdateCoordinator
 from .entity import TessieEntity
 
@@ -41,50 +41,46 @@ class TessieSwitchEntityDescription(SwitchEntityDescription):
     device_class: SwitchDeviceClass = SwitchDeviceClass.SWITCH
 
 
-DESCRIPTIONS: dict[TessieCategory, tuple[TessieSwitchEntityDescription, ...]] = {
-    TessieCategory.CHARGE_STATE: (
-        TessieSwitchEntityDescription(
-            key="charge_enable_request",
-            on_func=start_charging,
-            off_func=stop_charging,
-        ),
+DESCRIPTIONS: tuple[TessieSwitchEntityDescription, ...] = (
+    TessieSwitchEntityDescription(
+        key="charge_state-charge_enable_request",
+        on_func=start_charging,
+        off_func=stop_charging,
+        icon="mdi:ev-station",
     ),
-    TessieCategory.CLIMATE_STATE: (
-        TessieSwitchEntityDescription(
-            key="defrost_mode",
-            on_func=start_defrost,
-            off_func=stop_defrost,
-        ),
+    TessieSwitchEntityDescription(
+        key="climate_state-defrost_mode",
+        on_func=start_defrost,
+        off_func=stop_defrost,
+        icon="mdi:snowflake",
     ),
-    TessieCategory.VEHICLE_STATE: (
-        TessieSwitchEntityDescription(
-            key="sentry_mode",
-            on_func=enable_sentry_mode,
-            off_func=disable_sentry_mode,
-        ),
-        TessieSwitchEntityDescription(
-            key="valet_mode",
-            on_func=enable_valet_mode,
-            off_func=disable_valet_mode,
-        ),
+    TessieSwitchEntityDescription(
+        key="vehicle_state-sentry_mode",
+        on_func=enable_sentry_mode,
+        off_func=disable_sentry_mode,
+        icon="mdi:shield-car",
     ),
-}
+    TessieSwitchEntityDescription(
+        key="vehicle_state-valet_mode",
+        on_func=enable_valet_mode,
+        off_func=disable_valet_mode,
+        icon="mdi:car-key",
+    ),
+)
 
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the Tessie Switch platform from a config entry."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinators = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
         [
-            TessieSwitchEntity(coordinator, vin, category, description)
-            for vin, vehicle in coordinator.data.items()
-            for category, descriptions in DESCRIPTIONS.items()
-            if category in vehicle
-            for description in descriptions
-            if description.key in vehicle[category]
+            TessieSwitchEntity(coordinator, description)
+            for coordinator in coordinators
+            for description in DESCRIPTIONS
+            if description.key in coordinator.data
         ]
     )
 
@@ -97,12 +93,10 @@ class TessieSwitchEntity(TessieEntity, SwitchEntity):
     def __init__(
         self,
         coordinator: TessieDataUpdateCoordinator,
-        vin: str,
-        category: str,
         description: TessieSwitchEntityDescription,
     ) -> None:
         """Initialize the Switch."""
-        super().__init__(coordinator, vin, category, description.key)
+        super().__init__(coordinator, description.key)
         self.entity_description = description
 
     @property
