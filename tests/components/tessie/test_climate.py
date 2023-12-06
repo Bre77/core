@@ -27,11 +27,9 @@ from .common import (
     ERROR_TIMEOUT,
     ERROR_UNKNOWN,
     ERROR_VIRTUAL_KEY,
-    TEST_STATE_OF_ALL_VEHICLES,
+    TEST_VEHICLE_STATE_ONLINE,
     setup_platform,
 )
-
-STATES = TEST_STATE_OF_ALL_VEHICLES["results"][0]["last_state"]
 
 
 async def test_climate(hass: HomeAssistant) -> None:
@@ -48,11 +46,11 @@ async def test_climate(hass: HomeAssistant) -> None:
     assert state.state == STATE_OFF
     assert (
         state.attributes.get(ATTR_MIN_TEMP)
-        == STATES[TessieCategory.CLIMATE_STATE]["min_avail_temp"]
+        == TEST_VEHICLE_STATE_ONLINE[TessieCategory.CLIMATE_STATE]["min_avail_temp"]
     )
     assert (
         state.attributes.get(ATTR_MAX_TEMP)
-        == STATES[TessieCategory.CLIMATE_STATE]["max_avail_temp"]
+        == TEST_VEHICLE_STATE_ONLINE[TessieCategory.CLIMATE_STATE]["max_avail_temp"]
     )
 
     # Test setting climate on
