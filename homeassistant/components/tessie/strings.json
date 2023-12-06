@@ -168,6 +168,14 @@
       "vehicle_state-valet_mode": {
         "name": "Valet Mode"
       }
+    },
+    "button": {
+      "wake": { "name": "Wake" },
+      "flash_lights": { "name": "Flash Lights" },
+      "honk": { "name": "Honk Horn" },
+      "trigger_homelink": { "name": "Homelink" },
+      "enable_keyless_driving": { "name": "Keyless Driving" },
+      "boombox": { "name": "Play Fart" }
     }
   },
   "issues": {

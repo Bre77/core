@@ -14,7 +14,13 @@ from .const import DOMAIN
 from .coordinator import TessieDataUpdateCoordinator
 
 TESSIE_SYNC_INTERVAL = 15
-PLATFORMS = [Platform.SENSOR, Platform.CLIMATE, Platform.BINARY_SENSOR, Platform.SWITCH]
+PLATFORMS = [
+    Platform.SENSOR,
+    Platform.CLIMATE,
+    Platform.BINARY_SENSOR,
+    Platform.SWITCH,
+    Platform.BUTTON,
+]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
