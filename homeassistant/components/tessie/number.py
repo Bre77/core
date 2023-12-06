@@ -9,7 +9,7 @@ from homeassistant.const import PERCENTAGE, UnitOfElectricCurrent, UnitOfSpeed
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, TessieCategory
+from .const import DOMAIN
 from .coordinator import TessieDataUpdateCoordinator
 from .entity import TessieEntity
 
@@ -20,17 +20,17 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     """Set up the Tessie sensor platform from a config entry."""
-    coordinator = hass.data[DOMAIN][entry.entry_id]
+    coordinators = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
         [
-            EntityClass(coordinator, vin)
+            EntityClass(coordinator)
             for EntityClass in (
                 TessieChargeLimitSocNumberEntity,
                 TessieSpeedLimitModeNumberEntity,
                 TessieCurrentChargeNumberEntity,
             )
-            for vin in coordinator.data
+            for coordinator in coordinators
         ]
     )
 
@@ -46,12 +46,9 @@ class TessieCurrentChargeNumberEntity(TessieEntity, NumberEntity):
     def __init__(
         self,
         coordinator: TessieDataUpdateCoordinator,
-        vin: str,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(
-            coordinator, vin, TessieCategory.CHARGE_STATE, "charge_current_request"
-        )
+        super().__init__(coordinator, "charge_state-charge_current_request")
 
     @property
     def native_value(self) -> float:
@@ -61,7 +58,7 @@ class TessieCurrentChargeNumberEntity(TessieEntity, NumberEntity):
     @property
     def native_max_value(self) -> float:
         """Return the maximum value."""
-        return self.get("charge_current_request_max")
+        return self.get("charge_state-charge_current_request_max")
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
@@ -79,12 +76,9 @@ class TessieChargeLimitSocNumberEntity(TessieEntity, NumberEntity):
     def __init__(
         self,
         coordinator: TessieDataUpdateCoordinator,
-        vin: str,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(
-            coordinator, vin, TessieCategory.CHARGE_STATE, "charge_limit_soc"
-        )
+        super().__init__(coordinator, "charge_state-charge_limit_soc")
 
     @property
     def native_value(self) -> float:
@@ -94,12 +88,12 @@ class TessieChargeLimitSocNumberEntity(TessieEntity, NumberEntity):
     @property
     def native_min_value(self) -> float:
         """Return the minimum value."""
-        return self.get("charge_limit_soc_min")
+        return self.get("charge_state-charge_limit_soc_min")
 
     @property
     def native_max_value(self) -> float:
         """Return the maximum value."""
-        return self.get("charge_limit_soc_max")
+        return self.get("charge_state-charge_limit_soc_max")
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
@@ -118,32 +112,26 @@ class TessieSpeedLimitModeNumberEntity(TessieEntity, NumberEntity):
     def __init__(
         self,
         coordinator: TessieDataUpdateCoordinator,
-        vin: str,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(
-            coordinator, vin, TessieCategory.VEHICLE_STATE, "speed_limit_mode"
-        )
+        super().__init__(coordinator, "vehicle_state-speed_limit_mode")
 
     @property
     def native_value(self) -> float:
         """Return the state of the number."""
-        return self.get()["current_limit_mph"]
+        return self.get("vehicle_state-speed_limit_mode-current_limit_mph")
 
     @property
     def native_min_value(self) -> float:
         """Return the minimum value."""
-        return self.get()["min_limit_mph"]
+        return self.get("vehicle_state-speed_limit_mode-min_limit_mph")
 
     @property
     def native_max_value(self) -> float:
         """Return the maximum value."""
-        return self.get()["max_limit_mph"]
+        return self.get("vehicle_state-speed_limit_mode-max_limit_mph")
 
     async def async_set_native_value(self, value: float) -> None:
         """Set new value."""
         if await self.run(set_speed_limit, mph=value):
-            self.coordinator.data[self.vin][self.category][self.key][
-                "current_limit_mph"
-            ] = value
-            self.async_write_ha_state()
+            self.set(("vehicle_state-speed_limit_mode-max_limit_mph", value))
