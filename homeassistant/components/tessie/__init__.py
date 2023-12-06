@@ -21,6 +21,7 @@ PLATFORMS = [
     Platform.SWITCH,
     Platform.BUTTON,
     Platform.DEVICE_TRACKER,
+    Platform.NUMBER,
 ]
 
 

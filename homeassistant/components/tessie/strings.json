@@ -184,6 +184,17 @@
       "trigger_homelink": { "name": "Homelink" },
       "enable_keyless_driving": { "name": "Keyless Driving" },
       "boombox": { "name": "Play Fart" }
+    },
+    "number": {
+      "charge_state-charge_current_request": {
+        "name": "Charge Current"
+      },
+      "charge_state-charge_limit_soc": {
+        "name": "Charge Limit"
+      },
+      "vehicle_state-speed_limit_mode": {
+        "name": "Speed Limit"
+      }
     }
   },
   "issues": {
