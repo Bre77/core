@@ -88,13 +88,13 @@
       }
     },
     "number": {
-      "charge_current_request": {
+      "charge_state-charge_current_request": {
         "name": "Charge Current"
       },
-      "charge_limit_soc": {
+      "charge_state-charge_limit_soc": {
         "name": "Charge Limit"
       },
-      "speed_limit_mode": {
+      "vehicle_state-speed_limit_mode": {
         "name": "Speed Limit"
       }
     }
