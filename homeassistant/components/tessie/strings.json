@@ -154,6 +154,20 @@
       "tpms_soft_warning_rr": {
         "name": "Tyre Preasure Warning Rear Right"
       }
+    },
+    "switch": {
+      "charge_state-charge_enable_request": {
+        "name": "Charge"
+      },
+      "climate_state-defrost_mode": {
+        "name": "Defrost Mode"
+      },
+      "vehicle_state-sentry_mode": {
+        "name": "Sentry Mode"
+      },
+      "vehicle_state-valet_mode": {
+        "name": "Valet Mode"
+      }
     }
   },
   "issues": {
