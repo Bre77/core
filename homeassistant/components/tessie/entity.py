@@ -56,9 +56,9 @@ class TessieEntity(CoordinatorEntity[TessieDataUpdateCoordinator]):
         """Return own value from coordinator data."""
         return self.coordinator.data[self.key]
 
-    def get(self, key: str | None = None) -> Any:
+    def get(self, key: str | None = None, default: Any | None = None) -> Any:
         """Return value from coordinator data."""
-        return self.coordinator.data.get(key or self.key)
+        return self.coordinator.data.get(key or self.key, default)
 
     async def run(self, func: Callable, **kargs: Any):
         """Run a tessie_api function and handle exceptions."""
@@ -83,7 +83,7 @@ class TessieEntity(CoordinatorEntity[TessieDataUpdateCoordinator]):
                     translation_key="virtual_key",
                 )
             raise HomeAssistantError from e
-        return response.get("result")
+        return response.get("result") is True
 
     def set(self, *args):
         """Set a value in coordinator data."""
