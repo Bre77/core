@@ -5,7 +5,7 @@ from collections.abc import Callable
 from http import HTTPStatus
 from typing import Any
 
-from aiohttp import ClientResponseError, ClientSession
+from aiohttp import ClientResponseError
 
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import issue_registry as ir
@@ -28,19 +28,15 @@ class TessieEntity(CoordinatorEntity[TessieDataUpdateCoordinator]):
     ) -> None:
         """Initialize common aspects of a Tessie entity."""
         super().__init__(coordinator)
-        self.vin: str = coordinator.vin
-        self.key: str = key
-        self.session: ClientSession = coordinator.session
+        self.vin = coordinator.vin
+        self.key = key
 
-        if self._attr_translation_key is None:
-            self._attr_translation_key = key
-
-        self._attr_unique_id = f"{self.vin}-{key}"
+        car_type = coordinator.data["vehicle_config-car_type"]
 
         if not hasattr(self, "_attr_translation_key"):
             self._attr_translation_key = key
 
-        car_type = coordinator.data["vehicle_config-car_type"]
+        self._attr_unique_id = f"{self.vin}-{key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self.vin)},
             manufacturer="Tesla",
@@ -64,7 +60,7 @@ class TessieEntity(CoordinatorEntity[TessieDataUpdateCoordinator]):
         """Run a tessie_api function and handle exceptions."""
         try:
             response = await func(
-                session=self.session,
+                session=self.coordinator.session,
                 vin=self.vin,
                 api_key=self.coordinator.api_key,
                 **kargs,
