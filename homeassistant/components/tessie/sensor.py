@@ -31,8 +31,6 @@ from .const import DOMAIN, TessieStatus
 from .coordinator import TessieDataUpdateCoordinator
 from .entity import TessieEntity
 
-PARALLEL_UPDATES = 0
-
 
 @dataclass
 class TessieSensorEntityDescription(SensorEntityDescription):
