@@ -33,9 +33,7 @@ class TessieEntity(CoordinatorEntity[TessieDataUpdateCoordinator]):
 
         car_type = coordinator.data["vehicle_config_car_type"]
 
-        if not hasattr(self, "_attr_translation_key"):
-            self._attr_translation_key = key
-
+        self._attr_translation_key = key
         self._attr_unique_id = f"{self.vin}-{key}"
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self.vin)},
