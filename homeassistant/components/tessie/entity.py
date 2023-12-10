@@ -48,7 +48,7 @@ class TessieEntity(CoordinatorEntity[TessieDataUpdateCoordinator]):
         )
 
     @property
-    def value(self) -> Any:
+    def native_value(self) -> Any:
         """Return own value from coordinator data."""
         return self.coordinator.data[self.key]
 
