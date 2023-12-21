@@ -37,6 +37,14 @@
         }
       }
     },
+    "device_tracker": {
+      "location": {
+        "name": "Location"
+      },
+      "route": {
+        "name": "Route"
+      }
+    },
     "sensor": {
       "charge_state_usable_battery_level": {
         "name": "Battery level"
