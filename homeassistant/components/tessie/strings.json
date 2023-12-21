@@ -102,6 +102,14 @@
         "name": "Passenger temperature setting"
       }
     },
+    "cover": {
+      "windows": {
+        "name": "Windows"
+      },
+      "charge_state_charge_port_door_open": {
+        "name": "Charge port door"
+      }
+    },
     "binary_sensor": {
       "state": {
         "name": "Status"
