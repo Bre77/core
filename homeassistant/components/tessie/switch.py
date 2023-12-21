@@ -38,7 +38,6 @@ class TessieSwitchEntityDescription(SwitchEntityDescription):
 
     on_func: Callable
     off_func: Callable
-    device_class: SwitchDeviceClass = SwitchDeviceClass.SWITCH
 
 
 DESCRIPTIONS: tuple[TessieSwitchEntityDescription, ...] = (
@@ -93,6 +92,7 @@ class TessieSwitchEntity(TessieEntity, SwitchEntity):
     """Base class for Tessie Switch."""
 
     entity_description: TessieSwitchEntityDescription
+    _attr_device_class = SwitchDeviceClass.SWITCH
 
     def __init__(
         self,
