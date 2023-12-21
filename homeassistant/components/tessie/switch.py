@@ -82,12 +82,10 @@ async def async_setup_entry(
     coordinators = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
-        [
-            TessieSwitchEntity(coordinator, description)
-            for coordinator in coordinators
-            for description in DESCRIPTIONS
-            if description.key in coordinator.data
-        ]
+        TessieSwitchEntity(coordinator, description)
+        for coordinator in coordinators
+        for description in DESCRIPTIONS
+        if description.key in coordinator.data
     )
 
 
