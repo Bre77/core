@@ -60,7 +60,7 @@ class TessieClimateEntity(TessieEntity, ClimateEntity):
         super().__init__(coordinator, "primary")
 
     @property
-    def hvac_mode(self) -> HVACMode | None:
+    def hvac_mode(self) -> HVACMode:
         """Return hvac operation ie. heat, cool mode."""
         if self.get("climate_state_is_climate_on"):
             return HVACMode.HEAT_COOL
