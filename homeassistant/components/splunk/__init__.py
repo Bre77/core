@@ -65,6 +65,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     name = conf.get(CONF_NAME)
     entity_filter = conf[CONF_FILTER]
 
+    last_error: Exception | None = None
+
     event_collector = hass_splunk(
         session=async_get_clientsession(hass),
         host=host,
@@ -91,6 +93,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     async def splunk_event_listener(event):
         """Listen for new messages on the bus and sends them to Splunk."""
 
+        nonlocal last_error
+
         state = event.data.get("new_state")
         if state is None or not entity_filter(state.entity_id):
             return
@@ -113,17 +117,26 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
         try:
             await event_collector.queue(json.dumps(payload, cls=JSONEncoder), send=True)
+            last_error = None
         except SplunkPayloadError as err:
-            if err.status == HTTPStatus.UNAUTHORIZED:
-                _LOGGER.error(err)
-            else:
-                _LOGGER.warning(err)
+            if not isinstance(err, last_error):
+                last_error = SplunkPayloadError
+                if err.status == HTTPStatus.UNAUTHORIZED:
+                    _LOGGER.error(err)
+                else:
+                    _LOGGER.warning(err)
         except ClientConnectionError as err:
-            _LOGGER.warning(err)
+            if not isinstance(err, last_error):
+                last_error = ClientConnectionError
+                _LOGGER.warning(err)
         except asyncio.TimeoutError:
-            _LOGGER.warning("Connection to %s:%s timed out", host, port)
+            if not isinstance(err, last_error):
+                last_error = asyncio.TimeoutError
+                _LOGGER.warning("Connection to %s:%s timed out", host, port)
         except ClientResponseError as err:
-            _LOGGER.error(err.message)
+            if not isinstance(err, ClientResponseError):
+                last_error = asyncio.TimeoutError
+                _LOGGER.error(err.message)
 
     hass.bus.async_listen(EVENT_STATE_CHANGED, splunk_event_listener)
 
