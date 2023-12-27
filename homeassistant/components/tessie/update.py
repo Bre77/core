@@ -30,7 +30,6 @@ class TessieUpdateEntity(TessieEntity, UpdateEntity):
     """Tessie Updates entity."""
 
     _attr_supported_features = UpdateEntityFeature.PROGRESS
-    _attr_name = None
 
     def __init__(
         self,
@@ -66,7 +65,7 @@ class TessieUpdateEntity(TessieEntity, UpdateEntity):
             TessieUpdateStatus.WIFI_WAIT,
         ):
             return self.get("vehicle_state_software_update_version")
-        return None
+        return self.installed_version
 
     @property
     def in_progress(self) -> bool | int | None:
