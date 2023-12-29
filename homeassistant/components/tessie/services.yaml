@@ -1,4 +1,9 @@
 share:
   fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: tessie
     value:
       required: true

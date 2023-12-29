@@ -40,6 +40,7 @@ class TessieEntity(CoordinatorEntity[TessieStateUpdateCoordinator]):
             model=MODELS.get(car_type, car_type),
             sw_version=coordinator.data["vehicle_state_car_version"],
             hw_version=coordinator.data["vehicle_config_driver_assist"],
+            serial_number=self.vin
         )
 
     @property
