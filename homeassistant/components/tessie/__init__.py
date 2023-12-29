@@ -1,19 +1,23 @@
 """Tessie integration."""
 from http import HTTPStatus
 import logging
+import voluptuous as vol
 
 from aiohttp import ClientError, ClientResponseError
-from tessie_api import get_state_of_all_vehicles
+from tessie_api import get_state_of_all_vehicles, share
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ACCESS_TOKEN, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers import config_validation as cv, entity_platform
 
-from .const import DOMAIN
+from .const import DOMAIN, TESSIE_SERVICE_SHARE
 from .coordinator import TessieStateUpdateCoordinator
 from .models import TessieVehicle
+
+TESSIE_SERVICE_SHARE_SCHEMA = {vol.Required("value"): cv.string}
 
 PLATFORMS = [
     Platform.BINARY_SENSOR,
@@ -67,6 +71,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = data
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+    # Setup service
+    for vehicle in vehicles:
+        hass.services.async_register(
+            DOMAIN,
+            TESSIE_SERVICE_SHARE,
+            share_factory(vehicle["vin"], api_key),
+            TESSIE_SERVICE_SHARE_SCHEMA
+        )
+
     return True
 
 
@@ -76,3 +89,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN].pop(entry.entry_id)
 
     return unload_ok
+
+async def share_factory(vin:str, api_key:str) -> bool:
+    """Create a Tessie share function."""
+
+    session = async_get_clientsession(hass)
+    locale = "en-us"
+    return async def share(value: str) -> str:
+        response = await share(session, vin, api_key, value, locale)
+        return "Success" if response.result is True else response.get("reason","An unknown issue occurred")
+

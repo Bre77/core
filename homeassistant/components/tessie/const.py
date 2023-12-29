@@ -4,6 +4,7 @@ from __future__ import annotations
 from enum import IntEnum, StrEnum
 
 DOMAIN = "tessie"
+TESSIE_SERVICE_SHARE = "share"
 
 MODELS = {
     "model3": "Model 3",

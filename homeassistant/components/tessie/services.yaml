@@ -1,0 +1,4 @@
+share:
+  fields:
+    value:
+      required: true
