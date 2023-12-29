@@ -11,6 +11,6 @@ share:
         text:
     locale:
       required: false
-      default: en-us
+      default: en-US
       selector:
         text:

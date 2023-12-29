@@ -27,8 +27,13 @@ from .models import TessieVehicle
 
 TESSIE_VALUE = "value"
 TESSIE_LOCALE = "locale"
+TESSIE_LOCALE_DEFAULT = "en-US"
 TESSIE_SERVICE_SHARE_SCHEMA = vol.Schema(
-    {vol.Required(CONF_DEVICE_ID): cv.string, vol.Required(TESSIE_VALUE): cv.string}
+    {
+        vol.Required(CONF_DEVICE_ID): cv.string,
+        vol.Required(TESSIE_VALUE): cv.string,
+        vol.Optional(TESSIE_LOCALE, default=TESSIE_LOCALE_DEFAULT): cv.string,
+    }
 )
 
 PLATFORMS = [
