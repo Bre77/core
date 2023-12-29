@@ -7,3 +7,10 @@ share:
           integration: tessie
     value:
       required: true
+      selector:
+        text:
+    locale:
+      required: false
+      default: en-us
+      selector:
+        text:

@@ -1,23 +1,35 @@
 """Tessie integration."""
 from http import HTTPStatus
 import logging
-import voluptuous as vol
 
 from aiohttp import ClientError, ClientResponseError
 from tessie_api import get_state_of_all_vehicles, share
+import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_ACCESS_TOKEN, Platform, CONF_DEVICE_ID
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers import config_validation as cv, entity_platform
+from homeassistant.const import CONF_ACCESS_TOKEN, CONF_DEVICE_ID, Platform
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import (
+    ConfigEntryAuthFailed,
+    ConfigEntryNotReady,
+    HomeAssistantError,
+)
+from homeassistant.helpers import (
+    aiohttp_client,
+    config_validation as cv,
+    device_registry as dr,
+)
+from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN, TESSIE_SERVICE_SHARE
 from .coordinator import TessieStateUpdateCoordinator
 from .models import TessieVehicle
 
-TESSIE_SERVICE_SHARE_SCHEMA = {vol.Required(CONF_DEVICE_ID): cv.string, vol.Required("value"): cv.string}
+TESSIE_VALUE = "value"
+TESSIE_LOCALE = "locale"
+TESSIE_SERVICE_SHARE_SCHEMA = vol.Schema(
+    {vol.Required(CONF_DEVICE_ID): cv.string, vol.Required(TESSIE_VALUE): cv.string}
+)
 
 PLATFORMS = [
     Platform.BINARY_SENSOR,
@@ -35,17 +47,25 @@ PLATFORMS = [
 ]
 
 _LOGGER = logging.getLogger(__name__)
+CONFIG_SCHEMA = cv.removed(DOMAIN, raise_if_present=True)
 
-@callback
-def async_get_entry_for_service_call(
+
+def async_get_device_for_service_call(
     hass: HomeAssistant, call: ServiceCall
-) -> ConfigEntry:
-    """Get the controller related to a service call (by device ID)."""
+) -> dr.DeviceEntry:
+    """Get the device entry related to a service call."""
     device_id = call.data[CONF_DEVICE_ID]
     device_registry = dr.async_get(hass)
 
     if (device_entry := device_registry.async_get(device_id)) is None:
-        raise ValueError(f"Invalid RainMachine device ID: {device_id}")
+        raise ValueError(f"Invalid Tessie device ID: {device_id}")
+    return device_entry
+
+
+def async_get_entry_for_device(
+    hass: HomeAssistant, device_entry: dr.DeviceEntry
+) -> ConfigEntry:
+    """Get the config entry related to a device entry."""
 
     for entry_id in device_entry.config_entries:
         if (entry := hass.config_entries.async_get_entry(entry_id)) is None:
@@ -53,26 +73,41 @@ def async_get_entry_for_service_call(
         if entry.domain == DOMAIN:
             return entry
 
-    raise ValueError(f"No controller for device ID: {device_id}")
+    raise ValueError(f"No controller for device ID: {device_entry.id}")
 
 
-
-async def async_setup(hass: HomeAssistant) -> bool:
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Tessie integration."""
 
-    session = async_get_clientsession(hass)
-    locale = "en-us"
-    async def share(value: str) -> str:
-        response = await share(session, vin, api_key, value, locale)
-        return "Success" if response.result is True else response.get("reason","An unknown issue occurred")
+    session = aiohttp_client.async_get_clientsession(hass)
+
+    async def service_share(call: ServiceCall) -> None:
+        """Share the value with a vehicle."""
+        device = async_get_device_for_service_call(hass, call)
+        entry = async_get_entry_for_device(hass, device)
+
+        assert device.serial_number is not None
+
+        try:
+            response = await share(
+                session=session,
+                vin=device.serial_number,
+                api_key=entry.data[CONF_ACCESS_TOKEN],
+                value=call.data[TESSIE_VALUE],
+                locale=call.data[TESSIE_LOCALE],
+            )
+        except ClientResponseError as e:
+            raise HomeAssistantError from e
+        if response["result"] is False:
+            raise HomeAssistantError(
+                response.get("reason"), "An unknown issue occurred"
+            )
 
     hass.services.async_register(
-        DOMAIN,
-        TESSIE_SERVICE_SHARE,
-        share,
-        TESSIE_SERVICE_SHARE_SCHEMA
+        DOMAIN, TESSIE_SERVICE_SHARE, service_share, schema=TESSIE_SERVICE_SHARE_SCHEMA
     )
     return True
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Tessie config."""
@@ -80,7 +115,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     try:
         vehicles = await get_state_of_all_vehicles(
-            session=async_get_clientsession(hass),
+            session=aiohttp_client.async_get_clientsession(hass),
             api_key=api_key,
             only_active=True,
         )
