@@ -13,6 +13,7 @@ from homeassistant.exceptions import (
     ConfigEntryAuthFailed,
     ConfigEntryNotReady,
     HomeAssistantError,
+    ServiceValidationError,
 )
 from homeassistant.helpers import (
     aiohttp_client,
@@ -63,7 +64,7 @@ def async_get_device_for_service_call(
     device_registry = dr.async_get(hass)
 
     if (device_entry := device_registry.async_get(device_id)) is None:
-        raise ValueError(f"Invalid Tessie device ID: {device_id}")
+        raise ServiceValidationError(f"Invalid Tessie device ID: {device_id}")
     return device_entry
 
 
@@ -78,7 +79,7 @@ def async_get_entry_for_device(
         if entry.domain == DOMAIN:
             return entry
 
-    raise ValueError(f"No controller for device ID: {device_entry.id}")
+    raise ServiceValidationError(f"No config entry for device ID: {device_entry.id}")
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
