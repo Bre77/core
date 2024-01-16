@@ -68,7 +68,7 @@
       ]),
       'max_temp': 28.0,
       'min_temp': 15.0,
-      'preset_mode': 'off',
+      'preset_mode': <TessieClimateKeeper.ON: 'on'>,
       'preset_modes': list([
         <TessieClimateKeeper.OFF: 'off'>,
         <TessieClimateKeeper.ON: 'on'>,
@@ -82,7 +82,7 @@
     'entity_id': 'climate.test_climate',
     'last_changed': <ANY>,
     'last_updated': <ANY>,
-    'state': 'off',
+    'state': 'heat_cool',
   })
 # ---
 # name: test_climate[set_temperature]
