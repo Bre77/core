@@ -2,7 +2,8 @@
 import asyncio
 from typing import Final
 
-from tesla_fleet_api import Teslemetry, VehicleSpecific
+from tesla_fleet_api import EnergySpecific, Teslemetry, VehicleSpecific
+from tesla_fleet_api.const import Scope
 from tesla_fleet_api.exceptions import InvalidToken, PaymentRequired, TeslaFleetError
 
 from homeassistant.config_entries import ConfigEntry
@@ -12,10 +13,15 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN, LOGGER
-from .coordinator import TeslemetryVehicleDataCoordinator
-from .models import TeslemetryVehicleData
+from .coordinator import (
+    TeslemetryEnergySiteInfoCoordinator,
+    TeslemetryEnergySiteLiveCoordinator,
+    TeslemetryVehicleDataCoordinator,
+)
+from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
 
 PLATFORMS: Final = [
+    Platform.BINARY_SENSOR,
     Platform.CLIMATE,
 ]
 
@@ -31,6 +37,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         access_token=access_token,
     )
     try:
+        # scopes = ['openid', 'offline_access', 'user_data', 'vehicle_device_data', 'energy_device_data']
+        scopes = (await teslemetry.metadata())["scopes"]
         products = (await teslemetry.products())["response"]
     except InvalidToken:
         LOGGER.error("Access token is invalid, unable to connect to Teslemetry")
@@ -40,31 +48,62 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return False
     except TeslaFleetError as e:
         raise ConfigEntryNotReady from e
+    except TypeError as e:
+        LOGGER.error("Invalid response from Teslemetry", e)
+        raise ConfigEntryNotReady from e
 
     # Create array of classes
-    data = []
+    vehicles: list[TeslemetryVehicleData] = []
+    energysites: list[TeslemetryEnergyData] = []
     for product in products:
-        if "vin" not in product:
-            continue
-        vin = product["vin"]
-
-        api = VehicleSpecific(teslemetry.vehicle, vin)
-        coordinator = TeslemetryVehicleDataCoordinator(hass, api)
-        data.append(
-            TeslemetryVehicleData(
-                api=api,
-                coordinator=coordinator,
-                vin=vin,
+        if "vin" in product and Scope.VEHICLE_DEVICE_DATA in scopes:
+            # Remove the protobuff 'cached_data' that we do not use to save memory
+            product.pop("cached_data", None)
+            vin = product["vin"]
+            api = VehicleSpecific(teslemetry.vehicle, vin)
+            coordinator = TeslemetryVehicleDataCoordinator(hass, api, product)
+            vehicles.append(
+                TeslemetryVehicleData(
+                    api=api,
+                    coordinator=coordinator,
+                    display_name=product["display_name"],
+                    vin=vin,
+                )
             )
-        )
+        elif "energy_site_id" in product and Scope.ENERGY_DEVICE_DATA in scopes:
+            site_id = product["energy_site_id"]
+            api = EnergySpecific(teslemetry.energy, site_id)
+            energysites.append(
+                TeslemetryEnergyData(
+                    api=api,
+                    live_coordinator=TeslemetryEnergySiteLiveCoordinator(hass, api),
+                    info_coordinator=TeslemetryEnergySiteInfoCoordinator(
+                        hass, api, product
+                    ),
+                    id=site_id,
+                )
+            )
 
-    # Do all coordinator first refresh simultaneously
+    # Do all coordinator first refreshes simultaneously
     await asyncio.gather(
-        *(vehicle.coordinator.async_config_entry_first_refresh() for vehicle in data)
+        *(
+            vehicle.coordinator.async_config_entry_first_refresh()
+            for vehicle in vehicles
+        ),
+        *(
+            energysite.live_coordinator.async_config_entry_first_refresh()
+            for energysite in energysites
+        ),
+        *(
+            energysite.info_coordinator.async_config_entry_first_refresh()
+            for energysite in energysites
+        ),
     )
 
     # Setup Platforms
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = data
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = TeslemetryData(
+        vehicles, energysites, scopes
+    )
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
