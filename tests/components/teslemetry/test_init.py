@@ -10,7 +10,7 @@ from tesla_fleet_api.exceptions import (
     VehicleOffline,
 )
 
-from homeassistant.components.teslemetry.coordinator import SYNC_INTERVAL
+from homeassistant.components.teslemetry.coordinator import VEHICLE_INTERVAL
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -105,7 +105,7 @@ async def test_refresh_offline(
     mock_vehicle_data.reset_mock()
 
     mock_vehicle_data.side_effect = VehicleOffline
-    freezer.tick(timedelta(seconds=SYNC_INTERVAL))
+    freezer.tick(timedelta(seconds=VEHICLE_INTERVAL))
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
     mock_vehicle_data.assert_called_once()

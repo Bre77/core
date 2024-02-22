@@ -19,7 +19,7 @@ from homeassistant.components.climate import (
     SERVICE_TURN_ON,
     HVACMode,
 )
-from homeassistant.components.teslemetry.coordinator import SYNC_INTERVAL
+from homeassistant.components.teslemetry.coordinator import VEHICLE_INTERVAL
 from homeassistant.const import ATTR_ENTITY_ID, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -119,7 +119,7 @@ async def test_asleep_or_offline(
     # Put the vehicle alseep
     mock_vehicle_data.reset_mock()
     mock_vehicle_data.side_effect = VehicleOffline
-    freezer.tick(timedelta(seconds=SYNC_INTERVAL))
+    freezer.tick(timedelta(seconds=VEHICLE_INTERVAL))
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
     mock_vehicle_data.assert_called_once()

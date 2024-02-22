@@ -12,8 +12,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import LOGGER, TeslemetryState
 
 VEHICLE_INTERVAL = timedelta(seconds=30)
-ENERGY_LIVE_INTERVAL = timedelta(seconds=30)
-ENERGY_INFO_INTERVAL = timedelta(seconds=30)
 
 ENDPOINTS = [
     VehicleDataEndpoint.CHARGE_STATE,
