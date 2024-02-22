@@ -1,0 +1,13 @@
+{
+  "region": "NA",
+  "scopes": [
+    "openid",
+    "offline_access",
+    "user_data",
+    "vehicle_device_data",
+    "vehicle_cmds",
+    "vehicle_charging_cmds",
+    "energy_device_data",
+    "energy_cmds"
+  ]
+}

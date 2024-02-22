@@ -18,6 +18,15 @@ def mock_products():
 
 
 @pytest.fixture(autouse=True)
+def mock_metadata():
+    """Mock Teslemetry metadata method."""
+    with patch(
+        "homeassistant.components.teslemetry.Teslemetry.metadata", return_value=PRODUCTS
+    ) as mock_products:
+        yield mock_products
+
+
+@pytest.fixture(autouse=True)
 def mock_vehicle_data():
     """Mock Tesla Fleet API Vehicle Specific vehicle_data method."""
     with patch(
