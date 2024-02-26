@@ -105,7 +105,7 @@ async def test_refresh_offline(
     mock_vehicle_data.reset_mock()
 
     mock_vehicle_data.side_effect = VehicleOffline
-    freezer.tick(timedelta(seconds=VEHICLE_INTERVAL))
+    freezer.tick(VEHICLE_INTERVAL)
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
     mock_vehicle_data.assert_called_once()

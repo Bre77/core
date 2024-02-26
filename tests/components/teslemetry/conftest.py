@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from .const import PRODUCTS, RESPONSE_OK, VEHICLE_DATA, WAKE_UP_ONLINE
+from .const import METADATA, PRODUCTS, RESPONSE_OK, VEHICLE_DATA, WAKE_UP_ONLINE
 
 
 @pytest.fixture(autouse=True)
@@ -21,7 +21,7 @@ def mock_products():
 def mock_metadata():
     """Mock Teslemetry metadata method."""
     with patch(
-        "homeassistant.components.teslemetry.Teslemetry.metadata", return_value=PRODUCTS
+        "homeassistant.components.teslemetry.Teslemetry.metadata", return_value=METADATA
     ) as mock_products:
         yield mock_products
 

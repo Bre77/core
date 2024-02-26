@@ -1,0 +1,4 @@
+{
+  "region": "NA",
+  "scopes": ["openid", "offline_access"]
+}
