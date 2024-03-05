@@ -170,7 +170,7 @@
         "name": "Vehicle"
       },
       "wall_connector_fault_state": {
-        "name": "Fault state code"
+        "name": "Fault state"
       },
       "wall_connector_power": {
         "name": "Power"

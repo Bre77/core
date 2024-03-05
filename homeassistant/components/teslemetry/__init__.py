@@ -4,6 +4,7 @@ import asyncio
 from typing import Final
 
 from tesla_fleet_api import EnergySpecific, Teslemetry, VehicleSpecific
+from tesla_fleet_api.const import Scope
 from tesla_fleet_api.exceptions import (
     InvalidToken,
     SubscriptionRequired,
