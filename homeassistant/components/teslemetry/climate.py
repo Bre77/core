@@ -116,7 +116,7 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
     async def async_set_temperature(self, **kwargs: Any) -> None:
         """Set the climate temperature."""
 
-        if temp := kwargs[ATTR_TEMPERATURE]:
+        if temp := kwargs.get(ATTR_TEMPERATURE):
             self.raise_for_scope()
             await self.wake_up_if_asleep()
             await self.handle_command(
@@ -127,7 +127,7 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
             )
             self._attr_target_temperature = temp
 
-        if mode := kwargs[ATTR_HVAC_MODE]:
+        if mode := kwargs.get(ATTR_HVAC_MODE):
             # Set HVAC mode will call write_ha_state
             await self.async_set_hvac_mode(mode)
         else:

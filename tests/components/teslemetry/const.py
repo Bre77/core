@@ -14,5 +14,30 @@ PRODUCTS = load_json_object_fixture("products.json", DOMAIN)
 VEHICLE_DATA = load_json_object_fixture("vehicle_data.json", DOMAIN)
 VEHICLE_DATA_ALT = load_json_object_fixture("vehicle_data_alt.json", DOMAIN)
 LIVE_STATUS = load_json_object_fixture("live_status.json", DOMAIN)
+SITE_INFO = load_json_object_fixture("site_info.json", DOMAIN)
+
+METADATA = {
+    "region": "NA",
+    "scopes": [
+        "openid",
+        "offline_access",
+        "user_data",
+        "vehicle_device_data",
+        "vehicle_cmds",
+        "vehicle_charging_cmds",
+        "energy_device_data",
+        "energy_cmds",
+    ],
+}
+METADATA_NOSCOPE = {"region": "NA", "scopes": ["openid", "offline_access"]}
+
+COMMAND_OK = {"response": {"result": True, "reason": ""}}
+COMMAND_REASON = {"response": {"result": False, "reason": "already closed"}}
+COMMAND_ERROR = {
+    "response": None,
+    "error": "vehicle unavailable: vehicle is offline or asleep",
+    "error_description": "",
+}
+COMMAND_BADRESPONSE = ""
 
 RESPONSE_OK = {"response": {}, "error": None}

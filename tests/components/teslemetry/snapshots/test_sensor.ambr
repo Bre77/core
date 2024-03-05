@@ -1,4 +1,51 @@
 # serializer version: 1
+# name: test_sensors[sensor.energy_site_battery-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': set({
+    }),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.energy_site_battery',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.BATTERY: 'battery'>,
+    'original_icon': None,
+    'original_name': 'Battery',
+    'platform': 'teslemetry',
+    'previous_unique_id': None,
+    'supported_features': 0,
+    'translation_key': 'vpp_backup_reserve_percent',
+    'unique_id': '123456-vpp_backup_reserve_percent',
+    'unit_of_measurement': '%',
+  })
+# ---
+# name: test_sensors[sensor.energy_site_battery-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'device_class': 'battery',
+      'friendly_name': 'Energy Site Battery',
+      'unit_of_measurement': '%',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.energy_site_battery',
+    'last_changed': <ANY>,
+    'last_updated': <ANY>,
+    'state': '0',
+  })
+# ---
 # name: test_sensors[sensor.energy_site_battery_power-entry]
   EntityRegistryEntrySnapshot({
     'aliases': set({
@@ -1492,6 +1539,163 @@
     'state': 'unknown',
   })
 # ---
+# name: test_sensors[sensor.test_estimate_battery_range-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': set({
+    }),
+    'area_id': None,
+    'capabilities': dict({
+      'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'config_entry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.test_estimate_battery_range',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 1,
+      }),
+      'sensor.private': dict({
+        'suggested_unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.DISTANCE: 'distance'>,
+    'original_icon': None,
+    'original_name': 'Estimate battery range',
+    'platform': 'teslemetry',
+    'previous_unique_id': None,
+    'supported_features': 0,
+    'translation_key': 'charge_state_est_battery_range',
+    'unique_id': 'VINVINVIN-charge_state_est_battery_range',
+    'unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
+  })
+# ---
+# name: test_sensors[sensor.test_estimate_battery_range-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'device_class': 'distance',
+      'friendly_name': 'Test Estimate battery range',
+      'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
+      'unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.test_estimate_battery_range',
+    'last_changed': <ANY>,
+    'last_updated': <ANY>,
+    'state': '442.63397376',
+  })
+# ---
+# name: test_sensors[sensor.test_fast_charger_type-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': set({
+    }),
+    'area_id': None,
+    'capabilities': None,
+    'config_entry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
+    'entity_id': 'sensor.test_fast_charger_type',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'options': dict({
+    }),
+    'original_device_class': None,
+    'original_icon': None,
+    'original_name': 'Fast charger type',
+    'platform': 'teslemetry',
+    'previous_unique_id': None,
+    'supported_features': 0,
+    'translation_key': 'charge_state_fast_charger_type',
+    'unique_id': 'VINVINVIN-charge_state_fast_charger_type',
+    'unit_of_measurement': None,
+  })
+# ---
+# name: test_sensors[sensor.test_fast_charger_type-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'friendly_name': 'Test Fast charger type',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.test_fast_charger_type',
+    'last_changed': <ANY>,
+    'last_updated': <ANY>,
+    'state': 'ACSingleWireCAN',
+  })
+# ---
+# name: test_sensors[sensor.test_ideal_battery_range-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': set({
+    }),
+    'area_id': None,
+    'capabilities': dict({
+      'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'config_entry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.test_ideal_battery_range',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'options': dict({
+      'sensor': dict({
+        'suggested_display_precision': 1,
+      }),
+      'sensor.private': dict({
+        'suggested_unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
+      }),
+    }),
+    'original_device_class': <SensorDeviceClass.DISTANCE: 'distance'>,
+    'original_icon': None,
+    'original_name': 'Ideal battery range',
+    'platform': 'teslemetry',
+    'previous_unique_id': None,
+    'supported_features': 0,
+    'translation_key': 'charge_state_ideal_battery_range',
+    'unique_id': 'VINVINVIN-charge_state_ideal_battery_range',
+    'unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
+  })
+# ---
+# name: test_sensors[sensor.test_ideal_battery_range-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'device_class': 'distance',
+      'friendly_name': 'Test Ideal battery range',
+      'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
+      'unit_of_measurement': <UnitOfLength.KILOMETERS: 'km'>,
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.test_ideal_battery_range',
+    'last_changed': <ANY>,
+    'last_updated': <ANY>,
+    'state': '429.48563328',
+  })
+# ---
 # name: test_sensors[sensor.test_inside_temperature-entry]
   EntityRegistryEntrySnapshot({
     'aliases': set({
@@ -2408,7 +2612,57 @@
     'state': 'unknown',
   })
 # ---
-# name: test_sensors[sensor.wall_connector_fault_state_code-entry]
+# name: test_sensors[sensor.test_usable_battery_level-entry]
+  EntityRegistryEntrySnapshot({
+    'aliases': set({
+    }),
+    'area_id': None,
+    'capabilities': dict({
+      'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
+    }),
+    'config_entry_id': <ANY>,
+    'device_class': None,
+    'device_id': <ANY>,
+    'disabled_by': None,
+    'domain': 'sensor',
+    'entity_category': None,
+    'entity_id': 'sensor.test_usable_battery_level',
+    'has_entity_name': True,
+    'hidden_by': None,
+    'icon': None,
+    'id': <ANY>,
+    'labels': set({
+    }),
+    'name': None,
+    'options': dict({
+    }),
+    'original_device_class': <SensorDeviceClass.BATTERY: 'battery'>,
+    'original_icon': None,
+    'original_name': 'Usable Battery level',
+    'platform': 'teslemetry',
+    'previous_unique_id': None,
+    'supported_features': 0,
+    'translation_key': 'charge_state_usable_battery_level',
+    'unique_id': 'VINVINVIN-charge_state_usable_battery_level',
+    'unit_of_measurement': '%',
+  })
+# ---
+# name: test_sensors[sensor.test_usable_battery_level-state]
+  StateSnapshot({
+    'attributes': ReadOnlyDict({
+      'device_class': 'battery',
+      'friendly_name': 'Test Usable Battery level',
+      'state_class': <SensorStateClass.MEASUREMENT: 'measurement'>,
+      'unit_of_measurement': '%',
+    }),
+    'context': <ANY>,
+    'entity_id': 'sensor.test_usable_battery_level',
+    'last_changed': <ANY>,
+    'last_updated': <ANY>,
+    'state': '77',
+  })
+# ---
+# name: test_sensors[sensor.wall_connector_fault_state-entry]
   EntityRegistryEntrySnapshot({
     'aliases': set({
     }),
@@ -2420,7 +2674,7 @@
     'disabled_by': None,
     'domain': 'sensor',
     'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-    'entity_id': 'sensor.wall_connector_fault_state_code',
+    'entity_id': 'sensor.wall_connector_fault_state',
     'has_entity_name': True,
     'hidden_by': None,
     'icon': None,
@@ -2441,7 +2695,7 @@
     'unit_of_measurement': None,
   })
 # ---
-# name: test_sensors[sensor.wall_connector_fault_state_code-state]
+# name: test_sensors[sensor.wall_connector_fault_state-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
       'friendly_name': 'Wall Connector Fault state code',
@@ -2459,13 +2713,13 @@
       'friendly_name': 'Wall Connector Fault state code',
     }),
     'context': <ANY>,
-    'entity_id': 'sensor.wall_connector_fault_state_code',
+    'entity_id': 'sensor.wall_connector_fault_state',
     'last_changed': <ANY>,
     'last_updated': <ANY>,
     'state': '2',
   })
 # ---
-# name: test_sensors[sensor.wall_connector_fault_state_code_2-entry]
+# name: test_sensors[sensor.wall_connector_fault_state_2-entry]
   EntityRegistryEntrySnapshot({
     'aliases': set({
     }),
@@ -2477,7 +2731,7 @@
     'disabled_by': None,
     'domain': 'sensor',
     'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-    'entity_id': 'sensor.wall_connector_fault_state_code_2',
+    'entity_id': 'sensor.wall_connector_fault_state_2',
     'has_entity_name': True,
     'hidden_by': None,
     'icon': None,
@@ -2498,7 +2752,7 @@
     'unit_of_measurement': None,
   })
 # ---
-# name: test_sensors[sensor.wall_connector_fault_state_code_2-state]
+# name: test_sensors[sensor.wall_connector_fault_state_2-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
       'friendly_name': 'Wall Connector Fault state code',
@@ -2516,7 +2770,7 @@
       'friendly_name': 'Wall Connector Fault state code',
     }),
     'context': <ANY>,
-    'entity_id': 'sensor.wall_connector_fault_state_code_2',
+    'entity_id': 'sensor.wall_connector_fault_state_2',
     'last_changed': <ANY>,
     'last_updated': <ANY>,
     'state': '2',
@@ -2664,7 +2918,7 @@
     'state': '0.0',
   })
 # ---
-# name: test_sensors[sensor.wall_connector_state_code-entry]
+# name: test_sensors[sensor.wall_connector_state-entry]
   EntityRegistryEntrySnapshot({
     'aliases': set({
     }),
@@ -2676,7 +2930,7 @@
     'disabled_by': None,
     'domain': 'sensor',
     'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-    'entity_id': 'sensor.wall_connector_state_code',
+    'entity_id': 'sensor.wall_connector_state',
     'has_entity_name': True,
     'hidden_by': None,
     'icon': None,
@@ -2697,7 +2951,7 @@
     'unit_of_measurement': None,
   })
 # ---
-# name: test_sensors[sensor.wall_connector_state_code-state]
+# name: test_sensors[sensor.wall_connector_state-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
       'friendly_name': 'Wall Connector State code',
@@ -2715,13 +2969,13 @@
       'friendly_name': 'Wall Connector State code',
     }),
     'context': <ANY>,
-    'entity_id': 'sensor.wall_connector_state_code',
+    'entity_id': 'sensor.wall_connector_state',
     'last_changed': <ANY>,
     'last_updated': <ANY>,
     'state': '2',
   })
 # ---
-# name: test_sensors[sensor.wall_connector_state_code_2-entry]
+# name: test_sensors[sensor.wall_connector_state_2-entry]
   EntityRegistryEntrySnapshot({
     'aliases': set({
     }),
@@ -2733,7 +2987,7 @@
     'disabled_by': None,
     'domain': 'sensor',
     'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-    'entity_id': 'sensor.wall_connector_state_code_2',
+    'entity_id': 'sensor.wall_connector_state_2',
     'has_entity_name': True,
     'hidden_by': None,
     'icon': None,
@@ -2754,7 +3008,7 @@
     'unit_of_measurement': None,
   })
 # ---
-# name: test_sensors[sensor.wall_connector_state_code_2-state]
+# name: test_sensors[sensor.wall_connector_state_2-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
       'friendly_name': 'Wall Connector State code',
@@ -2772,7 +3026,7 @@
       'friendly_name': 'Wall Connector State code',
     }),
     'context': <ANY>,
-    'entity_id': 'sensor.wall_connector_state_code_2',
+    'entity_id': 'sensor.wall_connector_state_2',
     'last_changed': <ANY>,
     'last_updated': <ANY>,
     'state': '2',
