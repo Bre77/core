@@ -21,11 +21,11 @@ from homeassistant.components.climate import (
 from homeassistant.components.teslemetry.coordinator import VEHICLE_INTERVAL
 from homeassistant.const import ATTR_ENTITY_ID, Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 
 from . import assert_entities, setup_platform
-from .const import WAKE_UP_ASLEEP, WAKE_UP_ONLINE
+from .const import METADATA_NOSCOPE, VEHICLE_DATA_ALT, WAKE_UP_ASLEEP, WAKE_UP_ONLINE
 
 from tests.common import async_fire_time_changed
 
@@ -34,6 +34,7 @@ async def test_climate(
     hass: HomeAssistant,
     snapshot: SnapshotAssertion,
     entity_registry: er.EntityRegistry,
+    mock_vehicle_data,
 ) -> None:
     """Tests that the climate entity is correct."""
 
@@ -42,27 +43,34 @@ async def test_climate(
     assert_entities(hass, entry.entry_id, entity_registry, snapshot)
 
     entity_id = "climate.test_climate"
-    state = hass.states.get(entity_id)
 
-    # Turn On
+    # Turn On and Set Temp
     await hass.services.async_call(
         CLIMATE_DOMAIN,
-        SERVICE_SET_HVAC_MODE,
-        {ATTR_ENTITY_ID: [entity_id], ATTR_HVAC_MODE: HVACMode.HEAT_COOL},
+        SERVICE_SET_TEMPERATURE,
+        {
+            ATTR_ENTITY_ID: [entity_id],
+            ATTR_TEMPERATURE: 20,
+            ATTR_HVAC_MODE: HVACMode.HEAT_COOL,
+        },
         blocking=True,
     )
     state = hass.states.get(entity_id)
+    assert state.attributes[ATTR_TEMPERATURE] == 20
     assert state.state == HVACMode.HEAT_COOL
 
     # Set Temp
     await hass.services.async_call(
         CLIMATE_DOMAIN,
         SERVICE_SET_TEMPERATURE,
-        {ATTR_ENTITY_ID: [entity_id], ATTR_TEMPERATURE: 20},
+        {
+            ATTR_ENTITY_ID: [entity_id],
+            ATTR_TEMPERATURE: 21,
+        },
         blocking=True,
     )
     state = hass.states.get(entity_id)
-    assert state.attributes[ATTR_TEMPERATURE] == 20
+    assert state.attributes[ATTR_TEMPERATURE] == 21
 
     # Set Preset
     await hass.services.async_call(
@@ -74,6 +82,16 @@ async def test_climate(
     state = hass.states.get(entity_id)
     assert state.attributes[ATTR_PRESET_MODE] == "keep"
 
+    # Set Preset
+    await hass.services.async_call(
+        CLIMATE_DOMAIN,
+        SERVICE_SET_PRESET_MODE,
+        {ATTR_ENTITY_ID: [entity_id], ATTR_PRESET_MODE: "off"},
+        blocking=True,
+    )
+    state = hass.states.get(entity_id)
+    assert state.attributes[ATTR_PRESET_MODE] == "off"
+
     # Turn Off
     await hass.services.async_call(
         CLIMATE_DOMAIN,
@@ -83,6 +101,59 @@ async def test_climate(
     )
     state = hass.states.get(entity_id)
     assert state.state == HVACMode.OFF
+
+
+async def test_climate_alt(
+    hass: HomeAssistant,
+    snapshot: SnapshotAssertion,
+    entity_registry: er.EntityRegistry,
+    mock_vehicle_data,
+) -> None:
+    """Tests that the climate entity is correct."""
+
+    mock_vehicle_data.return_value = VEHICLE_DATA_ALT
+    entry = await setup_platform(hass, [Platform.CLIMATE])
+    assert_entities(hass, entry.entry_id, entity_registry, snapshot)
+
+
+async def test_climate_offline(
+    hass: HomeAssistant,
+    snapshot: SnapshotAssertion,
+    entity_registry: er.EntityRegistry,
+    mock_vehicle_data,
+) -> None:
+    """Tests that the climate entity is correct."""
+
+    mock_vehicle_data.side_effect = VehicleOffline
+    entry = await setup_platform(hass, [Platform.CLIMATE])
+    assert_entities(hass, entry.entry_id, entity_registry, snapshot)
+
+
+async def test_climate_noscope(
+    hass: HomeAssistant,
+    mock_metadata,
+) -> None:
+    """Tests that the climate entity is correct."""
+    mock_metadata.return_value = METADATA_NOSCOPE
+
+    await setup_platform(hass, [Platform.CLIMATE])
+    entity_id = "climate.test_climate"
+
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_SET_HVAC_MODE,
+            {ATTR_ENTITY_ID: [entity_id], ATTR_HVAC_MODE: HVACMode.HEAT_COOL},
+            blocking=True,
+        )
+
+    with pytest.raises(HomeAssistantError):
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_SET_TEMPERATURE,
+            {ATTR_ENTITY_ID: [entity_id], ATTR_TEMPERATURE: 20},
+            blocking=True,
+        )
 
 
 async def test_errors(

@@ -75,7 +75,7 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
         value = self.get("climate_state_is_climate_on")
         if value is None:
             self._attr_hvac_mode = None
-        if value:
+        elif value:
             self._attr_hvac_mode = HVACMode.HEAT_COOL
         else:
             self._attr_hvac_mode = HVACMode.OFF
@@ -89,10 +89,6 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
         self._attr_max_temp = cast(
             float, self.get("climate_state_max_avail_temp", DEFAULT_MAX_TEMP)
         )
-
-    def _async_value_from_stream(self, value) -> None:
-        """Update the value from the stream."""
-        self._attr_current_temperature = value
 
     async def async_turn_on(self) -> None:
         """Set the climate state to on."""
@@ -117,7 +113,6 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
         """Set the climate temperature."""
 
         if temp := kwargs.get(ATTR_TEMPERATURE):
-            self.raise_for_scope()
             await self.wake_up_if_asleep()
             await self.handle_command(
                 self.api.set_temps(
@@ -142,7 +137,6 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
 
     async def async_set_preset_mode(self, preset_mode: str) -> None:
         """Set the climate preset mode."""
-        self.raise_for_scope()
         await self.wake_up_if_asleep()
         await self.handle_command(
             self.api.set_climate_keeper_mode(

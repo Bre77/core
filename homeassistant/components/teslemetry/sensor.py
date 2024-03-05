@@ -503,10 +503,6 @@ class TeslemetryVehicleSensorEntity(TeslemetryVehicleEntity, SensorEntity):
         else:
             self._attr_native_value = None
 
-    def _async_value_from_stream(self, value) -> None:
-        """Update the value of the entity."""
-        self._attr_native_value = self.entity_description.value_fn(value)
-
 
 class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
     """Base class for Teslemetry vehicle metric sensors."""
@@ -528,14 +524,6 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
 
         super().__init__(data, description.key)
 
-    def _get_timestamp2(self):
-        return (
-            ignore_variance(
-                func=lambda value: dt_util.now() + timedelta(minutes=value),
-                ignored_variance=timedelta(minutes=1),
-            ),
-        )
-
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
         self._attr_available = self._value is not None and self._value > 0
@@ -548,10 +536,6 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
             self._attr_native_value = self._get_timestamp(value)
         else:
             self._attr_native_value = None
-
-    def _async_value_from_stream(self, value) -> None:
-        self._attr_available = True
-        self._attr_native_value = dt_util.now() + timedelta(minutes=int(value))
 
 
 class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity):

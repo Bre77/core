@@ -29,7 +29,10 @@ METADATA = {
         "energy_cmds",
     ],
 }
-METADATA_NOSCOPE = {"region": "NA", "scopes": ["openid", "offline_access"]}
+METADATA_NOSCOPE = {
+    "region": "NA",
+    "scopes": ["openid", "offline_access", "vehicle_device_data"],
+}
 
 COMMAND_OK = {"response": {"result": True, "reason": ""}}
 COMMAND_REASON = {"response": {"result": False, "reason": "already closed"}}

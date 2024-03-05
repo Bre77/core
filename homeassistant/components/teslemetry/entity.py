@@ -76,9 +76,7 @@ class TeslemetryEntity(
     def raise_for_scope(self):
         """Raise an error if a scope is not available."""
         if not self.scoped:
-            raise ServiceValidationError(
-                f"Missing required scope: {' or '.join(self.entity_description.scopes)}"
-            )
+            raise ServiceValidationError("Missing required scope")
 
     async def handle_command(self, command) -> dict[str, Any]:
         """Handle a command."""
