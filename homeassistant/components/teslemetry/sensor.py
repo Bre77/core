@@ -534,8 +534,6 @@ class TeslemetryVehicleTimeSensorEntity(TeslemetryVehicleEntity, SensorEntity):
         self._last_value = value
         if isinstance(value, int | float):
             self._attr_native_value = self._get_timestamp(value)
-        else:
-            self._attr_native_value = None
 
 
 class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity):
@@ -554,7 +552,7 @@ class TeslemetryEnergyLiveSensorEntity(TeslemetryEnergyLiveEntity, SensorEntity)
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
-        self._attr_available = not self.exactly(None)
+        self._attr_available = not self.is_none
         self._attr_native_value = self._value
 
 
@@ -579,7 +577,7 @@ class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorE
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
-        self._attr_available = not self.exactly(None)
+        self._attr_available = not self.is_none
         self._attr_native_value = self._value
 
 
@@ -599,5 +597,5 @@ class TeslemetryEnergyInfoSensorEntity(TeslemetryEnergyInfoEntity, SensorEntity)
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the sensor."""
-        self._attr_available = not self.exactly(None)
+        self._attr_available = not self.is_none
         self._attr_native_value = self._value

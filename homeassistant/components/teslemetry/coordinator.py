@@ -63,8 +63,6 @@ class TeslemetryVehicleDataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return self.data
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
-        except TypeError as e:
-            raise UpdateFailed("Invalid response from Teslemetry") from e
 
         return flatten(data)
 
@@ -89,8 +87,6 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
             data = (await self.api.live_status())["response"]
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
-        except TypeError as e:
-            raise UpdateFailed("Invalid response from Teslemetry") from e
 
         # Convert Wall Connectors from array to dict
         data["wall_connectors"] = {
@@ -121,7 +117,5 @@ class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
             data = (await self.api.site_info())["response"]
         except TeslaFleetError as e:
             raise UpdateFailed(e.message) from e
-        except TypeError as e:
-            raise UpdateFailed("Invalid response from Teslemetry") from e
 
         return flatten(data)

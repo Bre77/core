@@ -59,15 +59,10 @@ class TeslemetryEntity(
         """Return a specific value from coordinator data."""
         return self.coordinator.data.get(key, default)
 
-    def exactly(self, value: Any, key: str | None = None) -> bool | None:
-        """Return if a key exactly matches the valug but retain None."""
-        key = key or self.key
-        if value is None:
-            return self.get(key, False) is None
-        current = self.get(key)
-        if current is None:
-            return None
-        return current == value
+    @property
+    def is_none(self) -> bool:
+        """Return if the value is a literal None."""
+        return self.get(self.key, False) is None
 
     def has(self, key: str | None = None) -> bool:
         """Return True if a specific value is in coordinator data."""
@@ -122,19 +117,17 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if self.timestamp_key is None or (
-            timestamp := self.get(str(self.timestamp_key)) is None
-        ):
+        timestamp = self.timestamp_key and self.get(self.timestamp_key)
+        if not timestamp:
+            # No timestamp information, so accept the update as is
             self._async_update_attrs()
             self.async_write_ha_state()
-            return
-        if timestamp > self._last_update:
+        elif timestamp > self._last_update:
+            # Data has a newer timestamp, use it.
             self._last_update = timestamp
             self._async_update_attrs()
             self.async_write_ha_state()
-            return
-        if timestamp < self._last_update:
-            LOGGER.debug("Skipping update of %s, new timestamp is older", self.name)
+        # Otherwise, timestamp hasn't changed, so data is stale.
 
     @property
     def _value(self) -> Any | None:
@@ -154,8 +147,6 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
                     state = cmd["response"]["state"]
                 except TeslaFleetError as e:
                     raise HomeAssistantError(str(e)) from e
-                except TypeError as e:
-                    raise HomeAssistantError("Invalid response from Teslemetry") from e
                 self.coordinator.data["state"] = state
                 if state != TeslemetryState.ONLINE:
                     times += 1

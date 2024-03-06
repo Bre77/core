@@ -36,11 +36,13 @@ METADATA_NOSCOPE = {
 
 COMMAND_OK = {"response": {"result": True, "reason": ""}}
 COMMAND_REASON = {"response": {"result": False, "reason": "already closed"}}
+COMMAND_NOREASON = {"response": {"result": False}}  # Unexpected
 COMMAND_ERROR = {
     "response": None,
     "error": "vehicle unavailable: vehicle is offline or asleep",
     "error_description": "",
 }
-COMMAND_BADRESPONSE = ""
+COMMAND_NOERROR = {"answer": 42}
+COMMAND_ERRORS = (COMMAND_REASON, COMMAND_NOREASON, COMMAND_ERROR, COMMAND_NOERROR)
 
 RESPONSE_OK = {"response": {}, "error": None}

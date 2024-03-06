@@ -25,7 +25,13 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import entity_registry as er
 
 from . import assert_entities, setup_platform
-from .const import METADATA_NOSCOPE, VEHICLE_DATA_ALT, WAKE_UP_ASLEEP, WAKE_UP_ONLINE
+from .const import (
+    COMMAND_ERRORS,
+    METADATA_NOSCOPE,
+    VEHICLE_DATA_ALT,
+    WAKE_UP_ASLEEP,
+    WAKE_UP_ONLINE,
+)
 
 from tests.common import async_fire_time_changed
 
@@ -176,6 +182,19 @@ async def test_errors(
         )
         mock_on.assert_called_once()
         assert error.from_exception == InvalidCommand
+
+    for response in COMMAND_ERRORS:
+        with patch(
+            "homeassistant.components.teslemetry.VehicleSpecific.auto_conditioning_start",
+            return_value=response,
+        ) as mock_on, pytest.raises(ServiceValidationError) as error:
+            await hass.services.async_call(
+                CLIMATE_DOMAIN,
+                SERVICE_TURN_ON,
+                {ATTR_ENTITY_ID: [entity_id]},
+                blocking=True,
+            )
+            mock_on.assert_called_once()
 
 
 async def test_asleep_or_offline(
