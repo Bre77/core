@@ -14,10 +14,11 @@ from homeassistant.const import CONF_ACCESS_TOKEN, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.device_registry import DeviceInfo
 
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN, LOGGER, MODELS
 from .coordinator import (
-    TeslemetryEnergyDataCoordinator,
+    TeslemetryEnergySiteLiveCoordinator,
     TeslemetryVehicleDataCoordinator,
 )
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
@@ -53,34 +54,51 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if "vin" in product:
             vin = product["vin"]
             api = VehicleSpecific(teslemetry.vehicle, vin)
-            coordinator = TeslemetryVehicleDataCoordinator(hass, api)
+            coordinator = TeslemetryVehicleDataCoordinator(hass, api, product)
+            device = DeviceInfo(
+                identifiers={(DOMAIN, vin)},
+                manufacturer="Tesla",
+                configuration_url="https://teslemetry.com/console",
+                name=product["display_name"],
+                model=MODELS.get(vin[3]),
+                serial_number=vin,
+            )
             vehicles.append(
                 TeslemetryVehicleData(
                     api=api,
                     coordinator=coordinator,
                     vin=vin,
+                    device=device,
                 )
             )
         elif "energy_site_id" in product:
             site_id = product["energy_site_id"]
             api = EnergySpecific(teslemetry.energy, site_id)
+            live_coordinator = TeslemetryEnergySiteLiveCoordinator(hass, api)
+            device = DeviceInfo(
+                identifiers={(DOMAIN, str(site_id))},
+                manufacturer="Tesla",
+                configuration_url="https://teslemetry.com/console",
+                name=product.get("site_name", "Energy Site"),
+            )
+
             energysites.append(
                 TeslemetryEnergyData(
                     api=api,
-                    coordinator=TeslemetryEnergyDataCoordinator(hass, api),
+                    live_coordinator=live_coordinator,
                     id=site_id,
-                    info=product,
+                    device=device,
                 )
             )
 
-    # Do all coordinator first refreshes simultaneously
+    # Run all first refreshes
     await asyncio.gather(
         *(
             vehicle.coordinator.async_config_entry_first_refresh()
             for vehicle in vehicles
         ),
         *(
-            energysite.coordinator.async_config_entry_first_refresh()
+            energysite.live_coordinator.async_config_entry_first_refresh()
             for energysite in energysites
         ),
     )
