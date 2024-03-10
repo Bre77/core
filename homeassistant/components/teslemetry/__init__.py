@@ -17,10 +17,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DOMAIN, LOGGER
-from .coordinator import (
-    TeslemetryEnergyDataCoordinator,
-    TeslemetryVehicleDataCoordinator,
-)
+from .coordinator import TeslemetryVehicleDataCoordinator
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
 
 PLATFORMS: Final = [Platform.CLIMATE, Platform.SENSOR]
@@ -65,12 +62,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         elif "energy_site_id" in product:
             site_id = product["energy_site_id"]
             api = EnergySpecific(teslemetry.energy, site_id)
+            live_coordinator = TeslemetryEnergySiteLiveCoordinator(hass, api)
+            info_coordinator = TeslemetryEnergySiteInfoCoordinator(hass, api, product)
+            device = DeviceInfo(
+                identifiers={(DOMAIN, str(site_id))},
+                manufacturer="Tesla",
+                configuration_url="https://teslemetry.com/console",
+                name=product.get("site_name", "Energy Site"),
+            )
+
             energysites.append(
                 TeslemetryEnergyData(
                     api=api,
-                    coordinator=TeslemetryEnergyDataCoordinator(hass, api),
+                    live_coordinator=live_coordinator,
+                    info_coordinator=info_coordinator,
                     id=site_id,
-                    info=product,
+                    device=device,
                 )
             )
 

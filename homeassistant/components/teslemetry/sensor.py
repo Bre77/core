@@ -362,6 +362,16 @@ WALL_CONNECTOR_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
     ),
 )
 
+ENERGY_INFO_DESCRIPTIONS: tuple[SensorEntityDescription, ...] = (
+    SensorEntityDescription(
+        key="vpp_backup_reserve_percent",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        device_class=SensorDeviceClass.BATTERY,
+        native_unit_of_measurement=PERCENTAGE,
+    ),
+    SensorEntityDescription(key="version"),
+)
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -460,3 +470,23 @@ class TeslemetryWallConnectorSensorEntity(TeslemetryWallConnectorEntity, SensorE
     def native_value(self) -> StateType:
         """Return the state of the sensor."""
         return self._value
+
+
+class TeslemetryEnergyInfoSensorEntity(TeslemetryEnergyInfoEntity, SensorEntity):
+    """Base class for Teslemetry energy site metric sensors."""
+
+    entity_description: SensorEntityDescription
+
+    def __init__(
+        self,
+        data: TeslemetryEnergyData,
+        description: SensorEntityDescription,
+    ) -> None:
+        """Initialize the sensor."""
+        self.entity_description = description
+        super().__init__(data, description.key)
+
+    def _async_update_attrs(self) -> None:
+        """Update the attributes of the sensor."""
+        self._attr_available = not self.is_none
+        self._attr_native_value = self._value
