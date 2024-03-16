@@ -1,5 +1,4 @@
 """Test the Teslemetry sensor platform."""
-from datetime import timedelta
 
 from freezegun.api import FrozenDateTimeFactory
 import pytest
@@ -34,7 +33,7 @@ async def test_sensors(
 
     # Coordinator refresh
     mock_vehicle_data.return_value = VEHICLE_DATA_ALT
-    freezer.tick(timedelta(seconds=SYNC_INTERVAL))
+    freezer.tick(VEHICLE_INTERVAL)
     async_fire_time_changed(hass)
     await hass.async_block_till_done()
 

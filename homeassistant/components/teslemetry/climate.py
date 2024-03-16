@@ -17,7 +17,7 @@ from homeassistant.const import ATTR_TEMPERATURE, PRECISION_HALVES, UnitOfTemper
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN, TeslemetryClimateSide, TeslemetryTimestamp
+from .const import DOMAIN, TeslemetryClimateSide
 from .entity import TeslemetryVehicleEntity
 from .models import TeslemetryVehicleData
 
@@ -67,7 +67,6 @@ class TeslemetryClimateEntity(TeslemetryVehicleEntity, ClimateEntity):
         super().__init__(
             data,
             side,
-            timestamp_key=TeslemetryTimestamp.CLIMATE_STATE,
         )
 
     def _async_update_attrs(self) -> None:

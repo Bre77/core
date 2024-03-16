@@ -10,7 +10,7 @@ from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, LOGGER, TeslemetryState, TeslemetryTimestamp
+from .const import DOMAIN, LOGGER, TeslemetryState
 from .coordinator import (
     TeslemetryEnergySiteInfoCoordinator,
     TeslemetryEnergySiteLiveCoordinator,
@@ -104,10 +104,8 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
         self,
         data: TeslemetryVehicleData,
         key: str,
-        timestamp_key: TeslemetryTimestamp | None = None,
     ) -> None:
         """Initialize common aspects of a Teslemetry entity."""
-        self.timestamp_key = timestamp_key
 
         self._attr_unique_id = f"{data.vin}-{key}"
         self._wakelock = data.wakelock
@@ -117,17 +115,8 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        timestamp = self.timestamp_key and self.get(self.timestamp_key)
-        if not timestamp:
-            # No timestamp information, so accept the update as is
-            self._async_update_attrs()
-            self.async_write_ha_state()
-        elif timestamp > self._last_update:
-            # Data has a newer timestamp, use it.
-            self._last_update = timestamp
-            self._async_update_attrs()
-            self.async_write_ha_state()
-        # Otherwise, timestamp hasn't changed, so data is stale.
+        self._async_update_attrs()
+        self.async_write_ha_state()
 
     @property
     def _value(self) -> Any | None:
