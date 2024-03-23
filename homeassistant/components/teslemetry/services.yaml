@@ -1,0 +1,16 @@
+share:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: tessie
+    value:
+      required: true
+      selector:
+        text:
+    locale:
+      required: false
+      default: en-US
+      selector:
+        text:
