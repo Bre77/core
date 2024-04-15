@@ -15,6 +15,7 @@ from homeassistant.components.teslemetry.coordinator import SYNC_INTERVAL
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 
 from . import setup_platform
 from .const import WAKE_UP_ASLEEP, WAKE_UP_ONLINE
@@ -47,6 +48,32 @@ async def test_init_error(
     mock_products.side_effect = side_effect
     entry = await setup_platform(hass)
     assert entry.state is state
+
+
+async def test_cleanup(hass: HomeAssistant, mock_products) -> None:
+    """Test load and unload."""
+
+    device_registry = dr.async_get(hass)
+
+    # Create some devices
+    entry1 = await setup_platform(hass)
+
+    # Unload the integration
+    assert await hass.config_entries.async_unload(entry1.entry_id)
+    await hass.async_block_till_done()
+
+    devices1 = dr.async_entries_for_config_entry(
+        device_registry, config_entry_id=entry1.entry_id
+    )
+    assert len(devices1) > 0
+
+    # Load the integration again without any devices
+    mock_products.return_value = {"response": []}
+    entry2 = await setup_platform(hass)
+    devices2 = dr.async_entries_for_config_entry(
+        device_registry, config_entry_id=entry2.entry_id
+    )
+    assert len(devices2) == 0
 
 
 # Vehicle Coordinator
@@ -129,3 +156,6 @@ async def test_energy_refresh_error(
     mock_live_status.side_effect = side_effect
     entry = await setup_platform(hass)
     assert entry.state is state
+
+
+# Test
