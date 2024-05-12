@@ -2,6 +2,8 @@
 
 from abc import abstractmethod
 import asyncio
+from collections.abc import Callable
+import functools
 from typing import Any
 
 from tesla_fleet_api import EnergySpecific, VehicleSpecific
@@ -70,15 +72,22 @@ class TeslemetryEntity(
         """Return True if a specific value is in coordinator data."""
         return self.key in self.coordinator.data
 
-    async def handle_command(self, command) -> dict[str, Any]:
+    async def handle_command(self, command) -> Callable:
         """Handle a command."""
-        try:
-            result = await command
-            LOGGER.debug("Command result: %s", result)
-        except TeslaFleetError as e:
-            LOGGER.debug("Command error: %s", e.message)
-            raise HomeAssistantError(f"Teslemetry command failed, {e.message}") from e
-        return result
+
+        @functools.wraps(command)
+        async def wrap(*args):
+            try:
+                result = await command(*args)
+                LOGGER.debug("Command result: %s", result)
+            except TeslaFleetError as e:
+                LOGGER.debug("Command error: %s", e.message)
+                raise HomeAssistantError(
+                    f"Teslemetry command failed, {e.message}"
+                ) from e
+            return result
+
+        return wrap
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
@@ -133,27 +142,32 @@ class TeslemetryVehicleEntity(TeslemetryEntity):
                         raise HomeAssistantError("Could not wake up vehicle")
                     await asyncio.sleep(times * 5)
 
-    async def handle_command(self, command) -> dict[str, Any]:
+    async def handle_command(self, command) -> Callable:
         """Handle a vehicle command."""
-        result = await super().handle_command(command)
-        if (response := result.get("response")) is None:
-            if message := result.get("error"):
-                # No response with error
-                LOGGER.info("Command failure: %s", message)
-                raise HomeAssistantError(message)
-            # No response without error (unexpected)
-            LOGGER.error("Unknown response: %s", response)
-            raise HomeAssistantError("Unknown response")
-        if (message := response.get("result")) is not True:
-            if message := response.get("reason"):
-                # Result of false with reason
-                LOGGER.info("Command failure: %s", message)
-                raise HomeAssistantError(message)
-            # Result of false without reason (unexpected)
-            LOGGER.error("Unknown response: %s", response)
-            raise HomeAssistantError("Unknown response")
-        # Response with result of true
-        return result
+
+        @functools.wraps(command)
+        async def wrap(*args):
+            result = await super().handle_command(command(*args))
+            if (response := result.get("response")) is None:
+                if message := result.get("error"):
+                    # No response with error
+                    LOGGER.info("Command failure: %s", message)
+                    raise HomeAssistantError(message)
+                # No response without error (unexpected)
+                LOGGER.error("Unknown response: %s", response)
+                raise HomeAssistantError("Unknown response")
+            if (message := response.get("result")) is not True:
+                if message := response.get("reason"):
+                    # Result of false with reason
+                    LOGGER.info("Command failure: %s", message)
+                    raise HomeAssistantError(message)
+                # Result of false without reason (unexpected)
+                LOGGER.error("Unknown response: %s", response)
+                raise HomeAssistantError("Unknown response")
+            # Response with result of true
+            return result
+
+        return wrap
 
     def raise_for_scope(self):
         """Raise an error if a scope is not available."""
