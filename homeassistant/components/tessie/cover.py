@@ -152,12 +152,12 @@ class TessieRearTrunkEntity(TessieEntity, CoverEntity):
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         """Open rear trunk."""
-        if self._value == TessieCoverStates.CLOSED:
+        if not self._value:
             await self.run(open_close_rear_trunk)
             self.set((self.key, TessieCoverStates.OPEN))
 
     async def async_close_cover(self, **kwargs: Any) -> None:
         """Close rear trunk."""
-        if self._value == TessieCoverStates.OPEN:
+        if self._value:
             await self.run(open_close_rear_trunk)
             self.set((self.key, TessieCoverStates.CLOSED))
