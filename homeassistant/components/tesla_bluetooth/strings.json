@@ -1,0 +1,26 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Vehicle is already connected"
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "device": "Device"
+        },
+        "description": "Pair your Tesla vehicle."
+      }
+    }
+  },
+  "entity": {
+    "number": {
+      "charge_current": {
+        "name": "Charge current"
+      }
+    }
+  }
+}
