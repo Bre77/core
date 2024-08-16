@@ -1525,6 +1525,7 @@ build.json @home-assistant/supervisor
 /tests/components/tellduslive/ @fredrike
 /homeassistant/components/template/ @PhracturedBlue @home-assistant/core
 /tests/components/template/ @PhracturedBlue @home-assistant/core
+/homeassistant/components/tesla_bluetooth/ @Bre77
 /homeassistant/components/tesla_fleet/ @Bre77
 /tests/components/tesla_fleet/ @Bre77
 /homeassistant/components/tesla_wall_connector/ @einarhauks
