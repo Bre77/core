@@ -1,1 +1,0 @@
-DOMAIN = "tesla_ble"
