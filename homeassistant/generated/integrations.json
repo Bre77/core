@@ -6125,6 +6125,12 @@
         }
       }
     },
+    "tesla_bluetooth": {
+      "name": "Tesla Bluetooth",
+      "integration_type": "hub",
+      "config_flow": true,
+      "iot_class": "local_polling"
+    },
     "teslemetry": {
       "name": "Teslemetry",
       "integration_type": "hub",
