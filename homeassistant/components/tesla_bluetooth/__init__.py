@@ -18,8 +18,9 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 PLATFORMS: Final = []
 type TeslaBluetoothConfigEntry = ConfigEntry
 
+
 async def async_setup(hass: HomeAssistant, config: TeslaBluetoothConfigEntry) -> bool:
-    """Setup Tesla Bluetooth integration."""
+    """Set up the Tesla Bluetooth integration."""
 
     if not exists(PRIVATE_KEY_FILE):
         hass.data[DOMAIN] = ec.generate_private_key(ec.SECP256R1(), default_backend())
@@ -31,7 +32,6 @@ async def async_setup(hass: HomeAssistant, config: TeslaBluetoothConfigEntry) ->
         )
         with open(PRIVATE_KEY_FILE, "wb") as pem_out:
             pem_out.write(pem)
-        print("Generated private key")
     else:
         try:
             with open(PRIVATE_KEY_FILE, "rb") as key_file:
@@ -43,12 +43,12 @@ async def async_setup(hass: HomeAssistant, config: TeslaBluetoothConfigEntry) ->
             pass
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: TeslaFleetConfigEntry) -> bool:
-    """Setup Tesla Bluettoth config."""
+async def async_setup_entry(hass: HomeAssistant, entry) -> bool:
+    """Set up the Tesla Bluetooth configuration."""
 
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: TeslaFleetConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry) -> bool:
     """Unload TeslaFleet Config."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
