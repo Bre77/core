@@ -4,8 +4,7 @@
     "bluetooth": [
         {
             "connectable": true,
-            "manufacturer_id": 76,
-            "local_name": "S*C"
+            "manufacturer_id": 76
         }
     ],
     "codeowners": ["@Bre77"],
