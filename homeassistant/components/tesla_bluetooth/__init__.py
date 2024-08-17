@@ -2,7 +2,7 @@
 
 from os.path import exists
 from typing import Final
-
+import aiofiles
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -18,7 +18,7 @@ PLATFORMS: Final = []
 type TeslaBluetoothConfigEntry = ConfigEntry
 
 
-async def async_setup(hass: HomeAssistant, config: TeslaBluetoothConfigEntry) -> bool:
+async def setup(hass: HomeAssistant, config: TeslaBluetoothConfigEntry) -> bool:
     """Set up the Tesla Bluetooth integration."""
 
     if not exists(PRIVATE_KEY_FILE):
@@ -33,14 +33,10 @@ async def async_setup(hass: HomeAssistant, config: TeslaBluetoothConfigEntry) ->
             pem_out.write(pem)
             LOGGER.info("Generated private key: %s", PRIVATE_KEY_FILE)
     else:
-        try:
-            with open(PRIVATE_KEY_FILE, "rb") as key_file:
-                hass.data[DOMAIN] = serialization.load_pem_private_key(
-                    key_file.read(), password=None, backend=default_backend()
-                )
-        except:
-            # FATAL
-            pass
+        with open(PRIVATE_KEY_FILE, "rb") as key_file:
+            hass.data[DOMAIN] = serialization.load_pem_private_key(
+                key_file.read(), password=None, backend=default_backend()
+            )
 
     return True
 
