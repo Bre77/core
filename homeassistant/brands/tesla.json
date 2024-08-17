@@ -1,5 +1,10 @@
 {
   "domain": "tesla",
   "name": "Tesla",
-  "integrations": ["powerwall", "tesla_wall_connector", "tesla_fleet"]
+  "integrations": [
+    "powerwall",
+    "tesla_wall_connector",
+    "tesla_fleet",
+    "tesla_bluetooth"
+  ]
 }

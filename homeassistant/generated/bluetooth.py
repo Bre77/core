@@ -636,8 +636,10 @@ BLUETOOTH: Final[list[dict[str, bool | str | int | list[int]]]] = [
         "manufacturer_id": 741,
     },
     {
+        "connectable": True,
         "domain": "tesla_bluetooth",
-        "service_uuid": "00000211-b2d1-43f0-9b88-960cebf8b91e",
+        "manufacturer_id": 76,
+        "service_uuid": "00001122-0000-1000-8000-00805f9b34fb",
     },
     {
         "connectable": False,

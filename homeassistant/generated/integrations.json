@@ -6122,14 +6122,14 @@
           "config_flow": true,
           "iot_class": "cloud_polling",
           "name": "Tesla Fleet"
+        },
+        "tesla_bluetooth": {
+          "integration_type": "hub",
+          "config_flow": true,
+          "iot_class": "local_polling",
+          "name": "Tesla Bluetooth"
         }
       }
-    },
-    "tesla_bluetooth": {
-      "name": "Tesla Bluetooth",
-      "integration_type": "hub",
-      "config_flow": true,
-      "iot_class": "local_polling"
     },
     "teslemetry": {
       "name": "Teslemetry",
