@@ -7,6 +7,11 @@ from typing import Any
 
 from bleak import BleakClient
 import voluptuous as vol
+import aiofiles
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ec
+from os.path import exists
 
 from homeassistant.components import bluetooth
 from homeassistant.components.bluetooth import (
@@ -16,7 +21,7 @@ from homeassistant.components.bluetooth import (
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_ADDRESS
 
-from .const import DEVICE_NAME_UUID, DOMAIN, LOGGER, MANUFACTURER_ID, SERVICE_UUIDS
+from .const import DOMAIN, LOGGER, MANUFACTURER_ID, SERVICE_UUIDS, PRIVATE_KEY_FILE
 
 # AirthingsDevice
 
@@ -53,7 +58,7 @@ class TeslaBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
     ) -> ConfigFlowResult:
         """Handle the bluetooth discovery step."""
         if not validate(discovery_info.name):
-            return self.async_abort(reason="not_tesla_device")
+            return self.async_abort(reason="not_tesla_vehicle")
 
         LOGGER.debug(
             "Discovered BT device: %s @ %s", discovery_info.name, discovery_info.address
@@ -67,23 +72,7 @@ class TeslaBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
             name=await self._get_name(discovery_info), discovery_info=discovery_info
         )
 
-        return await self.async_step_bluetooth_confirm()
-
-    async def async_step_bluetooth_confirm(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Confirm discovery."""
-
-        assert self._discovered_device is not None
-
-        if user_input is not None:
-            return self.async_create_entry(title=self._discovered_device.name, data={})
-
-        self._set_confirm_only()
-        return self.async_show_form(
-            step_id="bluetooth_confirm",
-            description_placeholders=self.context["title_placeholders"],
-        )
+        return await self.async_step_virtual_key()
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -93,10 +82,10 @@ class TeslaBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             address = user_input[CONF_ADDRESS]
             await self.async_set_unique_id(address, raise_on_progress=False)
-            self._abort_if_unique_id_configured
+            self._abort_if_unique_id_configured()
             self._discovered_device = self._discovered_devices[address]
 
-            return self.async_create_entry(title=self._discovered_device.name, data={})
+            return self.async_show_form(step_id="virtual_key")
 
         current_addresses = self._async_current_ids()
         for discovery_info in async_discovered_service_info(self.hass):
@@ -119,12 +108,10 @@ class TeslaBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
         if not self._discovered_devices:
             return self.async_abort(reason="no_devices_found")
 
-        print(self._discovered_devices)
         titles = {
             address: discovery.name
             for (address, discovery) in self._discovered_devices.items()
         }
-        print(titles)
 
         return self.async_show_form(
             step_id="user",
@@ -133,4 +120,38 @@ class TeslaBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_ADDRESS): vol.In(titles),
                 },
             ),
+        )
+
+    async def async_step_virtual_key(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm discovery."""
+
+        assert self._discovered_device is not None
+
+        if user_input is not None:
+            return self.async_create_entry(title=self._discovered_device.name, data={})
+
+        if not exists(PRIVATE_KEY_FILE):
+            key = ec.generate_private_key(ec.SECP256R1(), default_backend())
+            # save the key
+            pem = self.hass.data[DOMAIN].private_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PrivateFormat.TraditionalOpenSSL,
+                encryption_algorithm=serialization.NoEncryption(),
+            )
+            async with aiofiles.open(PRIVATE_KEY_FILE, "wb") as pem_out:
+                await pem_out.write(pem)
+                LOGGER.info("Generated private key: %s", PRIVATE_KEY_FILE)
+        else:
+            async with aiofiles.open(PRIVATE_KEY_FILE, "rb") as key_file:
+                key_data = await key_file.read()
+                key = serialization.load_pem_private_key(
+                    key_data, password=None, backend=default_backend()
+                )
+        self.hass.data[DOMAIN] = key
+
+        return self.async_show_form(
+            step_id="virtual_key",
+            description_placeholders=self.context["title_placeholders"],
         )
