@@ -3,17 +3,15 @@
 from __future__ import annotations
 
 import dataclasses
+from os.path import exists
 from typing import Any
 
-from bleak import BleakClient
-import voluptuous as vol
 import aiofiles
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
-from os.path import exists
+import voluptuous as vol
 
-from homeassistant.components import bluetooth
 from homeassistant.components.bluetooth import (
     BluetoothServiceInfo,
     async_discovered_service_info,
@@ -21,9 +19,7 @@ from homeassistant.components.bluetooth import (
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_ADDRESS
 
-from .const import DOMAIN, LOGGER, MANUFACTURER_ID, SERVICE_UUIDS, PRIVATE_KEY_FILE
-
-# AirthingsDevice
+from .const import DOMAIN, LOGGER, MANUFACTURER_ID, PRIVATE_KEY_FILE, SERVICE_UUIDS
 
 
 @dataclasses.dataclass
@@ -50,9 +46,6 @@ class TeslaBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
         self._discovered_device: Discovery | None = None
         self._discovered_devices: dict[str, Discovery] = {}
 
-    async def _get_name(self, discovery_info: BluetoothServiceInfo) -> str:
-        return discovery_info.address
-
     async def async_step_bluetooth(
         self, discovery_info: BluetoothServiceInfo
     ) -> ConfigFlowResult:
@@ -66,10 +59,9 @@ class TeslaBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(discovery_info.address)
         self._abort_if_unique_id_configured()
 
-        name = await self._get_name(discovery_info)
-        self.context["title_placeholders"] = {"name": name}
+        self.context["title_placeholders"] = {"name": discovery_info.name}
         self._discovered_device = Discovery(
-            name=await self._get_name(discovery_info), discovery_info=discovery_info
+            name=discovery_info.name, discovery_info=discovery_info
         )
 
         return await self.async_step_virtual_key()
@@ -102,8 +94,9 @@ class TeslaBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
             if not any(uuid in SERVICE_UUIDS for uuid in discovery_info.service_uuids):
                 continue
 
-            name = await self._get_name(discovery_info)
-            self._discovered_devices[address] = Discovery(name, discovery_info)
+            self._discovered_devices[address] = Discovery(
+                discovery_info.name, discovery_info
+            )
 
         if not self._discovered_devices:
             return self.async_abort(reason="no_devices_found")
@@ -125,7 +118,7 @@ class TeslaBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
     async def async_step_virtual_key(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Confirm discovery."""
+        """Install the private key."""
 
         assert self._discovered_device is not None
 
@@ -135,7 +128,7 @@ class TeslaBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
         if not exists(PRIVATE_KEY_FILE):
             key = ec.generate_private_key(ec.SECP256R1(), default_backend())
             # save the key
-            pem = self.hass.data[DOMAIN].private_bytes(
+            pem = key.private_bytes(
                 encoding=serialization.Encoding.PEM,
                 format=serialization.PrivateFormat.TraditionalOpenSSL,
                 encryption_algorithm=serialization.NoEncryption(),
@@ -146,10 +139,12 @@ class TeslaBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
         else:
             async with aiofiles.open(PRIVATE_KEY_FILE, "rb") as key_file:
                 key_data = await key_file.read()
-                key = serialization.load_pem_private_key(
+                pem = serialization.load_pem_private_key(
                     key_data, password=None, backend=default_backend()
                 )
-        self.hass.data[DOMAIN] = key
+        self.hass.data[DOMAIN] = pem
+
+        # Check for private key and install if required
 
         return self.async_show_form(
             step_id="virtual_key",

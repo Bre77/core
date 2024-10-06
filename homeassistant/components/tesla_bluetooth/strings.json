@@ -10,6 +10,10 @@
       },
       "bluetooth_confirm": {
         "description": "[%key:component::bluetooth::config::step::bluetooth_confirm::description%]"
+      },
+      "virtual_key": {
+        "title": "Authorize key in {name}",
+        "description": "Enter your vehicle, place a keycard on the reader, authorize the key, and then press submit."
       }
     },
     "abort": {
