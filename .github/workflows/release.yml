@@ -21,18 +21,18 @@ jobs:
         shell: "bash"
         run: |
           yq -i -o json '.version="${{ github.event.release.tag_name }}"' \
-            "${{ github.workspace }}/components/tesla_bluetooth/manifest.json"
+            "${{ github.workspace }}/homeassistant/components/tesla_bluetooth/manifest.json"
 
       - name: "ZIP the integration directory"
         shell: "bash"
         run: |
-          cd "${{ github.workspace }}/components/tesla_bluetooth"
+          cd "${{ github.workspace }}/homeassistant/components/tesla_bluetooth"
           zip tesla_bluetooth.zip -r ./
 
       - name: "Upload the ZIP file to the release"
         uses: softprops/action-gh-release@v2.2.1
         with:
-          files: ${{ github.workspace }}/components/tesla_bluetooth/tesla_bluetooth.zip
+          files: ${{ github.workspace }}/homeassistant/components/tesla_bluetooth/tesla_bluetooth.zip
       - name: "Github Releases To Discord"
         uses: SethCohen/github-releases-to-discord@v1.16.2
         with:
