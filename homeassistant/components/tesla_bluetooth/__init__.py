@@ -29,7 +29,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Tesla Bluetooth integration."""
 
     parent = TeslaBluetooth()
-    await parent.get_private_key(PRIVATE_KEY_FILE)
+    await parent.get_private_key(hass.config.path("tesla_fleet.key"))
     hass.data[DOMAIN] = parent
     return True
 

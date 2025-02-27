@@ -86,7 +86,7 @@ class TeslaBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
                     await self.async_set_unique_id(discovery_info.address)
                     self._abort_if_unique_id_configured()
                     interface = TeslaBluetooth()
-                    await interface.get_private_key(PRIVATE_KEY_FILE)
+                    await interface.get_private_key(self.hass.config.path("tesla_fleet.key"))
                     self._vehicle = interface.vehicles.createBluetooth(
                         vin, device=discovery_info.device
                     )
