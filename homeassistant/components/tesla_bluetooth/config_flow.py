@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import dataclasses
-from os.path import exists
+import hashlib
 from typing import Any
 
-import aiofiles
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ec
+from tesla_fleet_api.exceptions import NotOnWhitelistFault, TeslaFleetError
+from tesla_fleet_api.tesla.bluetooth import TeslaBluetooth
+from tesla_fleet_api.tesla.vehicle.bluetooth import VehicleBluetooth
 import voluptuous as vol
 
 from homeassistant.components.bluetooth import (
@@ -19,134 +17,149 @@ from homeassistant.components.bluetooth import (
 from homeassistant.config_entries import ConfigFlow, ConfigFlowResult
 from homeassistant.const import CONF_ADDRESS
 
-from .const import DOMAIN, LOGGER, MANUFACTURER_ID, PRIVATE_KEY_FILE, SERVICE_UUIDS
+from .const import DOMAIN, LOGGER, PRIVATE_KEY_FILE
 
-
-@dataclasses.dataclass
-class Discovery:
-    """A discovered bluetooth device."""
-
-    name: str
-    discovery_info: BluetoothServiceInfo
-    # device: AirthingsDevice
+CONF_VIN = "vin"
 
 
 def validate(name: str) -> bool:
     """Validate the name of a Tesla device."""
-    return len(name) == 18 and name[0] == "S" and name[17] == "C"
+    return len(name) == 18 and name[0] == "S" and name[17] in "CDRP"
 
 
 class TeslaBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Tesla Bluetooth."""
 
     VERSION = 1
+    _discovered_device: BluetoothServiceInfo | None = None
+    _vehicle: VehicleBluetooth | None = None
 
     def __init__(self) -> None:
         """Initialize the config flow."""
-        self._discovered_device: Discovery | None = None
-        self._discovered_devices: dict[str, Discovery] = {}
 
     async def async_step_bluetooth(
         self, discovery_info: BluetoothServiceInfo
     ) -> ConfigFlowResult:
         """Handle the bluetooth discovery step."""
-        if not validate(discovery_info.name):
-            return self.async_abort(reason="not_tesla_vehicle")
-
         LOGGER.debug(
-            "Discovered BT device: %s @ %s", discovery_info.name, discovery_info.address
+            "Discovered BT device: %s @ %s with %s",
+            discovery_info.name,
+            discovery_info.address,
+            discovery_info.service_uuids,
         )
+        # if(SERVICE_UUID not in discovery_info.service_uuids):
+        if not validate(discovery_info.name) and not discovery_info.name.startswith(
+            "🔑"
+        ):
+            LOGGER.debug(
+                "Ignored BT device: %s @ %s",
+                discovery_info.name,
+                discovery_info.address,
+            )
+            return self.async_abort(reason="not_supported")
+
         await self.async_set_unique_id(discovery_info.address)
         self._abort_if_unique_id_configured()
 
-        self.context["title_placeholders"] = {"name": discovery_info.name}
-        self._discovered_device = Discovery(
-            name=discovery_info.name, discovery_info=discovery_info
+        # I could try find a better name here
+        #
+        LOGGER.debug(
+            "Ready to setup: %s @ %s", discovery_info.name, discovery_info.address
         )
 
-        return await self.async_step_virtual_key()
+        self.context["title_placeholders"] = {"name": discovery_info.name}
+        self._discovered_device = discovery_info
+
+        return await self.async_step_user()
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Handle the user step to pick discovered device."""
-
+        """Get the vehicles VIN."""
+        errors = {}
         if user_input is not None:
-            address = user_input[CONF_ADDRESS]
-            await self.async_set_unique_id(address, raise_on_progress=False)
-            self._abort_if_unique_id_configured()
-            self._discovered_device = self._discovered_devices[address]
-
-            return self.async_show_form(step_id="virtual_key")
-
-        current_addresses = self._async_current_ids()
-        for discovery_info in async_discovered_service_info(self.hass):
-            address = discovery_info.address
-            if address in current_addresses or address in self._discovered_devices:
-                continue
-
-            if discovery_info.manufacturer_id != MANUFACTURER_ID:
-                continue
-
-            if not validate(discovery_info.name):
-                continue
-
-            if not any(uuid in SERVICE_UUIDS for uuid in discovery_info.service_uuids):
-                continue
-
-            self._discovered_devices[address] = Discovery(
-                discovery_info.name, discovery_info
-            )
-
-        if not self._discovered_devices:
-            return self.async_abort(reason="no_devices_found")
-
-        titles = {
-            address: discovery.name
-            for (address, discovery) in self._discovered_devices.items()
-        }
+            vin = user_input[CONF_VIN]
+            name = "S" + hashlib.sha1(vin.encode("utf-8")).hexdigest()[:16]
+            for discovery_info in async_discovered_service_info(self.hass):
+                if discovery_info.name.startswith(name):
+                    self._discovered_device = discovery_info
+                    await self.async_set_unique_id(discovery_info.address)
+                    self._abort_if_unique_id_configured()
+                    interface = TeslaBluetooth()
+                    await interface.get_private_key(PRIVATE_KEY_FILE)
+                    self._vehicle = interface.vehicles.createBluetooth(
+                        vin, device=discovery_info.device
+                    )
+                    await self._vehicle.connect()
+                    return await self.async_step_check()
+            errors["base"] = "not_found"
 
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_ADDRESS): vol.In(titles),
+                    vol.Required(CONF_VIN): str,
                 },
             ),
+            errors=errors,
         )
 
-    async def async_step_virtual_key(
+    async def async_step_check(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Check if the key is whitelisted."""
+        assert self._vehicle is not None
+        assert self._discovered_device is not None
+
+        ready = False
+        try:
+            ready = await self._vehicle.handshakeVehicleSecurity()
+        except NotOnWhitelistFault:
+            return await self.async_step_instructions()
+        except TeslaFleetError as err:
+            LOGGER.error("Failed to connect to vehicle: %s", err)
+            self.async_abort(reason="unknown_error")
+
+        if not ready:
+            return await self.async_step_instructions()
+
+        return self.async_create_entry(
+            title=self._vehicle.vin,
+            data={
+                CONF_VIN: self._vehicle.vin,
+                CONF_ADDRESS: self._discovered_device.address,
+            },
+        )
+
+    async def async_step_instructions(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Instruct the user on how to authorize the key."""
+
+        if user_input is not None:
+            return await self.async_step_authorize()
+
+        return self.async_show_form(step_id="instructions")
+
+    async def async_step_authorize(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Install the private key."""
 
-        assert self._discovered_device is not None
+        assert self._vehicle is not None
 
-        if user_input is not None:
-            return self.async_create_entry(title=self._discovered_device.name, data={})
+        for i in range(10):
+            LOGGER.debug("Attempt %s to pair vehicle", i)
+            try:
+                await self._vehicle.pair()
+                return await self.async_step_check()
+            except TeslaFleetError as err:
+                LOGGER.error("Failed to pair vehicle: %s", err)
 
-        if not exists(PRIVATE_KEY_FILE):
-            key = ec.generate_private_key(ec.SECP256R1(), default_backend())
-            # save the key
-            pem = key.private_bytes(
-                encoding=serialization.Encoding.PEM,
-                format=serialization.PrivateFormat.TraditionalOpenSSL,
-                encryption_algorithm=serialization.NoEncryption(),
-            )
-            async with aiofiles.open(PRIVATE_KEY_FILE, "wb") as pem_out:
-                await pem_out.write(pem)
-                LOGGER.info("Generated private key: %s", PRIVATE_KEY_FILE)
-        else:
-            async with aiofiles.open(PRIVATE_KEY_FILE, "rb") as key_file:
-                key_data = await key_file.read()
-                pem = serialization.load_pem_private_key(
-                    key_data, password=None, backend=default_backend()
-                )
-        self.hass.data[DOMAIN] = pem
+        return self.async_show_form(step_id="instructions", errors={"base": "timeout"})
 
-        # Check for private key and install if required
-
-        return self.async_show_form(
-            step_id="virtual_key",
-            description_placeholders=self.context["title_placeholders"],
-        )
+    async def async_step_abort(self, reason: str) -> ConfigFlowResult:
+        """Abort the flow."""
+        if self._vehicle:
+            await self._vehicle.disconnect()
+        return self.async_abort(reason=reason)

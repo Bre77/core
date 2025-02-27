@@ -1,52 +1,73 @@
 """Tesla Bluetooth integration."""
 
-from os.path import exists
 from typing import Final
-import aiofiles
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ec
 
+from bleak.exc import BleakError
+from bleak_retry_connector import close_stale_connections_by_address
+from tesla_fleet_api.tesla.bluetooth import TeslaBluetooth
+from tesla_fleet_api.tesla.vehicle.vehicles import VehicleBluetooth
+
+from homeassistant.components.bluetooth import async_ble_device_from_address
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 import homeassistant.helpers.config_validation as cv
+from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN, LOGGER, PRIVATE_KEY_FILE
+from .const import DOMAIN, PRIVATE_KEY_FILE
+from .coordinator import TesleBluetoothCoordinators
+from .models import TeslaBluetoothConfigData, TeslaBluetoothData
+
+type TeslaBluetoothConfigEntry = ConfigEntry[TeslaBluetoothData]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
-PLATFORMS: Final = []
-type TeslaBluetoothConfigEntry = ConfigEntry
+PLATFORMS: Final = [Platform.BINARY_SENSOR, Platform.NUMBER, Platform.SENSOR]
 
 
-async def setup(hass: HomeAssistant, config: TeslaBluetoothConfigEntry) -> bool:
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Tesla Bluetooth integration."""
 
-    if not exists(PRIVATE_KEY_FILE):
-        hass.data[DOMAIN] = ec.generate_private_key(ec.SECP256R1(), default_backend())
-        # save the key
-        pem = hass.data[DOMAIN].private_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PrivateFormat.TraditionalOpenSSL,
-            encryption_algorithm=serialization.NoEncryption(),
-        )
-        with open(PRIVATE_KEY_FILE, "wb") as pem_out:
-            pem_out.write(pem)
-            LOGGER.info("Generated private key: %s", PRIVATE_KEY_FILE)
-    else:
-        with open(PRIVATE_KEY_FILE, "rb") as key_file:
-            hass.data[DOMAIN] = serialization.load_pem_private_key(
-                key_file.read(), password=None, backend=default_backend()
-            )
-
+    parent = TeslaBluetooth()
+    await parent.get_private_key(PRIVATE_KEY_FILE)
+    hass.data[DOMAIN] = parent
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry) -> bool:
+async def async_setup_entry(
+    hass: HomeAssistant, entry: TeslaBluetoothConfigEntry
+) -> bool:
     """Set up the Tesla Bluetooth configuration."""
 
+    address = entry.data["address"]
+    await close_stale_connections_by_address(address)
+
+    ble_device = async_ble_device_from_address(hass, address)
+
+    if not ble_device:
+        raise ConfigEntryNotReady(
+            f"Could not find Tesla vehicle with address {address}"
+        )
+
+    parent: TeslaBluetooth = hass.data[DOMAIN]
+    vehicle: VehicleBluetooth = parent.vehicles.create(entry.data["vin"])
+    coordinators = TesleBluetoothCoordinators(hass, entry, vehicle)
+
+    try:
+        await vehicle.connect(device=ble_device, max_attempts=10)
+    except BleakError as e:
+        raise ConfigEntryNotReady(f"Failed to connect to Tesla vehicle: {e}")
+
+    await coordinators.state.async_config_entry_first_refresh()
+    # Force the state coordinator to update even without entities
+    coordinators.state.async_add_listener(lambda *_: None)
+
+    entry.runtime_data = TeslaBluetoothData(vehicle, coordinators)
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry) -> bool:
     """Unload TeslaFleet Config."""
+    await entry.runtime_data.vehicle.disconnect()
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
