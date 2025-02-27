@@ -2875,7 +2875,7 @@ temperusb==1.6.1
 tesla-fleet-api==0.9.10
 
 # homeassistant.components.tesla_bluetooth
-tesla-fleet-api==1.0.4
+tesla-fleet-api==1.0.7
 
 # homeassistant.components.powerwall
 tesla-powerwall==0.5.2
