@@ -3,8 +3,7 @@
   "name": "Tesla Bluetooth",
   "bluetooth": [
     {
-      "connectable": true,
-      "manufacturer_id": 76
+      "service_uuid": "00000211-b2d1-43f0-9b88-960cebf8b91e"
     }
   ],
   "codeowners": ["@Bre77"],
@@ -13,5 +12,6 @@
   "documentation": "https://www.home-assistant.io/integrations/tesla_bluetooth",
   "iot_class": "local_polling",
   "loggers": ["tesla-fleet-api"],
-  "requirements": ["tesla-fleet-api==0.7.8"]
+  "quality_scale": "bronze",
+  "requirements": ["tesla-fleet-api==1.0.4"]
 }
