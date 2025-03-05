@@ -2384,10 +2384,13 @@ temescal==0.5
 # homeassistant.components.temper
 temperusb==1.6.1
 
+<<<<<<< HEAD
 # homeassistant.components.tensorflow
 # tensorflow==2.5.0
 
 # homeassistant.components.tesla_bluetooth
+=======
+>>>>>>> a7f032363c4 (Improved config flow)
 # homeassistant.components.tesla_fleet
 # homeassistant.components.teslemetry
 # homeassistant.components.tessie
