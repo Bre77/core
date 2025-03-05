@@ -68,16 +68,21 @@ class TeslaBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(discovery_info.address)
         self._abort_if_unique_id_configured()
 
-        # I could try find a better name here
+        display_name = await self._interface.vehicles.query_display_name(
+            discovery_info.device, 5
+        )
 
         LOGGER.debug(
-            "Ready to setup: %s @ %s", discovery_info.name, discovery_info.address
+            "Ready to setup: %s / %s @ %s",
+            discovery_info.name,
+            display_name,
+            discovery_info.address,
         )
 
         self.context["title_placeholders"] = {"name": discovery_info.name}
         self._discovered_device = Discovery(
             discovery_info.name,
-            discovery_info.name,
+            display_name or discovery_info.name,
             discovery_info.address,
             discovery_info.device,
         )
@@ -117,11 +122,14 @@ class TeslaBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
                 LOGGER.debug("Skipping invalid device name %s", discovery_info.name)
                 continue
 
-            # Get names maybe
+            # Get display name
+            display_name = await self._interface.vehicles.query_display_name(
+                discovery_info.device, 5
+            )
 
             self._discovered_devices[discovery_info.address] = Discovery(
                 discovery_info.name,
-                discovery_info.name,
+                display_name or discovery_info.name,
                 discovery_info.address,
                 discovery_info.device,
             )
