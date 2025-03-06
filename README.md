@@ -6,11 +6,21 @@ Home Assistant integration for communicating with Tesla vehicles over BLE
 
 ## Limitations
 
+- Tesla vehicles only support 3 BLE connections, which includes the mobile app, watch app, and Powerwall when Charge On Solar is enabled.
 - This will not work with legacy (pre-2021) Model S and Model X vehicles.
-- This will not work if the Tesla Fleet, Tessie, or Teslemetry (core version) integrations are configured.
-- It will only work with the latest Teslemetry Custom (HACS version) integration, but both need to be kept up to date to ensure library compatibility.
+- This will not work if the Tesla Fleet, Tessie, or Teslemetry (core version) integrations are configured in Home Assistant.
+- It will work alongside the latest Teslemetry Custom (HACS version) integration, but both need to be kept up to date to ensure library compatibility.
 - This is a work in progress, lower your expectations.
 
 ## Known Issues
 
 Initial setup may fail after the virtual key is installed. Simply retry the setup and the pairing step will be skipped.
+
+The entities will go unavailable if your vehicle is not connected or the communication otherwise fails in an unexpected way.
+
+## Troubleshooting a vehicle not being discovered.
+
+- Ensure the Bluetooth integration is configured.
+- Ensure your Bluetooth hardware is close enough to your vehicle. Using Bluetooth proxies near the vehicle is recommended
+- Ensure you do not have more than 2 other active BLE connections. Turn Bluetooth off on devices running the Tesla or Tessie app including watches.
+- Be patient, discovery won't be instantaneous.
