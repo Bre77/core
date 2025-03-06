@@ -68,7 +68,7 @@ class TeslaBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
         await self.async_set_unique_id(discovery_info.address)
         self._abort_if_unique_id_configured()
 
-        display_name = await self._interface.vehicles.query_display_name(
+        display_name = await self._interface.query_display_name(
             discovery_info.device, 5
         )
 
@@ -123,7 +123,7 @@ class TeslaBluetoothConfigFlow(ConfigFlow, domain=DOMAIN):
                 continue
 
             # Get display name
-            display_name = await self._interface.vehicles.query_display_name(
+            display_name = await self._interface.query_display_name(
                 discovery_info.device, 5
             )
 
