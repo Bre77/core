@@ -13,6 +13,11 @@ async def handle_vehicle_command(command: Awaitable) -> bool:
     """Handle a vehicle command."""
     try:
         result = await command
+    except TimeoutError as e:
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="command_timeout",
+        ) from e
     except TeslaFleetError as e:
         raise HomeAssistantError(
             translation_domain=DOMAIN,

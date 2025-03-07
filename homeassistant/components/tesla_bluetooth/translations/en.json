@@ -21,7 +21,7 @@
                 "data": {
                     "address": "Vehicles"
                 },
-                "description": "If nothing is discovered, ensure you are within Bluetooth range, and ensure your vehicle has less than three active BLE connections (Tesla Apps, Apple Watchs, Powerwalls with Charge On Solar).",
+                "description": "If nothing is discovered, ensure you are within Bluetooth range, and ensure your vehicle has less than three active BLE connections (Tesla apps, Watch apps, Powerwalls with Charge On Solar).",
                 "title": "Discovered vehicles"
             },
             "vin": {

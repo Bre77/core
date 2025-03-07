@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from itertools import chain
 from typing import Any
 
 from tesla_fleet_api.const import Seat
-from tesla_fleet_api.tesla.vehicle.bluetooth import ChargeState, ClimateState
+from tesla_fleet_api.tesla.vehicle.bluetooth import (
+    ChargeState,
+    ClimateState,
+    VehicleBluetooth,
+)
 
 from homeassistant.components.switch import (
     SwitchDeviceClass,
@@ -27,28 +31,20 @@ PARALLEL_UPDATES = 0
 
 
 @dataclass(frozen=True, kw_only=True)
-class TeslaBluetoothSwitchEntityDescription(SwitchEntityDescription):
-    """Describes TeslaBluetooth Switch entity."""
+class TeslaBluetoothChargeSwitchEntityDescription(SwitchEntityDescription):
+    """Describes Tesla Bluetooth Charge Switch entity."""
 
-    on_func: Callable
-    off_func: Callable
-
-
-@dataclass(frozen=True, kw_only=True)
-class TeslaBluetoothChargeSwitchEntityDescription(
-    TeslaBluetoothSwitchEntityDescription
-):
-    """Describes TeslaBluetooth Switch entity."""
-
+    on_func: Callable[[VehicleBluetooth], Awaitable[dict[str, Any]]]
+    off_func: Callable[[VehicleBluetooth], Awaitable[dict[str, Any]]]
     value_func: Callable[[ChargeState], bool] = bool
 
 
 @dataclass(frozen=True, kw_only=True)
-class TeslaBluetoothClimateSwitchEntityDescription(
-    TeslaBluetoothSwitchEntityDescription
-):
-    """Describes TeslaBluetooth Switch entity."""
+class TeslaBluetoothClimateSwitchEntityDescription(SwitchEntityDescription):
+    """Describes Tesla Bluetooth Climate Switch entity."""
 
+    on_func: Callable[[VehicleBluetooth], Awaitable[dict[str, Any]]]
+    off_func: Callable[[VehicleBluetooth], Awaitable[dict[str, Any]]]
     value_func: Callable[[ClimateState], bool] = bool
 
 
@@ -71,23 +67,24 @@ CLIMATE_DESCRIPTIONS: tuple[TeslaBluetoothClimateSwitchEntityDescription, ...] =
         ),
         value_func=lambda state: state.auto_seat_climate_right,
     ),
-    TeslaBluetoothClimateSwitchEntityDescription(
-        key="climate_state_auto_steering_wheel_heat",
-        on_func=lambda api: api.remote_auto_steering_wheel_heat_climate_request(
-            on=True
-        ),
-        off_func=lambda api: api.remote_auto_steering_wheel_heat_climate_request(
-            on=False
-        ),
-        value_func=lambda state: state.auto_steering_wheel_heat,
-    ),
+    # This one isn't in the Command Protocol
+    # TeslaBluetoothClimateSwitchEntityDescription(
+    #    key="climate_state_auto_steering_wheel_heat",
+    #    on_func=lambda api: api.remote_auto_steering_wheel_heat_climate_request(
+    #        on=True
+    #    ),
+    #    off_func=lambda api: api.remote_auto_steering_wheel_heat_climate_request(
+    #        on=False
+    #    ),
+    #    value_func=lambda state: state.auto_steering_wheel_heat,
+    # ),
     TeslaBluetoothClimateSwitchEntityDescription(
         key="climate_state_defrost_mode",
         on_func=lambda api: api.set_preconditioning_max(on=True, manual_override=False),
         off_func=lambda api: api.set_preconditioning_max(
             on=False, manual_override=False
         ),
-        value_func=lambda state: state.defrost_mode != "Off",
+        value_func=lambda state: not state.defrost_mode.HasField("Off"),
     ),
 )
 CHARGE_DESCRIPTIONS: tuple[TeslaBluetoothChargeSwitchEntityDescription, ...] = (

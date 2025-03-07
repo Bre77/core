@@ -62,7 +62,7 @@ class TeslaBluetoothEntity(CoordinatorEntity[_C], Generic[_C]):
 
     async def wake_up_if_asleep(self) -> None:
         """Wake up the vehicle if it is asleep."""
-        if self.awake:
+        if not self.awake:
             result = await self.vehicle.wake_up()
             LOGGER.debug("Wake up result: %s", result)
 
