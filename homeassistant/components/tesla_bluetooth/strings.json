@@ -416,6 +416,9 @@
       },
       "vehicle_state_valet_mode": {
         "name": "Valet mode"
+      },
+      "polling": {
+        "name": "Data Polling"
       }
     }
   },
