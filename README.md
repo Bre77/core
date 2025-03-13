@@ -4,6 +4,14 @@ Home Assistant integration for communicating with Tesla vehicles over BLE
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Teslemetry&repository=hass-tesla-bluetooth)
 
+## Important Notice
+
+This integration will keep your vehicle awake constantly while connected. If you want your vehicle to sleep, I recommend creating an automation to enable and disable the included "polling" switch.
+
+The recommended logic is:
+- Trigger status is On: Switch Polling On
+- Trigger sentry mode, charging, user present, where all are off: Switch Polling Off
+
 ## Limitations
 
 - Tesla vehicles only support 3 BLE connections, which includes the mobile app, watch app, and Powerwall when Charge On Solar is enabled.
