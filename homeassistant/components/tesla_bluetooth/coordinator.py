@@ -93,6 +93,36 @@ class TesleBluetoothCoordinators:
         for attr_name in self.__annotations__:
             yield getattr(self, attr_name)
 
+    def turn_on(self):
+        """Turn on the coordinator."""
+        self.charge.turn_on()
+        self.climate.turn_on()
+        self.closures.turn_on()
+        self.drive.turn_on()
+        self.location.turn_on()
+        self.charge_schedule.turn_on()
+        self.preconditioning_schedule.turn_on()
+        self.tire_pressure.turn_on()
+        self.media.turn_on()
+        self.media_detail.turn_on()
+        self.software_update.turn_on()
+        self.parental_controls.turn_on()
+
+    def turn_off(self):
+        """Turn off the coordinator."""
+        self.charge.turn_off()
+        self.climate.turn_off()
+        self.closures.turn_off()
+        self.drive.turn_off()
+        self.location.turn_off()
+        self.charge_schedule.turn_off()
+        self.preconditioning_schedule.turn_off()
+        self.tire_pressure.turn_off()
+        self.media.turn_off()
+        self.media_detail.turn_off()
+        self.software_update.turn_off()
+        self.parental_controls.turn_off()
+
 
 class TeslaBluetoothCoordinator(TimestampDataUpdateCoordinator[_T], Generic[_T]):
     """Class to manage fetching Tesla Bluetooth data."""
@@ -145,6 +175,14 @@ class TeslaBluetoothCoordinator(TimestampDataUpdateCoordinator[_T], Generic[_T])
     @abstractmethod
     async def _async_update_function(self, vehicle: VehicleBluetooth) -> _T:
         """Abstract method to fetch specific data from the vehicle."""
+
+    def turn_on(self):
+        """Turn on polling."""
+        self._schedule_refresh()
+
+    def turn_off(self):
+        """Turn off polling."""
+        self._unschedule_refresh()
 
 
 class TeslaBluetoothStateCoordinator(TeslaBluetoothCoordinator[VehicleStatus]):

@@ -19,8 +19,10 @@ from homeassistant.components.switch import (
     SwitchEntity,
     SwitchEntityDescription,
 )
+from homeassistant.const import STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from . import TeslaBluetoothConfigEntry
 from .entity import TeslaBluetoothChargeEntity, TeslaBluetoothClimateEntity
@@ -114,6 +116,7 @@ async def async_setup_entry(
                 TeslaBluetoothChargeSwitchEntity(entry.runtime_data, description)
                 for description in CHARGE_DESCRIPTIONS
             ),
+            (TeslaBluetoothPollingSwitchEntity(entry.runtime_data),),
         )
     )
 
@@ -121,7 +124,6 @@ async def async_setup_entry(
 class TeslaBluetoothClimateSwitchEntity(TeslaBluetoothClimateEntity, SwitchEntity):
     """Tesla Bluetooth climate switch entities."""
 
-    _attr_device_class = SwitchDeviceClass.SWITCH
     entity_description: TeslaBluetoothClimateSwitchEntityDescription
 
     def __init__(
@@ -131,6 +133,7 @@ class TeslaBluetoothClimateSwitchEntity(TeslaBluetoothClimateEntity, SwitchEntit
     ) -> None:
         """Initialize the Switch."""
         self.entity_description = description
+        self._attr_device_class = SwitchDeviceClass.SWITCH
         super().__init__(data, description.key)
 
     def _async_update_attrs(self) -> None:
@@ -156,7 +159,6 @@ class TeslaBluetoothClimateSwitchEntity(TeslaBluetoothClimateEntity, SwitchEntit
 class TeslaBluetoothChargeSwitchEntity(TeslaBluetoothChargeEntity, SwitchEntity):
     """Tesla Bluetooth charge switch entities."""
 
-    _attr_device_class = SwitchDeviceClass.SWITCH
     entity_description: TeslaBluetoothChargeSwitchEntityDescription
 
     def __init__(
@@ -166,6 +168,7 @@ class TeslaBluetoothChargeSwitchEntity(TeslaBluetoothChargeEntity, SwitchEntity)
     ) -> None:
         """Initialize the Switch."""
         self.entity_description = description
+        self._attr_device_class = SwitchDeviceClass.SWITCH
         super().__init__(data, description.key)
 
     def _async_update_attrs(self) -> None:
@@ -183,5 +186,41 @@ class TeslaBluetoothChargeSwitchEntity(TeslaBluetoothChargeEntity, SwitchEntity)
         """Turn off the Switch."""
         await self.wake_up_if_asleep()
         await handle_vehicle_command(self.entity_description.off_func(self.vehicle))
+        self._attr_is_on = False
+        self.async_write_ha_state()
+
+
+class TeslaBluetoothPollingSwitchEntity(SwitchEntity, RestoreEntity):
+    """Tesla Bluetooth polling switch entities."""
+
+    def __init__(
+        self,
+        data: TeslaBluetoothData,
+    ) -> None:
+        """Initialize the Switch."""
+        self.coordinators = data.coordinators
+        self._attr_translation_key = "polling"
+        self._attr_unique_id = f"{data.vehicle.vin}-polling"
+        self._attr_device_class = SwitchDeviceClass.SWITCH
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+        if (state := await self.async_get_last_state()) is not None:
+            self._attr_is_on = state.state == STATE_ON
+        else:
+            self._attr_is_on = True
+        if not self._attr_is_on:
+            self.coordinators.turn_off()
+
+    async def async_turn_on(self, **kwargs: Any) -> None:
+        """Turn on the Switch."""
+        self.coordinators.turn_on()
+        self._attr_is_on = True
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs: Any) -> None:
+        """Turn off the Switch."""
+        self.coordinators.turn_off()
         self._attr_is_on = False
         self.async_write_ha_state()

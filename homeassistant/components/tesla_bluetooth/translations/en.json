@@ -411,6 +411,9 @@
             "climate_state_defrost_mode": {
                 "name": "Defrost"
             },
+            "polling": {
+                "name": "Data Polling"
+            },
             "vehicle_state_sentry_mode": {
                 "name": "Sentry mode"
             },
