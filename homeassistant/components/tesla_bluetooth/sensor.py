@@ -264,6 +264,7 @@ DRIVE_DESCRIPTIONS: tuple[TeslaBluetoothDriveSensorEntityDescription, ...] = (
         device_class=SensorDeviceClass.SPEED,
         native_unit_of_measurement=UnitOfSpeed.MILES_PER_HOUR,
         value_fn=lambda x: x.speed,
+        entity_registry_enabled_default=False,
     ),
     TeslaBluetoothDriveSensorEntityDescription(
         key="drive_state_power",
@@ -271,12 +272,13 @@ DRIVE_DESCRIPTIONS: tuple[TeslaBluetoothDriveSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfPower.KILO_WATT,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda x: x.power,
+        entity_registry_enabled_default=False,
     ),
     TeslaBluetoothDriveSensorEntityDescription(
         key="drive_state_shift_state",
         device_class=SensorDeviceClass.ENUM,
         options=list(set(SHIFT_STATES.values())),
-        value_fn=lambda x: SHIFT_STATES.get(x.shift_state.WhichOneof("type")),
+        value_fn=lambda x: SHIFT_STATES.get(x.shift_state.WhichOneof("type"), "P"),
     ),
     TeslaBluetoothDriveSensorEntityDescription(
         key="drive_state_active_route_destination",
