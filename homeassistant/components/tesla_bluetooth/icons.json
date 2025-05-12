@@ -37,25 +37,23 @@
       "charge_state_conn_charge_cable": {
         "default": "mdi:ev-plug-type2",
         "state": {
-          "tesla": "mdi:tesla",
-          "j1772": "mdi:ev-plug-j1772",
-          "ccs1": "mdi:ev-plug-ccs1",
-          "ccs2": "mdi:ev-plug-ccs2",
-          "type2": "mdi:ev-plug-type2",
-          "nacs": "mdi:tesla",
-          "gbt": "mdi:ev-station",
-          "unknown": "mdi:help-circle",
-          "none": "mdi:power-plug-off"
+          "iec": "mdi:power-socket-eu",
+          "sae": "mdi:power-socket-us",
+          "gb_ac": "mdi:power-socket-uk",
+          "gb_dc": "mdi:ev-station"
         }
       },
       "charge_state_fast_charger_type": {
         "default": "mdi:ev-station",
         "state": {
           "tesla": "mdi:tesla",
-          "ccs": "mdi:ev-station",
-          "nacs": "mdi:tesla",
+          "supercharger": "mdi:tesla",
           "chademo": "mdi:ev-station",
-          "none": "mdi:ev-station-off"
+          "gb": "mdi:ev-station",
+          "combo": "mdi:ev-plug-ccs1",
+          "acsinglewirecan": "mdi:ev-station",
+          "mcsinglewirecan": "mdi:ev-station",
+          "other": "mdi:ev-station"
         }
       },
       "charge_state_charging_state": {

@@ -29,7 +29,8 @@ PLATFORMS: Final = [
     Platform.BINARY_SENSOR,
     Platform.NUMBER,
     Platform.SWITCH,
-]  # Platform.SENSOR
+    Platform.SENSOR,
+]
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:

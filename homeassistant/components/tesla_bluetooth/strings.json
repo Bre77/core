@@ -35,28 +35,8 @@
   },
   "entity": {
     "binary_sensor": {
-      "backup_capable": {
-        "name": "Backup capable"
-      },
-      "charge_state_battery_heater_on": {
-        "name": "Battery heater"
-      },
       "charge_state_charger_phases": {
         "name": "Charger has multiple phases"
-      },
-      "charge_state_conn_charge_cable": {
-        "name": "Charge cable",
-        "state": {
-          "tesla": "Tesla",
-          "j1772": "J1772",
-          "ccs1": "CCS1",
-          "ccs2": "CCS2",
-          "type2": "Type 2",
-          "nacs": "NACS",
-          "gbt": "GB/T",
-          "unknown": "Unknown",
-          "none": "None"
-        }
       },
       "charge_state_preconditioning_enabled": {
         "name": "Preconditioning enabled"
@@ -67,23 +47,17 @@
       "charge_state_trip_charging": {
         "name": "Trip charging"
       },
+      "charge_state_conn_charge_cable": {
+        "name": "Charge cable"
+      },
       "climate_state_cabin_overheat_protection_actively_cooling": {
         "name": "Cabin overheat protection actively cooling"
       },
       "climate_state_is_preconditioning": {
         "name": "Preconditioning"
       },
-      "components_grid_services_enabled": {
-        "name": "Grid services enabled"
-      },
-      "grid_services_active": {
-        "name": "Grid services active"
-      },
       "state": {
         "name": "Status"
-      },
-      "storm_mode_active": {
-        "name": "Storm watch active"
       },
       "vehicle_state_dashcam_state": {
         "name": "Dashcam"
@@ -94,12 +68,6 @@
       "vehicle_state_dr": {
         "name": "Rear driver door"
       },
-      "vehicle_state_fd_window": {
-        "name": "Front driver window"
-      },
-      "vehicle_state_fp_window": {
-        "name": "Front passenger window"
-      },
       "vehicle_state_is_user_present": {
         "name": "User present"
       },
@@ -108,12 +76,6 @@
       },
       "vehicle_state_pr": {
         "name": "Rear passenger door"
-      },
-      "vehicle_state_rd_window": {
-        "name": "Rear driver window"
-      },
-      "vehicle_state_rp_window": {
-        "name": "Rear passenger window"
       },
       "vehicle_state_tpms_soft_warning_fl": {
         "name": "Tire pressure warning front left"
@@ -128,7 +90,7 @@
         "name": "Tire pressure warning rear right"
       },
       "vehicle_state_tpms_hard_warning_fl": {
-        "name": "Tire pressure hardwarning front left"
+        "name": "Tire pressure hard warning front left"
       },
       "vehicle_state_tpms_hard_warning_fr": {
         "name": "Tire pressure hard warning front right"
@@ -347,27 +309,37 @@
         "name": "Charger voltage"
       },
       "charge_state_conn_charge_cable": {
-        "name": "Charge cable"
+        "name": "Charge cable",
+        "state": {
+          "iec": "IEC",
+          "sae": "SAE",
+          "gb_ac": "GB AC",
+          "gb_dc": "GB DC"
+        }
       },
       "charge_state_fast_charger_type": {
         "name": "Fast charger type",
         "state": {
-          "tesla": "Tesla",
-          "ccs": "CCS",
-          "nacs": "NACS",
+          "supercharger": "Supercharger",
           "chademo": "CHAdeMO",
-          "none": "None"
+          "gb": "GB/T",
+          "combo": "CCS",
+          "tesla": "Tesla",
+          "acsinglewirecan": "ACSingleWireCAN",
+          "mcsinglewirecan": "MCSingleWireCAN",
+          "other": "Other"
         }
       },
       "charge_state_charging_state": {
         "name": "Charging",
         "state": {
           "starting": "Starting",
-          "charging": "Charging",
-          "disconnected": "Disconnected",
-          "stopped": "Stopped",
+          "charging": "[%key:common::state::charging%]",
+          "disconnected": "[%key:common::state::disconnected%]",
+          "stopped": "[%key:common::state::stopped%]",
           "complete": "Complete",
-          "no_power": "No power"
+          "no_power": "No power",
+          "calibrating": "Calibrating"
         }
       },
       "charge_state_minutes_to_full_charge": {

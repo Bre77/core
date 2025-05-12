@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from itertools import chain
-from typing import Any
+from typing import Any, Final
 
 from tesla_fleet_api.tesla.vehicle.bluetooth import (
     ChargeState,
@@ -48,6 +48,46 @@ from .models import TeslaBluetoothData
 
 PARALLEL_UPDATES = 0
 
+# Dictionaries for mapping ENUM values from the protobuf message field names
+CONN_CHARGE_CABLES: Final[dict[str, str]] = {
+    # Field names from ChargeState.CableType
+    "IEC": "iec",
+    "SAE": "sae",
+    "GB_AC": "gb_ac",
+    "GB_DC": "gb_dc",
+}
+
+FAST_CHARGER_TYPES: Final[dict[str, str]] = {
+    # Field names from ChargeState.ChargerType
+    "Supercharger": "supercharger",
+    "Chademo": "chademo",
+    "Gb": "gb",
+    "Combo": "combo",
+    "Tesla": "tesla",
+    "ACSingleWireCAN": "acsinglewirecan",
+    "MCSingleWireCAN": "mcsinglewirecan",
+    "Other": "other",
+}
+
+CHARGING_STATES: Final[dict[str, str]] = {
+    # Field names from ChargeState.ChargingState
+    "Disconnected": "disconnected",
+    "NoPower": "no_power",
+    "Starting": "starting",
+    "Charging": "charging",
+    "Complete": "complete",
+    "Stopped": "stopped",
+    "Calibrating": "calibrating",
+}
+
+SHIFT_STATES: Final[dict[str, str]] = {
+    # Field names from DriveState.ShiftState
+    "P": "p",
+    "R": "r",
+    "N": "n",
+    "D": "d",
+}
+
 
 @dataclass(frozen=True, kw_only=True)
 class TeslaBluetoothChargeSensorEntityDescription(SensorEntityDescription):
@@ -63,6 +103,7 @@ CHARGE_DESCRIPTIONS: tuple[TeslaBluetoothChargeSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfLength.MILES,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda x: x.battery_range,
+        suggested_display_precision=2,
     ),
     TeslaBluetoothChargeSensorEntityDescription(
         key="charge_state_est_battery_range",
@@ -70,6 +111,7 @@ CHARGE_DESCRIPTIONS: tuple[TeslaBluetoothChargeSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfLength.MILES,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda x: x.est_battery_range,
+        suggested_display_precision=2,
     ),
     TeslaBluetoothChargeSensorEntityDescription(
         key="charge_state_ideal_battery_range",
@@ -77,6 +119,7 @@ CHARGE_DESCRIPTIONS: tuple[TeslaBluetoothChargeSensorEntityDescription, ...] = (
         native_unit_of_measurement=UnitOfLength.MILES,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda x: x.ideal_battery_range,
+        suggested_display_precision=2,
     ),
     TeslaBluetoothChargeSensorEntityDescription(
         key="charge_state_battery_level",
@@ -135,43 +178,26 @@ CHARGE_DESCRIPTIONS: tuple[TeslaBluetoothChargeSensorEntityDescription, ...] = (
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
         device_class=SensorDeviceClass.ENUM,
-        options=[
-            "tesla",
-            "j1772",
-            "ccs1",
-            "ccs2",
-            "type2",
-            "nacs",
-            "gbt",
-            "unknown",
-            "none",
-        ],
-        value_fn=lambda x: str(x.conn_charge_cable).lower().replace("/", "")
-        if x.conn_charge_cable
-        else "none",
+        options=list(set(CONN_CHARGE_CABLES.values())),
+        value_fn=lambda x: CONN_CHARGE_CABLES.get(
+            x.conn_charge_cable.WhichOneof("type")
+        ),
     ),
     TeslaBluetoothChargeSensorEntityDescription(
         key="charge_state_fast_charger_type",
         entity_registry_enabled_default=False,
         entity_category=EntityCategory.DIAGNOSTIC,
         device_class=SensorDeviceClass.ENUM,
-        options=["tesla", "ccs", "nacs", "chademo", "none"],
-        value_fn=lambda x: str(x.fast_charger_type).lower()
-        if x.fast_charger_type
-        else "none",
+        options=list(set(FAST_CHARGER_TYPES.values())),
+        value_fn=lambda x: FAST_CHARGER_TYPES.get(
+            x.fast_charger_type.WhichOneof("type")
+        ),
     ),
     TeslaBluetoothChargeSensorEntityDescription(
         key="charge_state_charging_state",
         device_class=SensorDeviceClass.ENUM,
-        options=[
-            "charging",
-            "complete",
-            "disconnected",
-            "stopped",
-            "starting",
-            "no_power",
-        ],
-        value_fn=lambda x: str(x.charging_state).lower() if x.charging_state else None,
+        options=list(set(CHARGING_STATES.values())),
+        value_fn=lambda x: CHARGING_STATES.get(x.charging_state.WhichOneof("type")),
     ),
 )
 
@@ -190,6 +216,7 @@ CLIMATE_DESCRIPTIONS: tuple[TeslaBluetoothClimateSensorEntityDescription, ...] =
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda x: x.inside_temp_celsius,
+        suggested_display_precision=2,
     ),
     TeslaBluetoothClimateSensorEntityDescription(
         key="climate_state_outside_temp",
@@ -197,6 +224,7 @@ CLIMATE_DESCRIPTIONS: tuple[TeslaBluetoothClimateSensorEntityDescription, ...] =
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda x: x.outside_temp_celsius,
+        suggested_display_precision=2,
     ),
     TeslaBluetoothClimateSensorEntityDescription(
         key="climate_state_driver_temp_setting",
@@ -204,6 +232,7 @@ CLIMATE_DESCRIPTIONS: tuple[TeslaBluetoothClimateSensorEntityDescription, ...] =
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda x: x.driver_temp_setting,
+        suggested_display_precision=1,
     ),
     TeslaBluetoothClimateSensorEntityDescription(
         key="climate_state_passenger_temp_setting",
@@ -211,6 +240,7 @@ CLIMATE_DESCRIPTIONS: tuple[TeslaBluetoothClimateSensorEntityDescription, ...] =
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda x: x.passenger_temp_setting,
+        suggested_display_precision=1,
     ),
 )
 
@@ -227,7 +257,7 @@ DRIVE_DESCRIPTIONS: tuple[TeslaBluetoothDriveSensorEntityDescription, ...] = (
         key="drive_state_odometer",
         device_class=SensorDeviceClass.DISTANCE,
         native_unit_of_measurement=UnitOfLength.MILES,
-        value_fn=lambda x: x.odometer_in_hundredths_of_a_mile * 100,
+        value_fn=lambda x: x.odometer_in_hundredths_of_a_mile / 100,
     ),
     TeslaBluetoothDriveSensorEntityDescription(
         key="drive_state_speed",
@@ -245,8 +275,8 @@ DRIVE_DESCRIPTIONS: tuple[TeslaBluetoothDriveSensorEntityDescription, ...] = (
     TeslaBluetoothDriveSensorEntityDescription(
         key="drive_state_shift_state",
         device_class=SensorDeviceClass.ENUM,
-        options=["p", "r", "n", "d"],
-        value_fn=lambda x: str(x.shift_state).lower() if x.shift_state else None,
+        options=list(set(SHIFT_STATES.values())),
+        value_fn=lambda x: SHIFT_STATES.get(x.shift_state.WhichOneof("type")),
     ),
     TeslaBluetoothDriveSensorEntityDescription(
         key="drive_state_active_route_destination",
@@ -303,6 +333,7 @@ TIRE_PRESSURE_DESCRIPTIONS = (
         entity_category=EntityCategory.DIAGNOSTIC,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda x: x.tpms_pressure_fl,
+        suggested_display_precision=2,
     ),
     TeslaBluetoothTirePressureSensorEntityDescription(
         key="vehicle_state_tpms_pressure_fr",
@@ -311,6 +342,7 @@ TIRE_PRESSURE_DESCRIPTIONS = (
         entity_category=EntityCategory.DIAGNOSTIC,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda x: x.tpms_pressure_fr,
+        suggested_display_precision=2,
     ),
     TeslaBluetoothTirePressureSensorEntityDescription(
         key="vehicle_state_tpms_pressure_rl",
@@ -319,6 +351,7 @@ TIRE_PRESSURE_DESCRIPTIONS = (
         entity_category=EntityCategory.DIAGNOSTIC,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda x: x.tpms_pressure_rl,
+        suggested_display_precision=2,
     ),
     TeslaBluetoothTirePressureSensorEntityDescription(
         key="vehicle_state_tpms_pressure_rr",
@@ -327,6 +360,7 @@ TIRE_PRESSURE_DESCRIPTIONS = (
         entity_category=EntityCategory.DIAGNOSTIC,
         state_class=SensorStateClass.MEASUREMENT,
         value_fn=lambda x: x.tpms_pressure_rr,
+        suggested_display_precision=2,
     ),
 )
 
