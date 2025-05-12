@@ -45,7 +45,18 @@
                 "name": "Charger has multiple phases"
             },
             "charge_state_conn_charge_cable": {
-                "name": "Charge cable"
+                "name": "Charge cable",
+                "state": {
+                    "ccs1": "CCS1",
+                    "ccs2": "CCS2",
+                    "gbt": "GB/T",
+                    "j1772": "J1772",
+                    "nacs": "NACS",
+                    "none": "None",
+                    "tesla": "Tesla",
+                    "type2": "Type 2",
+                    "unknown": "Unknown"
+                }
             },
             "charge_state_preconditioning_enabled": {
                 "name": "Preconditioning enabled"
@@ -67,6 +78,9 @@
             },
             "grid_services_active": {
                 "name": "Grid services active"
+            },
+            "location_state_homelink_nearby": {
+                "name": "Homelink nearby"
             },
             "state": {
                 "name": "Status"
@@ -326,7 +340,14 @@
                 "name": "Estimate battery range"
             },
             "charge_state_fast_charger_type": {
-                "name": "Fast charger type"
+                "name": "Fast charger type",
+                "state": {
+                    "ccs": "CCS",
+                    "chademo": "CHAdeMO",
+                    "nacs": "NACS",
+                    "none": "None",
+                    "tesla": "Tesla"
+                }
             },
             "charge_state_ideal_battery_range": {
                 "name": "Ideal battery range"
@@ -364,6 +385,9 @@
             "drive_state_active_route_traffic_minutes_delay": {
                 "name": "Traffic delay"
             },
+            "drive_state_odometer": {
+                "name": "Odometer"
+            },
             "drive_state_power": {
                 "name": "Power"
             },
@@ -378,9 +402,6 @@
             },
             "drive_state_speed": {
                 "name": "Speed"
-            },
-            "vehicle_state_odometer": {
-                "name": "Odometer"
             },
             "vehicle_state_tpms_pressure_fl": {
                 "name": "Tire pressure front left"

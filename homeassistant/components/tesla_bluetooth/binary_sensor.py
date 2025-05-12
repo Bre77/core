@@ -9,6 +9,7 @@ from itertools import chain
 from tesla_fleet_api.tesla.vehicle.bluetooth import (
     ChargeState,
     ClimateState,
+    LocationState,
     TirePressureState,
     VehicleStatus,
 )
@@ -27,6 +28,7 @@ from .entity import (
     TeslaBluetoothChargeEntity,
     TeslaBluetoothClimateEntity,
     TeslaBluetoothEntity,
+    TeslaBluetoothLocationEntity,
     TeslaBluetoothStateEntity,
     TeslaBluetoothTirePressureEntity,
 )
@@ -219,6 +221,27 @@ TIRE_PRESSURE_DESCRIPTIONS = (
 )
 
 
+@dataclass(frozen=True, kw_only=True)
+class TeslaBluetoothLocationBinarySensorEntityDescription(
+    BinarySensorEntityDescription
+):
+    """Describes Tesla Bluetooth location binary sensor entity."""
+
+    value_fn: Callable[[LocationState], bool] = bool
+
+
+LOCATION_DESCRIPTIONS: tuple[
+    TeslaBluetoothLocationBinarySensorEntityDescription, ...
+] = (
+    TeslaBluetoothLocationBinarySensorEntityDescription(
+        key="location_state_homelink_nearby",
+        device_class=BinarySensorDeviceClass.PRESENCE,
+        entity_registry_enabled_default=False,
+        value_fn=lambda x: x.homelink_nearby,
+    ),
+)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: TeslaBluetoothConfigEntry,
@@ -245,6 +268,12 @@ async def async_setup_entry(
                     entry.runtime_data, description
                 )
                 for description in TIRE_PRESSURE_DESCRIPTIONS
+            ),
+            (
+                TeslaBluetoothLocationBinarySensorEntity(
+                    entry.runtime_data, description
+                )
+                for description in LOCATION_DESCRIPTIONS
             ),
         )
     )
@@ -299,3 +328,11 @@ class TeslaBluetoothTirePressureBinarySensorEntity(
     """Binary sensor for Tesla Bluetooth tire pressure state."""
 
     entity_description: TeslaBluetoothTirePressureBinarySensorEntityDescription
+
+
+class TeslaBluetoothLocationBinarySensorEntity(
+    TeslaBluetoothBinarySensorBase, TeslaBluetoothLocationEntity
+):
+    """Binary sensor for Tesla Bluetooth location state."""
+
+    entity_description: TeslaBluetoothLocationBinarySensorEntityDescription

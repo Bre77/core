@@ -1,0 +1,265 @@
+{
+  "entity": {
+    "sensor": {
+      "charge_state_battery_range": {
+        "default": "mdi:map-marker-distance"
+      },
+      "charge_state_est_battery_range": {
+        "default": "mdi:map-marker-distance"
+      },
+      "charge_state_ideal_battery_range": {
+        "default": "mdi:map-marker-distance"
+      },
+      "charge_state_battery_level": {
+        "default": "mdi:battery"
+      },
+      "charge_state_usable_battery_level": {
+        "default": "mdi:battery-charging"
+      },
+      "charge_state_charge_energy_added": {
+        "default": "mdi:lightning-bolt"
+      },
+      "charge_state_charge_rate": {
+        "default": "mdi:speedometer"
+      },
+      "charge_state_charger_actual_current": {
+        "default": "mdi:current-ac"
+      },
+      "charge_state_charger_power": {
+        "default": "mdi:flash"
+      },
+      "charge_state_charger_voltage": {
+        "default": "mdi:lightning-bolt"
+      },
+      "charge_state_minutes_to_full_charge": {
+        "default": "mdi:battery-clock"
+      },
+      "charge_state_conn_charge_cable": {
+        "default": "mdi:ev-plug-type2",
+        "state": {
+          "tesla": "mdi:tesla",
+          "j1772": "mdi:ev-plug-j1772",
+          "ccs1": "mdi:ev-plug-ccs1",
+          "ccs2": "mdi:ev-plug-ccs2",
+          "type2": "mdi:ev-plug-type2",
+          "nacs": "mdi:tesla",
+          "gbt": "mdi:ev-station",
+          "unknown": "mdi:help-circle",
+          "none": "mdi:power-plug-off"
+        }
+      },
+      "charge_state_fast_charger_type": {
+        "default": "mdi:ev-station",
+        "state": {
+          "tesla": "mdi:tesla",
+          "ccs": "mdi:ev-station",
+          "nacs": "mdi:tesla",
+          "chademo": "mdi:ev-station",
+          "none": "mdi:ev-station-off"
+        }
+      },
+      "charge_state_charging_state": {
+        "default": "mdi:battery-charging",
+        "state": {
+          "charging": "mdi:battery-charging",
+          "complete": "mdi:battery-check",
+          "disconnected": "mdi:battery-off-outline",
+          "stopped": "mdi:battery-remove",
+          "starting": "mdi:battery-sync",
+          "no_power": "mdi:power-plug-off"
+        }
+      },
+      "climate_state_inside_temp": {
+        "default": "mdi:thermometer-auto"
+      },
+      "climate_state_outside_temp": {
+        "default": "mdi:thermometer"
+      },
+      "climate_state_driver_temp_setting": {
+        "default": "mdi:car-seat-heater"
+      },
+      "climate_state_passenger_temp_setting": {
+        "default": "mdi:car-seat-heater"
+      },
+      "drive_state_odometer": {
+        "default": "mdi:counter"
+      },
+      "drive_state_speed": {
+        "default": "mdi:speedometer"
+      },
+      "drive_state_power": {
+        "default": "mdi:flash"
+      },
+      "drive_state_shift_state": {
+        "default": "mdi:car-shift-pattern",
+        "state": {
+          "p": "mdi:alpha-p-box",
+          "r": "mdi:alpha-r-box",
+          "n": "mdi:alpha-n-box",
+          "d": "mdi:alpha-d-box"
+        }
+      },
+      "drive_state_active_route_destination": {
+        "default": "mdi:map-marker-star"
+      },
+      "drive_state_active_route_energy_at_arrival": {
+        "default": "mdi:battery-charging-medium"
+      },
+      "drive_state_active_route_miles_to_arrival": {
+        "default": "mdi:map-marker-distance"
+      },
+      "drive_state_active_route_minutes_to_arrival": {
+        "default": "mdi:clock-outline"
+      },
+      "drive_state_active_route_traffic_minutes_delay": {
+        "default": "mdi:car-multiple"
+      },
+      "vehicle_state_tpms_pressure_fl": {
+        "default": "mdi:tire"
+      },
+      "vehicle_state_tpms_pressure_fr": {
+        "default": "mdi:tire"
+      },
+      "vehicle_state_tpms_pressure_rl": {
+        "default": "mdi:tire"
+      },
+      "vehicle_state_tpms_pressure_rr": {
+        "default": "mdi:tire"
+      }
+    },
+    "binary_sensor": {
+      "state": {
+        "state": {
+          "off": "mdi:sleep",
+          "on": "mdi:car-connected"
+        }
+      },
+      "vehicle_state_is_user_present": {
+        "state": {
+          "off": "mdi:account-remove-outline",
+          "on": "mdi:account"
+        }
+      },
+      "vehicle_state_df": {
+        "state": {
+          "off": "mdi:car-door",
+          "on": "mdi:car-door-open"
+        }
+      },
+      "vehicle_state_dr": {
+        "state": {
+          "off": "mdi:car-door",
+          "on": "mdi:car-door-open"
+        }
+      },
+      "vehicle_state_pf": {
+        "state": {
+          "off": "mdi:car-door",
+          "on": "mdi:car-door-open"
+        }
+      },
+      "vehicle_state_pr": {
+        "state": {
+          "off": "mdi:car-door",
+          "on": "mdi:car-door-open"
+        }
+      },
+      "charge_state_charger_phases": {
+        "state": {
+          "off": "mdi:power-plug-outline",
+          "on": "mdi:power-plug"
+        }
+      },
+      "charge_state_preconditioning_enabled": {
+        "state": {
+          "off": "mdi:hvac-off",
+          "on": "mdi:hvac"
+        }
+      },
+      "charge_state_scheduled_charging_pending": {
+        "state": {
+          "off": "mdi:calendar-clock-outline",
+          "on": "mdi:calendar-clock"
+        }
+      },
+      "charge_state_trip_charging": {
+        "state": {
+          "off": "mdi:road-variant-off",
+          "on": "mdi:road-variant"
+        }
+      },
+      "charge_state_conn_charge_cable": {
+        "state": {
+          "off": "mdi:power-plug-off-outline",
+          "on": "mdi:power-plug"
+        }
+      },
+      "climate_state_is_preconditioning": {
+        "state": {
+          "off": "mdi:hvac-off",
+          "on": "mdi:hvac"
+        }
+      },
+      "climate_state_cabin_overheat_protection_actively_cooling": {
+        "state": {
+          "off": "mdi:thermometer-off",
+          "on": "mdi:thermometer-low"
+        }
+      },
+      "vehicle_state_tpms_soft_warning_fl": {
+        "state": {
+          "off": "mdi:tire",
+          "on": "mdi:car-tire-alert"
+        }
+      },
+      "vehicle_state_tpms_soft_warning_fr": {
+        "state": {
+          "off": "mdi:tire",
+          "on": "mdi:car-tire-alert"
+        }
+      },
+      "vehicle_state_tpms_soft_warning_rl": {
+        "state": {
+          "off": "mdi:tire",
+          "on": "mdi:car-tire-alert"
+        }
+      },
+      "vehicle_state_tpms_soft_warning_rr": {
+        "state": {
+          "off": "mdi:tire",
+          "on": "mdi:car-tire-alert"
+        }
+      },
+      "vehicle_state_tpms_hard_warning_fl": {
+        "state": {
+          "off": "mdi:tire",
+          "on": "mdi:alert-circle"
+        }
+      },
+      "vehicle_state_tpms_hard_warning_fr": {
+        "state": {
+          "off": "mdi:tire",
+          "on": "mdi:alert-circle"
+        }
+      },
+      "vehicle_state_tpms_hard_warning_rl": {
+        "state": {
+          "off": "mdi:tire",
+          "on": "mdi:alert-circle"
+        }
+      },
+      "vehicle_state_tpms_hard_warning_rr": {
+        "state": {
+          "off": "mdi:tire",
+          "on": "mdi:alert-circle"
+        }
+      },
+      "location_state_homelink_nearby": {
+        "state": {
+          "off": "mdi:home-outline",
+          "on": "mdi:home"
+        }
+      }
+    }
+  }
+}

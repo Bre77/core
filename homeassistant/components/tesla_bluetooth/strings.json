@@ -45,7 +45,18 @@
         "name": "Charger has multiple phases"
       },
       "charge_state_conn_charge_cable": {
-        "name": "Charge cable"
+        "name": "Charge cable",
+        "state": {
+          "tesla": "Tesla",
+          "j1772": "J1772",
+          "ccs1": "CCS1",
+          "ccs2": "CCS2",
+          "type2": "Type 2",
+          "nacs": "NACS",
+          "gbt": "GB/T",
+          "unknown": "Unknown",
+          "none": "None"
+        }
       },
       "charge_state_preconditioning_enabled": {
         "name": "Preconditioning enabled"
@@ -127,6 +138,9 @@
       },
       "vehicle_state_tpms_hard_warning_rr": {
         "name": "Tire pressure hard warning rear right"
+      },
+      "location_state_homelink_nearby": {
+        "name": "Homelink nearby"
       }
     },
     "button": {
@@ -217,76 +231,91 @@
       "climate_state_seat_heater_left": {
         "name": "Seat heater front left",
         "state": {
-          "high": "High",
-          "low": "Low",
-          "medium": "Medium",
-          "off": "Off"
+          "high": "[%key:common::state::high%]",
+          "low": "[%key:common::state::low%]",
+          "medium": "[%key:common::state::medium%]",
+          "off": "[%key:common::state::off%]"
         }
       },
       "climate_state_seat_heater_rear_center": {
         "name": "Seat heater rear center",
         "state": {
-          "high": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::high%]",
-          "low": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::low%]",
-          "medium": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::medium%]",
-          "off": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::off%]"
+          "high": "[%key:common::state::high%]",
+          "low": "[%key:common::state::low%]",
+          "medium": "[%key:common::state::medium%]",
+          "off": "[%key:common::state::off%]"
         }
       },
       "climate_state_seat_heater_rear_left": {
         "name": "Seat heater rear left",
         "state": {
-          "high": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::high%]",
-          "low": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::low%]",
-          "medium": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::medium%]",
-          "off": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::off%]"
+          "high": "[%key:common::state::high%]",
+          "low": "[%key:common::state::low%]",
+          "medium": "[%key:common::state::medium%]",
+          "off": "[%key:common::state::off%]"
         }
       },
       "climate_state_seat_heater_rear_right": {
         "name": "Seat heater rear right",
         "state": {
-          "high": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::high%]",
-          "low": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::low%]",
-          "medium": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::medium%]",
-          "off": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::off%]"
+          "high": "[%key:common::state::high%]",
+          "low": "[%key:common::state::low%]",
+          "medium": "[%key:common::state::medium%]",
+          "off": "[%key:common::state::off%]"
         }
       },
       "climate_state_seat_heater_right": {
         "name": "Seat heater front right",
         "state": {
-          "high": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::high%]",
-          "low": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::low%]",
-          "medium": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::medium%]",
-          "off": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::off%]"
+          "high": "[%key:common::state::high%]",
+          "low": "[%key:common::state::low%]",
+          "medium": "[%key:common::state::medium%]",
+          "off": "[%key:common::state::off%]"
         }
       },
       "climate_state_seat_heater_third_row_left": {
         "name": "Seat heater third row left",
         "state": {
-          "high": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::high%]",
-          "low": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::low%]",
-          "medium": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::medium%]",
-          "off": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::off%]"
+          "high": "[%key:common::state::high%]",
+          "low": "[%key:common::state::low%]",
+          "medium": "[%key:common::state::medium%]",
+          "off": "[%key:common::state::off%]"
         }
       },
       "climate_state_seat_heater_third_row_right": {
         "name": "Seat heater third row right",
         "state": {
-          "high": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::high%]",
-          "low": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::low%]",
-          "medium": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::medium%]",
-          "off": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::off%]"
+          "high": "[%key:common::state::high%]",
+          "low": "[%key:common::state::low%]",
+          "medium": "[%key:common::state::medium%]",
+          "off": "[%key:common::state::off%]"
         }
       },
       "climate_state_steering_wheel_heat_level": {
         "name": "Steering wheel heater",
         "state": {
-          "high": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::high%]",
-          "low": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::low%]",
-          "off": "[%key:component::tesla_fleet::entity::select::climate_state_seat_heater_left::state::off%]"
+          "high": "[%key:common::state::high%]",
+          "low": "[%key:common::state::low%]",
+          "off": "[%key:common::state::off%]"
         }
       }
     },
     "sensor": {
+      "drive_state_odometer": {
+        "name": "Odometer"
+      },
+      "drive_state_power": {
+        "name": "Power"
+      },
+      "drive_state_speed": {
+        "name": "Speed"
+      },
+      "climate_state_inside_temp": {
+        "name": "Inside temperature"
+      },
+      "climate_state_outside_temp": {
+        "name": "Outside temperature"
+      },
       "charge_state_battery_range": {
         "name": "Battery range"
       },
@@ -295,6 +324,12 @@
       },
       "charge_state_ideal_battery_range": {
         "name": "Ideal battery range"
+      },
+      "charge_state_battery_level": {
+        "name": "Battery level"
+      },
+      "charge_state_usable_battery_level": {
+        "name": "Usable battery level"
       },
       "charge_state_charge_energy_added": {
         "name": "Charge energy added"
@@ -315,7 +350,14 @@
         "name": "Charge cable"
       },
       "charge_state_fast_charger_type": {
-        "name": "Fast charger type"
+        "name": "Fast charger type",
+        "state": {
+          "tesla": "Tesla",
+          "ccs": "CCS",
+          "nacs": "NACS",
+          "chademo": "CHAdeMO",
+          "none": "None"
+        }
       },
       "charge_state_charging_state": {
         "name": "Charging",
@@ -331,20 +373,8 @@
       "charge_state_minutes_to_full_charge": {
         "name": "Time to full charge"
       },
-      "charge_state_battery_level": {
-        "name": "Battery level"
-      },
-      "charge_state_usable_battery_level": {
-        "name": "Usable battery level"
-      },
       "climate_state_driver_temp_setting": {
         "name": "Driver temperature setting"
-      },
-      "climate_state_inside_temp": {
-        "name": "Inside temperature"
-      },
-      "climate_state_outside_temp": {
-        "name": "Outside temperature"
       },
       "climate_state_passenger_temp_setting": {
         "name": "Passenger temperature setting"
@@ -364,9 +394,6 @@
       "drive_state_active_route_traffic_minutes_delay": {
         "name": "Traffic delay"
       },
-      "drive_state_power": {
-        "name": "Power"
-      },
       "drive_state_shift_state": {
         "name": "Shift state",
         "state": {
@@ -375,12 +402,6 @@
           "p": "Park",
           "r": "Reverse"
         }
-      },
-      "drive_state_speed": {
-        "name": "Speed"
-      },
-      "vehicle_state_odometer": {
-        "name": "Odometer"
       },
       "vehicle_state_tpms_pressure_fl": {
         "name": "Tire pressure front left"
