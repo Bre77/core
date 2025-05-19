@@ -321,7 +321,7 @@ class TeslemetryPreconditionSchedule(TeslemetryVehiclePollingEntity, CalendarEnt
 
 
 @dataclass
-class TarrifPeriod:
+class TariffPeriod:
     """A single tariff period."""
 
     name: str
@@ -349,20 +349,33 @@ class TeslemetryTariffSchedule(TeslemetryEnergyInfoEntity, CalendarEntity):
             if not season_data:
                 continue
 
-            start = datetime(
-                now.year,
-                season_data["fromMonth"],
-                season_data["fromDay"],
-                tzinfo=now.tzinfo,
+            year_of_now = now.year
+            from_month = season_data["fromMonth"]
+            from_day = season_data["fromDay"]
+            to_month = season_data["toMonth"]
+            to_day = season_data["toDay"]
+
+            season_start_date_current_year = datetime(
+                year_of_now, from_month, from_day, tzinfo=now.tzinfo
             )
-            end = datetime(
-                now.year,
-                season_data["toMonth"],
-                season_data["toDay"],
-                tzinfo=now.tzinfo,
+            season_end_date_current_year = datetime(
+                year_of_now, to_month, to_day, tzinfo=now.tzinfo
             ) + timedelta(days=1)
 
-            if end <= now <= start:
+            actual_season_start = season_start_date_current_year
+            actual_season_end = season_end_date_current_year
+
+            if from_month > to_month:  # Season spans a new year
+                if now.month >= from_month:  # Season started this year, ends next year
+                    actual_season_end = datetime(
+                        year_of_now + 1, to_month, to_day, tzinfo=now.tzinfo
+                    ) + timedelta(days=1)
+                else:  # Season started last year, ends this year
+                    actual_season_start = datetime(
+                        year_of_now - 1, from_month, from_day, tzinfo=now.tzinfo
+                    )
+
+            if actual_season_start <= now < actual_season_end:
                 season = season_name
                 break
 
@@ -438,7 +451,7 @@ class TeslemetryTariffSchedule(TeslemetryEnergyInfoEntity, CalendarEntity):
                 if end <= start_date or start >= end_date:
                     continue
 
-                week: list[list[TarrifPeriod]] = [[], [], [], [], [], [], []]
+                week: list[list[TariffPeriod]] = [[], [], [], [], [], [], []]
                 for name, period_data in self.seasons[season]["tou_periods"].items():
                     for period in period_data["periods"]:
                         # Iterate through the specified day of week range
@@ -448,7 +461,7 @@ class TeslemetryTariffSchedule(TeslemetryEnergyInfoEntity, CalendarEntity):
                         ):
                             week[x].append(
                                 # Values can be
-                                TarrifPeriod(
+                                TariffPeriod(
                                     name,
                                     self.charges.get(season, self.charges["ALL"])[
                                         "rates"
