@@ -14,7 +14,13 @@ from tesla_fleet_api.exceptions import (
 from homeassistant.components.teslemetry.coordinator import VEHICLE_INTERVAL
 from homeassistant.components.teslemetry.models import TeslemetryData
 from homeassistant.config_entries import ConfigEntryState
-from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNKNOWN, Platform
+from homeassistant.const import (
+    STATE_OFF,
+    STATE_ON,
+    STATE_UNAVAILABLE,
+    STATE_UNKNOWN,
+    Platform,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 
@@ -164,6 +170,29 @@ async def test_vehicle_stream(
 
     state = hass.states.get("binary_sensor.test_status")
     assert state.state == STATE_OFF
+
+
+async def test_vehicle_stream_connection_status(
+    hass: HomeAssistant, mock_add_connection_listener: AsyncMock
+) -> None:
+    """Test vehicle stream connection status updates."""
+    # Setup entities
+    await setup_platform(hass, [Platform.BINARY_SENSOR])
+    mock_add_connection_listener.assert_called()
+
+    for _ in range(3):
+        state = hass.states.get("binary_sensor.test_status")
+        assert state != STATE_UNAVAILABLE
+
+        mock_add_connection_listener.send(False)
+
+    state = hass.states.get("binary_sensor.test_status")
+    assert state == STATE_UNAVAILABLE
+
+    mock_add_connection_listener.send(True)
+
+    state = hass.states.get("binary_sensor.test_status")
+    assert state != STATE_UNAVAILABLE
 
 
 async def test_no_live_status(

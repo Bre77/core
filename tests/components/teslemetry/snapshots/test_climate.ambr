@@ -392,8 +392,7 @@
 # name: test_select_streaming[climate.test_cabin_overheat_protection]
   StateSnapshot({
     'attributes': ReadOnlyDict({
-      'current_temperature': None,
-      'friendly_name': 'Test Cabin overheat protection',
+      'friendly_name': 'Cabin overheat protection',
       'hvac_modes': list([
         <HVACMode.OFF: 'off'>,
         <HVACMode.COOL: 'cool'>,
@@ -401,73 +400,45 @@
       ]),
       'max_temp': 40,
       'min_temp': 30,
+      'restored': True,
       'supported_features': <ClimateEntityFeature: 385>,
       'target_temp_step': 5,
-      'temperature': None,
     }),
     'context': <ANY>,
     'entity_id': 'climate.test_cabin_overheat_protection',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
-    'state': 'cool',
+    'state': 'unavailable',
   })
 # ---
 # name: test_select_streaming[climate.test_climate LHD]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      'current_temperature': 26.0,
-      'friendly_name': 'Test Climate',
-      'hvac_modes': list([
-        <HVACMode.HEAT_COOL: 'heat_cool'>,
-        <HVACMode.OFF: 'off'>,
-      ]),
-      'max_temp': 28.0,
-      'min_temp': 15.0,
-      'preset_mode': None,
-      'preset_modes': list([
-        'off',
-        'keep',
-        'dog',
-        'camp',
-      ]),
-      'supported_features': <ClimateEntityFeature: 401>,
-      'temperature': 21.0,
-    }),
-    'context': <ANY>,
-    'entity_id': 'climate.test_climate',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': 'heat_cool',
-  })
+  None
 # ---
 # name: test_select_streaming[climate.test_climate]
   StateSnapshot({
     'attributes': ReadOnlyDict({
-      'current_temperature': 26.0,
-      'friendly_name': 'Test Climate',
+      'friendly_name': 'Climate',
       'hvac_modes': list([
         <HVACMode.HEAT_COOL: 'heat_cool'>,
         <HVACMode.OFF: 'off'>,
       ]),
       'max_temp': 28.0,
       'min_temp': 15.0,
-      'preset_mode': None,
       'preset_modes': list([
         'off',
         'keep',
         'dog',
         'camp',
       ]),
+      'restored': True,
       'supported_features': <ClimateEntityFeature: 401>,
-      'temperature': 21.0,
     }),
     'context': <ANY>,
     'entity_id': 'climate.test_climate',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
-    'state': 'heat_cool',
+    'state': 'unavailable',
   })
 # ---

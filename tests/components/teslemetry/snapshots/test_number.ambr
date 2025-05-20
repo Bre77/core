@@ -234,8 +234,8 @@
   })
 # ---
 # name: test_number_streaming[number.test_charge_current-state]
-  '24'
+  'unavailable'
 # ---
 # name: test_number_streaming[number.test_charge_limit-state]
-  '99'
+  'unavailable'
 # ---

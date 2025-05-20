@@ -258,12 +258,33 @@ class TeslemetryVehicleStreamEntity(TeslemetryRootEntity):
         self.stream = data.stream
         self.vin = data.vin
         self.add_field = data.stream.get_vehicle(self.vin).add_field
+        self.disconnects: int = 0
 
         self._attr_translation_key = key
         self._attr_unique_id = f"{data.vin}-{key}"
         self._attr_device_info = data.device
 
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to hass."""
+        await super().async_added_to_hass()
+        self.async_on_remove(
+            self.stream.async_add_connection_listener(self._update_available)
+        )
+
+    def _update_available(self, value: bool):
+        """Update the available attribute ignoring initial retries."""
+        if value:
+            self.disconnects = 0
+            if not self._attr_available:
+                self._attr_available = True
+                self.async_write_ha_state()
+        else:
+            self.disconnects += 1
+            if self._attr_available and self.disconnects > 3:
+                self._attr_available = False
+                self.async_write_ha_state()
+
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self.stream.connected
+        return self._attr_available

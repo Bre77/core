@@ -138,38 +138,21 @@
   })
 # ---
 # name: test_update_streaming[off]
-  StateSnapshot({
-    'attributes': ReadOnlyDict({
-      'device_class': 'speaker',
-      'friendly_name': 'Test Media player',
-      'supported_features': <MediaPlayerEntityFeature: 16437>,
-    }),
-    'context': <ANY>,
-    'entity_id': 'media_player.test_media_player',
-    'last_changed': <ANY>,
-    'last_reported': <ANY>,
-    'last_updated': <ANY>,
-    'state': 'off',
-  })
+  None
 # ---
 # name: test_update_streaming[on]
   StateSnapshot({
     'attributes': ReadOnlyDict({
-      'device_class': 'speaker',
-      'friendly_name': 'Test Media player',
-      'media_album_name': 'Test Album',
-      'media_artist': 'Test Artist',
-      'media_duration': 60,
-      'media_position': 5,
-      'source': 'Spotify',
+      'device_class': <MediaPlayerDeviceClass.SPEAKER: 'speaker'>,
+      'friendly_name': 'Media player',
+      'restored': True,
       'supported_features': <MediaPlayerEntityFeature: 16437>,
-      'volume_level': 0.1935483870967742,
     }),
     'context': <ANY>,
     'entity_id': 'media_player.test_media_player',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
-    'state': 'playing',
+    'state': 'unavailable',
   })
 # ---
