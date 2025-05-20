@@ -123,6 +123,33 @@ class TesleBluetoothCoordinators:
         self.software_update.turn_off()
         self.parental_controls.turn_off()
 
+    async def async_config_entry_first_refresh(self):
+        """Turn off the coordinator."""
+        print("Charge")
+        await self.charge.async_config_entry_first_refresh()
+        print("Climate")
+        await self.climate.async_config_entry_first_refresh()
+        print("Closures")
+        await self.closures.async_config_entry_first_refresh()
+        print("Drive")
+        await self.drive.async_config_entry_first_refresh()
+        print("Location")
+        await self.location.async_config_entry_first_refresh()
+        print("Charge Schedule")
+        await self.charge_schedule.async_config_entry_first_refresh()
+        print("Preconditioning Schedule")
+        await self.preconditioning_schedule.async_config_entry_first_refresh()
+        print("Tire Pressure")
+        await self.tire_pressure.async_config_entry_first_refresh()
+        print("Media")
+        await self.media.async_config_entry_first_refresh()
+        print("Media Detail")
+        await self.media_detail.async_config_entry_first_refresh()
+        print("Software Update")
+        await self.software_update.async_config_entry_first_refresh()
+        print("Parental Controls")
+        await self.parental_controls.async_config_entry_first_refresh()
+
 
 class TeslaBluetoothCoordinator(TimestampDataUpdateCoordinator[_T], Generic[_T]):
     """Class to manage fetching Tesla Bluetooth data."""

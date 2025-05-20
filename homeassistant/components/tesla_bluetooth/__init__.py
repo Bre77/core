@@ -73,6 +73,7 @@ async def async_setup_entry(
 
     coordinators = TesleBluetoothCoordinators(hass, entry, vehicle)
     await coordinators.state.async_config_entry_first_refresh()
+    await coordinators.async_config_entry_first_refresh()
     # Force the state coordinator to update even without entities
     coordinators.state.async_add_listener(lambda *_: None)
 
