@@ -43,9 +43,6 @@ async def test_calandar(
     "entity_id",
     [
         "calendar.test_precondition_schedule",
-        "calendar.test_charging_schedule",
-        "calendar.energy_site_buy_tariff",
-        "calendar.energy_site_sell_tariff",
     ],
 )
 @pytest.mark.usefixtures("entity_registry_enabled_by_default")
@@ -57,7 +54,7 @@ async def test_calandar_events(
     mock_legacy: AsyncMock,
     entity_id: str,
 ) -> None:
-    """Tests that the calendar entity is correct."""
+    """Tests that the preconditioning calendar entity events are correct."""
 
     TZ = dt_util.get_default_time_zone()
     freezer.move_to(datetime(2024, 1, 1, 10, 0, 0, tzinfo=TZ))
