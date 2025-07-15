@@ -155,6 +155,13 @@ async def async_setup_entry(
                 for description in VEHICLE_DESCRIPTIONS
             ),
             (
+                TeslemetryChargeOnSolarStreamingNumberEntity(
+                    vehicle,
+                    entry.runtime_data.scopes,
+                )
+                for vehicle in entry.runtime_data.vehicles
+            ),
+            (
                 TeslemetryEnergyInfoNumberSensorEntity(
                     energysite,
                     description,
@@ -208,7 +215,7 @@ class TeslemetryVehiclePollingNumberEntity(
         self._attr_native_value = self._value
 
         self._attr_native_max_value = self.get_number(
-            self.entity_description.max_key,
+            self.entity_description.max_key or "",
             self.entity_description.native_max_value,
         )
 
@@ -247,11 +254,12 @@ class TeslemetryStreamingNumberEntity(
             self.async_write_ha_state()
 
         # Add listeners
-        self.async_on_remove(
-            self.entity_description.value_listener(
-                self.vehicle.stream_vehicle, self._value_callback
+        if self.entity_description.value_listener:
+            self.async_on_remove(
+                self.entity_description.value_listener(
+                    self.vehicle.stream_vehicle, self._value_callback
+                )
             )
-        )
         if self.entity_description.max_listener:
             self.async_on_remove(
                 self.entity_description.max_listener(
@@ -266,6 +274,76 @@ class TeslemetryStreamingNumberEntity(
 
     def _max_callback(self, value: int | None) -> None:
         """Update the value of the entity."""
+        print(value)
+        self._attr_native_max_value = (
+            self.entity_description.native_max_value if value is None else value
+        )
+        self.async_write_ha_state()
+
+
+class TeslemetryChargeOnSolarStreamingNumberEntity(
+    TeslemetryVehicleStreamEntity, TeslemetryVehicleNumberEntity, RestoreNumber
+):
+    """Charge on solar streaming number entity."""
+
+    entity_description = TeslemetryNumberVehicleEntityDescription(
+        key="charge_on_solar",
+        native_step=PRECISION_WHOLE,
+        native_min_value=0,
+        native_max_value=80,
+        native_unit_of_measurement=PERCENTAGE,
+        device_class=NumberDeviceClass.BATTERY,
+        mode=NumberMode.AUTO,
+        func=lambda api, value: api.charge_on_solar(lower_charge_limit=value),
+        scopes=[Scope.VEHICLE_CMDS],
+        max_listener=lambda x, y: x.listen_ChargeLimitSoc(y),
+    )
+
+    def __init__(
+        self,
+        data: TeslemetryVehicleData,
+        scopes: list[Scope],
+    ) -> None:
+        """Initialize the charge on solar number entity."""
+        self.scoped = any(scope in scopes for scope in self.entity_description.scopes)
+        self._attr_native_max_value = self.entity_description.native_max_value
+        super().__init__(data, self.entity_description.key)
+
+    async def async_added_to_hass(self) -> None:
+        """Handle entity which will be added."""
+        await super().async_added_to_hass()
+
+        # Restore state
+        if (last_state := await self.async_get_last_state()) and (
+            last_number_data := await self.async_get_last_number_data()
+        ):
+            if last_state.state not in (STATE_UNKNOWN, STATE_UNAVAILABLE):
+                self._attr_native_value = last_number_data.native_value
+            if last_number_data.native_max_value:
+                self._attr_native_max_value = last_number_data.native_max_value
+            self.async_write_ha_state()
+
+        # Add listeners
+        if self.entity_description.value_listener:
+            self.async_on_remove(
+                self.entity_description.value_listener(
+                    self.vehicle.stream_vehicle, self._value_callback
+                )
+            )
+        if self.entity_description.max_listener:
+            self.async_on_remove(
+                self.entity_description.max_listener(
+                    self.vehicle.stream_vehicle, self._max_callback
+                )
+            )
+
+    def _value_callback(self, value: int | None) -> None:
+        """Update the value of the entity."""
+        self._attr_native_value = None if value is None else value
+        self.async_write_ha_state()
+
+    def _max_callback(self, value: int | None) -> None:
+        """Update the max value of the entity."""
         self._attr_native_max_value = (
             self.entity_description.native_max_value if value is None else value
         )
