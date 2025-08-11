@@ -274,7 +274,6 @@ class TeslemetryStreamingNumberEntity(
 
     def _max_callback(self, value: int | None) -> None:
         """Update the value of the entity."""
-        print(value)
         self._attr_native_max_value = (
             self.entity_description.native_max_value if value is None else value
         )
@@ -286,18 +285,13 @@ class TeslemetryChargeOnSolarStreamingNumberEntity(
 ):
     """Charge on solar streaming number entity."""
 
-    entity_description = TeslemetryNumberVehicleEntityDescription(
-        key="charge_on_solar",
-        native_step=PRECISION_WHOLE,
-        native_min_value=0,
-        native_max_value=80,
-        native_unit_of_measurement=PERCENTAGE,
-        device_class=NumberDeviceClass.BATTERY,
-        mode=NumberMode.AUTO,
-        func=lambda api, value: api.charge_on_solar(lower_charge_limit=value),
-        scopes=[Scope.VEHICLE_CMDS],
-        max_listener=lambda x, y: x.listen_ChargeLimitSoc(y),
-    )
+    _attr_key = "charge_on_solar"
+    _attr_native_step = PRECISION_WHOLE
+    _attr_native_min_value: float = 0
+    _attr_native_max_value: float = 80
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_device_class = NumberDeviceClass.BATTERY
+    _attr_mode = NumberMode.AUTO
 
     def __init__(
         self,
@@ -305,9 +299,8 @@ class TeslemetryChargeOnSolarStreamingNumberEntity(
         scopes: list[Scope],
     ) -> None:
         """Initialize the charge on solar number entity."""
-        self.scoped = any(scope in scopes for scope in self.entity_description.scopes)
-        self._attr_native_max_value = self.entity_description.native_max_value
-        super().__init__(data, self.entity_description.key)
+        self.scoped = Scope.VEHICLE_CMDS in scopes
+        super().__init__(data, self._attr_key)
 
     async def async_added_to_hass(self) -> None:
         """Handle entity which will be added."""
@@ -324,29 +317,27 @@ class TeslemetryChargeOnSolarStreamingNumberEntity(
             self.async_write_ha_state()
 
         # Add listeners
-        if self.entity_description.value_listener:
-            self.async_on_remove(
-                self.entity_description.value_listener(
-                    self.vehicle.stream_vehicle, self._value_callback
-                )
-            )
-        if self.entity_description.max_listener:
-            self.async_on_remove(
-                self.entity_description.max_listener(
-                    self.vehicle.stream_vehicle, self._max_callback
-                )
-            )
-
-    def _value_callback(self, value: int | None) -> None:
-        """Update the value of the entity."""
-        self._attr_native_value = None if value is None else value
-        self.async_write_ha_state()
+        self.async_on_remove(
+            self.vehicle.stream_vehicle.listen_ChargeLimitSoc(self._max_callback)
+        )
 
     def _max_callback(self, value: int | None) -> None:
         """Update the max value of the entity."""
         self._attr_native_max_value = (
-            self.entity_description.native_max_value if value is None else value
+            self._attr_native_max_value if value is None else value
         )
+        self.async_write_ha_state()
+
+    async def async_set_native_value(self, value: float) -> None:
+        """Set new value."""
+        value = int(value)
+        self.raise_for_scope(Scope.VEHICLE_CMDS)
+        await handle_vehicle_command(
+            self.api.charge_on_solar(
+                lower_charge_limit=value, upper_charge_limit=self._attr_native_max_value
+            )
+        )
+        self._attr_native_value = value
         self.async_write_ha_state()
 
 
