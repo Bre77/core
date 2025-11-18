@@ -1,6 +1,7 @@
 """Teslemetry parent entity class."""
 
 from abc import abstractmethod
+import asyncio
 from typing import Any
 
 from tesla_fleet_api.const import Scope
@@ -36,6 +37,44 @@ class TeslemetryRootEntity(Entity):
                 translation_key="missing_scope",
                 translation_placeholders={"scope": scope},
             )
+
+
+class TeslemetryDebounceMixin:
+    """Mixin to provide debounce functionality for API calls."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        """Initialize the debounce mixin."""
+        super().__init__(*args, **kwargs)
+        self._debounce_task: asyncio.Task | None = None
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Clean up debounce task when entity is removed."""
+        if self._debounce_task and not self._debounce_task.done():
+            self._debounce_task.cancel()
+        # Call parent cleanup if it exists
+        parent_method = getattr(super(), "async_will_remove_from_hass", None)
+        if parent_method:
+            await parent_method()
+
+    async def debounced_call(self, func, *args, **kwargs) -> None:
+        """Execute a function call with debouncing."""
+        # Cancel any pending debounced call
+        if self._debounce_task and not self._debounce_task.done():
+            self._debounce_task.cancel()
+
+        # Schedule debounced API call
+        self._debounce_task = asyncio.create_task(
+            self._debounced_execution(func, *args, **kwargs)
+        )
+
+    async def _debounced_execution(self, func, *args, **kwargs) -> None:
+        """Execute the function after debounce delay."""
+        try:
+            await asyncio.sleep(1.0)  # 1 second debounce delay
+            await func(*args, **kwargs)
+        except asyncio.CancelledError:
+            # Task was cancelled, ignore
+            pass
 
 
 class TeslemetryPollingEntity(

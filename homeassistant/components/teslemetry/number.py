@@ -31,6 +31,7 @@ from homeassistant.helpers.icon import icon_for_battery_level
 
 from . import TeslemetryConfigEntry
 from .entity import (
+    TeslemetryDebounceMixin,
     TeslemetryEnergyInfoEntity,
     TeslemetryRootEntity,
     TeslemetryVehiclePollingEntity,
@@ -169,17 +170,26 @@ async def async_setup_entry(
     )
 
 
-class TeslemetryVehicleNumberEntity(TeslemetryRootEntity, NumberEntity):
+class TeslemetryVehicleNumberEntity(
+    TeslemetryDebounceMixin, TeslemetryRootEntity, NumberEntity
+):
     """Vehicle number entity base class."""
 
     api: Vehicle
     entity_description: TeslemetryNumberVehicleEntityDescription
 
     async def async_set_native_value(self, value: float) -> None:
-        """Set new value."""
+        """Set new value with debouncing."""
         value = int(value)
         self.raise_for_scope(self.entity_description.scopes[0])
+
+        # Schedule debounced API call with state update after success
+        await self.debounced_call(self._debounced_set_value, value)
+
+    async def _debounced_set_value(self, value: int) -> None:
+        """Execute the API call and update state after success."""
         await handle_vehicle_command(self.entity_description.func(self.api, value))
+        # Only update state after successful API call
         self._attr_native_value = value
         self.async_write_ha_state()
 
@@ -272,7 +282,9 @@ class TeslemetryStreamingNumberEntity(
         self.async_write_ha_state()
 
 
-class TeslemetryEnergyInfoNumberSensorEntity(TeslemetryEnergyInfoEntity, NumberEntity):
+class TeslemetryEnergyInfoNumberSensorEntity(
+    TeslemetryDebounceMixin, TeslemetryEnergyInfoEntity, NumberEntity
+):
     """Energy info number entity base class."""
 
     entity_description: TeslemetryNumberBatteryEntityDescription
@@ -299,9 +311,16 @@ class TeslemetryEnergyInfoNumberSensorEntity(TeslemetryEnergyInfoEntity, NumberE
         self._attr_icon = icon_for_battery_level(self.native_value)
 
     async def async_set_native_value(self, value: float) -> None:
-        """Set new value."""
+        """Set new value with debouncing."""
         value = int(value)
         self.raise_for_scope(Scope.ENERGY_CMDS)
+
+        # Schedule debounced API call with state update after success
+        await self.debounced_call(self._debounced_set_value, value)
+
+    async def _debounced_set_value(self, value: int) -> None:
+        """Execute the API call and update state after success."""
         await handle_command(self.entity_description.func(self.api, value))
+        # Only update state after successful API call
         self._attr_native_value = value
         self.async_write_ha_state()
