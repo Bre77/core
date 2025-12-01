@@ -266,6 +266,7 @@ class TeslemetryEnergyHistoryCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 running_sum = cast(float, last_stat[statistic_id][0].get("sum", 0.0))
 
             statistics: list[StatisticData] = []
+            processed_stats: dict[datetime, float] = {}
 
             for period in time_series:
                 timestamp_str = period.get("timestamp")
@@ -284,12 +285,14 @@ class TeslemetryEnergyHistoryCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if value is None:
                     continue
 
-                state = float(value)
-                running_sum += state
+                running_sum += float(value)
 
-                statistics.append(
-                    StatisticData(start=start, state=state, sum=running_sum)
-                )
+                # Aggregate to hourly, using the end of the hour (latest value)
+                hour_start = start.replace(minute=0, second=0, microsecond=0)
+                processed_stats[hour_start] = running_sum
+
+            for start, _sum in processed_stats.items():
+                statistics.append(StatisticData(start=start, state=_sum, sum=_sum))
 
             if statistics:
                 LOGGER.debug(
