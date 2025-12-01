@@ -14,6 +14,7 @@ from tesla_fleet_api.exceptions import (
 from tesla_fleet_api.teslemetry import Teslemetry
 from teslemetry_stream import TeslemetryStream
 
+from homeassistant.components.recorder import get_instance as get_recorder_instance
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_ACCESS_TOKEN, Platform
 from homeassistant.core import HomeAssistant
@@ -23,7 +24,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN, LOGGER
+from .const import DOMAIN, ENERGY_HISTORY_FIELDS, LOGGER
 from .coordinator import (
     TeslemetryEnergyHistoryCoordinator,
     TeslemetryEnergySiteInfoCoordinator,
@@ -224,6 +225,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
             energysite.info_coordinator.async_config_entry_first_refresh()
             for energysite in energysites
         ),
+        *(
+            energysite.history_coordinator.async_config_entry_first_refresh()
+            for energysite in energysites
+            if energysite.history_coordinator
+        ),
     )
 
     # Add energy device models
@@ -270,6 +276,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
 async def async_unload_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
     """Unload Teslemetry Config."""
     return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> None:
+    """Handle removal of a config entry."""
+    # Clear external statistics for all energy sites
+    statistic_ids = [
+        f"{DOMAIN}:{energy_site.id}_{key}"
+        for energy_site in entry.runtime_data.energysites
+        for key in ENERGY_HISTORY_FIELDS
+    ]
+
+    if statistic_ids:
+        get_recorder_instance(hass).async_clear_statistics(statistic_ids)
 
 
 async def async_migrate_entry(

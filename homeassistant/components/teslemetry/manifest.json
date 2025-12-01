@@ -1,6 +1,7 @@
 {
   "domain": "teslemetry",
   "name": "Teslemetry",
+  "after_dependencies": ["recorder"],
   "codeowners": ["@Bre77"],
   "config_flow": true,
   "documentation": "https://www.home-assistant.io/integrations/teslemetry",
