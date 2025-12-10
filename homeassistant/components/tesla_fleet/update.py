@@ -102,10 +102,10 @@ class TeslaFleetUpdateEntity(TeslaFleetVehicleEntity, UpdateEntity):
             self._attr_latest_version = self._attr_installed_version
 
         # In Progress
-        if self._value in (
-            SCHEDULED,
-            INSTALLING,
-        ):
+        if self._value == SCHEDULED:
+            self._attr_in_progress = True
+            self._attr_update_percentage = 0
+        elif self._value == INSTALLING:
             self._attr_in_progress = True
             if install_perc := self.get("vehicle_state_software_update_install_perc"):
                 self._attr_update_percentage = install_perc
