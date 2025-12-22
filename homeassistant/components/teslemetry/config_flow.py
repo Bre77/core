@@ -99,3 +99,29 @@ class TeslemetryConfigFlow(ConfigFlow, domain=DOMAIN):
             data_schema=TESLEMETRY_SCHEMA,
             errors=errors,
         )
+
+    async def async_step_reconfigure(
+        self, user_input: Mapping[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle reconfiguration."""
+        return await self.async_step_reconfigure_confirm()
+
+    async def async_step_reconfigure_confirm(
+        self, user_input: Mapping[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle users reconfiguration credentials."""
+
+        errors: dict[str, str] = {}
+
+        if user_input and not (errors := await self.async_auth(user_input)):
+            return self.async_update_reload_and_abort(
+                self._get_reconfigure_entry(),
+                data=user_input,
+            )
+
+        return self.async_show_form(
+            step_id="reconfigure_confirm",
+            description_placeholders=DESCRIPTION_PLACEHOLDERS,
+            data_schema=TESLEMETRY_SCHEMA,
+            errors=errors,
+        )

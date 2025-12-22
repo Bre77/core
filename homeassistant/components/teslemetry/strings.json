@@ -29,7 +29,8 @@
     "abort": {
       "already_configured": "[%key:common::config_flow::abort::already_configured_account%]",
       "reauth_account_mismatch": "The reauthentication account does not match the original account",
-      "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]"
+      "reauth_successful": "[%key:common::config_flow::abort::reauth_successful%]",
+      "reconfigure_successful": "[%key:common::config_flow::abort::reconfigure_successful%]"
     },
     "error": {
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
@@ -42,11 +43,27 @@
         "data": {
           "access_token": "[%key:common::config_flow::data::access_token%]"
         },
+        "data_description": {
+          "access_token": "[%key:common::config_flow::data::access_token%]"
+        },
         "description": "The {name} integration needs to re-authenticate your account, please enter an access token from {url}",
         "title": "[%key:common::config_flow::title::reauth%]"
       },
+      "reconfigure_confirm": {
+        "data": {
+          "access_token": "[%key:common::config_flow::data::access_token%]"
+        },
+        "data_description": {
+          "access_token": "[%key:common::config_flow::data::access_token%]"
+        },
+        "description": "Enter your updated Teslemetry access token.",
+        "title": "Reconfigure {name}"
+      },
       "user": {
         "data": {
+          "access_token": "[%key:common::config_flow::data::access_token%]"
+        },
+        "data_description": {
           "access_token": "[%key:common::config_flow::data::access_token%]"
         },
         "description": "Enter an access token from {url}."

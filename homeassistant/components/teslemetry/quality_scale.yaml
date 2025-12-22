@@ -62,9 +62,7 @@ rules:
   entity-translations: done
   exception-translations: done
   icon-translations: done
-  reconfiguration-flow:
-    status: exempt
-    comment: To be addressed in a separate PR
+  reconfiguration-flow: done
   repair-issues:
     status: exempt
     comment: No issues to repair
