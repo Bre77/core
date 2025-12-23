@@ -201,3 +201,56 @@ async def test_update_streaming(
     # Ensure the restored state is the same as the previous state
     state = hass.states.get("media_player.test_media_player")
     assert state == snapshot(name="on")
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_media_player_streaming_callbacks(
+    hass: HomeAssistant,
+    mock_vehicle_data: AsyncMock,
+    mock_add_listener: AsyncMock,
+) -> None:
+    """Tests media player streaming callbacks for title, album, and station."""
+
+    await setup_platform(hass, [Platform.MEDIA_PLAYER])
+
+    # Test media title callback
+    mock_add_listener.send(
+        {
+            "vin": VEHICLE_DATA_ALT["response"]["vin"],
+            "data": {
+                Signal.MEDIA_NOW_PLAYING_TITLE: "Test Song Title",
+            },
+            "createdAt": "2024-10-04T10:45:17.537Z",
+        }
+    )
+    await hass.async_block_till_done()
+    state = hass.states.get("media_player.test_media_player")
+    assert state.attributes.get("media_title") == "Test Song Title"
+
+    # Test media album callback
+    mock_add_listener.send(
+        {
+            "vin": VEHICLE_DATA_ALT["response"]["vin"],
+            "data": {
+                Signal.MEDIA_NOW_PLAYING_ALBUM: "Test Album Name",
+            },
+            "createdAt": "2024-10-04T10:45:18.537Z",
+        }
+    )
+    await hass.async_block_till_done()
+    state = hass.states.get("media_player.test_media_player")
+    assert state.attributes.get("media_album_name") == "Test Album Name"
+
+    # Test media station callback
+    mock_add_listener.send(
+        {
+            "vin": VEHICLE_DATA_ALT["response"]["vin"],
+            "data": {
+                Signal.MEDIA_NOW_PLAYING_STATION: "Test Radio Station",
+            },
+            "createdAt": "2024-10-04T10:45:19.537Z",
+        }
+    )
+    await hass.async_block_till_done()
+    state = hass.states.get("media_player.test_media_player")
+    assert state.attributes.get("media_channel") == "Test Radio Station"

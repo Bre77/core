@@ -1,5 +1,6 @@
 """Test the Teslemetry init."""
 
+from copy import deepcopy
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -430,3 +431,52 @@ async def test_migrate_from_future_version_fails(hass: HomeAssistant) -> None:
     assert entry is not None
     assert entry.state is ConfigEntryState.MIGRATION_ERROR
     assert entry.version == 3  # Version should remain unchanged
+
+
+async def test_energy_live_wall_connector_conversion(
+    hass: HomeAssistant,
+    mock_live_status: AsyncMock,
+) -> None:
+    """Test that wall connectors are properly converted from array to dict."""
+    entry = await setup_platform(hass, [Platform.SENSOR])
+    assert entry.state is ConfigEntryState.LOADED
+
+    # Access the coordinator to verify wall connector conversion
+    energy_live_coordinator = entry.runtime_data.energysites[0].live_coordinator
+
+    # Verify wall_connectors is a dict with din as keys
+    wall_connectors = energy_live_coordinator.data.get("wall_connectors", {})
+    assert isinstance(wall_connectors, dict)
+    assert "abd-123" in wall_connectors
+    assert "bcd-234" in wall_connectors
+    assert wall_connectors["abd-123"]["wall_connector_state"] == 2
+    assert wall_connectors["bcd-234"]["wall_connector_state"] == 2
+
+
+async def test_energy_live_empty_wall_connectors(
+    hass: HomeAssistant,
+    mock_live_status: AsyncMock,
+) -> None:
+    """Test energy live coordinator with no wall connectors."""
+    # Create a response without wall_connectors key
+    mock_response = {
+        "response": {
+            "solar_power": 1000,
+            "battery_power": 500,
+            "grid_power": 0,
+            "timestamp": "2024-01-01T00:00:00+00:00",
+        }
+    }
+
+    # Mock the live_status to return our custom response
+    mock_live_status.side_effect = lambda: deepcopy(mock_response)
+
+    entry = await setup_platform(hass, [Platform.SENSOR])
+    assert entry.state is ConfigEntryState.LOADED
+
+    # Access the coordinator
+    energy_live_coordinator = entry.runtime_data.energysites[0].live_coordinator
+
+    # Verify wall_connectors is empty dict when not present
+    wall_connectors = energy_live_coordinator.data.get("wall_connectors", {})
+    assert wall_connectors == {}

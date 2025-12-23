@@ -1,5 +1,6 @@
 """Test the Teslemetry sensor platform."""
 
+from copy import deepcopy
 from unittest.mock import AsyncMock
 
 from freezegun.api import FrozenDateTimeFactory
@@ -127,4 +128,23 @@ async def test_energy_history_no_time_series(
     await hass.async_block_till_done()
 
     state = hass.states.get(entity_id)
+    assert state.state == STATE_UNAVAILABLE
+
+
+async def test_entity_is_none_property(
+    hass: HomeAssistant,
+    mock_vehicle_data: AsyncMock,
+    mock_legacy: AsyncMock,
+) -> None:
+    """Test entity is_none property returns True for literal None values."""
+
+    # Create vehicle data with a None value
+    test_data = deepcopy(VEHICLE_DATA_ALT)
+    test_data["response"]["charge_state"]["battery_level"] = None
+
+    mock_vehicle_data.return_value = test_data
+    await setup_platform(hass, [Platform.SENSOR])
+
+    # Battery level should be unavailable when None
+    state = hass.states.get("sensor.test_battery_level")
     assert state.state == STATE_UNAVAILABLE

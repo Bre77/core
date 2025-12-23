@@ -301,3 +301,47 @@ async def test_export_rule_update_attrs_logic(
     state = hass.states.get("select.energy_site_allow_export")
     assert state
     assert state.state == expected_state
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_select_streaming_callbacks(
+    hass: HomeAssistant,
+    mock_vehicle_data: AsyncMock,
+    mock_add_listener: AsyncMock,
+) -> None:
+    """Tests that select streaming callbacks handle None values and climate state."""
+
+    await setup_platform(hass, [Platform.SELECT])
+
+    # Test value callback with None
+    mock_add_listener.send(
+        {
+            "vin": VEHICLE_DATA_ALT["response"]["vin"],
+            "data": {
+                Signal.SEAT_HEATER_LEFT: None,
+                Signal.HVAC_STEERING_WHEEL_HEAT_LEVEL: None,
+            },
+            "createdAt": "2024-10-04T10:45:17.537Z",
+        }
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get("select.test_seat_heater_front_left")
+    assert state.state == STATE_UNKNOWN
+
+    state = hass.states.get("select.test_steering_wheel_heater")
+    assert state.state == STATE_UNKNOWN
+
+    # Test climate callback (for seat heater when climate is off)
+    mock_add_listener.send(
+        {
+            "vin": VEHICLE_DATA_ALT["response"]["vin"],
+            "data": {
+                Signal.HVAC_AC_ENABLED: False,
+            },
+            "createdAt": "2024-10-04T10:45:18.537Z",
+        }
+    )
+    await hass.async_block_till_done()
+
+    # Climate callback should update internal state but not affect current option display
+    state = hass.states.get("select.test_seat_heater_front_left")
+    assert state is not None

@@ -8,10 +8,12 @@ from tesla_fleet_api.exceptions import InvalidCommand
 from teslemetry_stream import Signal
 
 from homeassistant.components.climate import (
+    ATTR_FAN_MODE,
     ATTR_HVAC_MODE,
     ATTR_PRESET_MODE,
     ATTR_TEMPERATURE,
     DOMAIN as CLIMATE_DOMAIN,
+    SERVICE_SET_FAN_MODE,
     SERVICE_SET_HVAC_MODE,
     SERVICE_SET_PRESET_MODE,
     SERVICE_SET_TEMPERATURE,
@@ -346,3 +348,47 @@ async def test_select_streaming(
         "climate.test_cabin_overheat_protection",
     ):
         assert hass.states.get(entity_id) == snapshot(name=entity_id)
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_bioweapon_fan_mode(
+    hass: HomeAssistant,
+    mock_legacy: AsyncMock,
+) -> None:
+    """Tests bioweapon fan mode functionality."""
+
+    await setup_platform(hass, [Platform.CLIMATE])
+    entity_id = "climate.test_climate"
+
+    # Set bioweapon mode
+    with patch(
+        "tesla_fleet_api.teslemetry.Vehicle.set_bioweapon_mode",
+        return_value={"response": {"result": True}},
+    ) as mock_bioweapon:
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_SET_FAN_MODE,
+            {ATTR_ENTITY_ID: [entity_id], ATTR_FAN_MODE: "bioweapon"},
+            blocking=True,
+        )
+        mock_bioweapon.assert_called_once_with(on=True, manual_override=True)
+
+    state = hass.states.get(entity_id)
+    assert state.attributes[ATTR_FAN_MODE] == "bioweapon"
+    assert state.state == HVACMode.HEAT_COOL
+
+    # Turn off bioweapon mode
+    with patch(
+        "tesla_fleet_api.teslemetry.Vehicle.set_bioweapon_mode",
+        return_value={"response": {"result": True}},
+    ) as mock_bioweapon:
+        await hass.services.async_call(
+            CLIMATE_DOMAIN,
+            SERVICE_SET_FAN_MODE,
+            {ATTR_ENTITY_ID: [entity_id], ATTR_FAN_MODE: "off"},
+            blocking=True,
+        )
+        mock_bioweapon.assert_called_once_with(on=False, manual_override=True)
+
+    state = hass.states.get(entity_id)
+    assert state.attributes[ATTR_FAN_MODE] == "off"

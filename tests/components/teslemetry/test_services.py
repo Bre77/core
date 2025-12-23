@@ -308,6 +308,8 @@ async def test_service_validation_errors(
     """Tests that the custom services handle bad data."""
 
     await setup_platform(hass)
+    entity_registry = er.async_get(hass)
+    vehicle_device = entity_registry.async_get("sensor.test_charging").device_id
 
     # Bad device ID
     with pytest.raises(ServiceValidationError):
@@ -317,6 +319,47 @@ async def test_service_validation_errors(
             {
                 CONF_DEVICE_ID: "nope",
                 ATTR_GPS: {CONF_LATITUDE: lat, CONF_LONGITUDE: lon},
+            },
+            blocking=True,
+        )
+
+    # Scheduled charging enabled without time
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_SCHEDULED_CHARGING,
+            {
+                CONF_DEVICE_ID: vehicle_device,
+                ATTR_ENABLE: True,
+                # Missing ATTR_TIME
+            },
+            blocking=True,
+        )
+
+    # Scheduled departure with preconditioning enabled without departure time
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_SCHEDULED_DEPARTURE,
+            {
+                CONF_DEVICE_ID: vehicle_device,
+                ATTR_ENABLE: True,
+                ATTR_PRECONDITIONING_ENABLED: True,
+                # Missing ATTR_DEPARTURE_TIME
+            },
+            blocking=True,
+        )
+
+    # Scheduled departure with off peak charging enabled without end time
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            DOMAIN,
+            SERVICE_SET_SCHEDULED_DEPARTURE,
+            {
+                CONF_DEVICE_ID: vehicle_device,
+                ATTR_ENABLE: True,
+                ATTR_OFF_PEAK_CHARGING_ENABLED: True,
+                # Missing ATTR_END_OFF_PEAK_TIME
             },
             blocking=True,
         )
