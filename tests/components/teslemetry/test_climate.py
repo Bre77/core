@@ -1,5 +1,6 @@
 """Test the Teslemetry climate platform."""
 
+from copy import deepcopy
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -392,3 +393,23 @@ async def test_bioweapon_fan_mode(
 
     state = hass.states.get(entity_id)
     assert state.attributes[ATTR_FAN_MODE] == "off"
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_bioweapon_fan_mode_from_data(
+    hass: HomeAssistant,
+    mock_vehicle_data: AsyncMock,
+    mock_legacy: AsyncMock,
+) -> None:
+    """Tests that the bioweapon fan mode is correctly set from vehicle data."""
+    # Create vehicle data with bioweapon mode enabled
+    vehicle_data_bioweapon = deepcopy(VEHICLE_DATA_ALT)
+    vehicle_data_bioweapon["response"]["climate_state"]["bioweapon_mode"] = True
+    mock_vehicle_data.return_value = vehicle_data_bioweapon
+
+    await setup_platform(hass, [Platform.CLIMATE])
+
+    entity_id = "climate.test_climate"
+    state = hass.states.get(entity_id)
+    assert state is not None
+    assert state.attributes.get("fan_mode") == "bioweapon"

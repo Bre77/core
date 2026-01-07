@@ -1,5 +1,6 @@
 """Test the Teslemetry cover platform."""
 
+from copy import deepcopy
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -13,12 +14,12 @@ from homeassistant.components.cover import (
     SERVICE_STOP_COVER,
     CoverState,
 )
-from homeassistant.const import ATTR_ENTITY_ID, Platform
+from homeassistant.const import ATTR_ENTITY_ID, STATE_UNKNOWN, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
 from . import assert_entities, setup_platform
-from .const import COMMAND_OK, METADATA_NOSCOPE, VEHICLE_DATA_ALT
+from .const import COMMAND_OK, METADATA_NOSCOPE, VEHICLE_DATA, VEHICLE_DATA_ALT
 
 
 @pytest.mark.usefixtures("entity_registry_enabled_by_default")
@@ -343,3 +344,59 @@ async def test_cover_streaming(
     ):
         state = hass.states.get(entity_id)
         assert state.state == snapshot(name=f"{entity_id}-unknown")
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_sunroof_unknown_state(
+    hass: HomeAssistant,
+    mock_vehicle_data: AsyncMock,
+    mock_legacy: AsyncMock,
+) -> None:
+    """Test sunroof with unknown state."""
+    # Create vehicle data with sunroof in unknown state
+    vehicle_data = deepcopy(VEHICLE_DATA)
+    vehicle_data["response"]["vehicle_state"]["sun_roof_state"] = "unknown"
+    mock_vehicle_data.return_value = vehicle_data
+
+    await setup_platform(hass, [Platform.COVER])
+
+    entity_id = "cover.test_sunroof"
+    state = hass.states.get(entity_id)
+    assert state is not None
+    assert state.state == STATE_UNKNOWN
+
+
+@pytest.mark.usefixtures("entity_registry_enabled_by_default")
+async def test_cover_restore_open_state(
+    hass: HomeAssistant,
+    mock_add_listener: AsyncMock,
+) -> None:
+    """Test that cover entities restore open state correctly."""
+    entry = await setup_platform(hass, [Platform.COVER])
+
+    # Send stream data to set windows as open
+    mock_add_listener.send(
+        {
+            "vin": VEHICLE_DATA_ALT["response"]["vin"],
+            "data": {
+                Signal.FD_WINDOW: "WindowStateOpened",
+                Signal.FP_WINDOW: "WindowStateOpened",
+                Signal.RD_WINDOW: "WindowStateOpened",
+                Signal.RP_WINDOW: "WindowStateOpened",
+            },
+            "createdAt": "2024-10-04T10:45:17.537Z",
+        }
+    )
+    await hass.async_block_till_done()
+
+    state = hass.states.get("cover.test_windows")
+    assert state is not None
+    assert state.state == CoverState.OPEN
+
+    # Reload and verify the state was restored as "open"
+    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    state = hass.states.get("cover.test_windows")
+    assert state is not None
+    assert state.state == CoverState.OPEN

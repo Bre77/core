@@ -15,7 +15,11 @@ from tesla_fleet_api.exceptions import (
 )
 
 from homeassistant.components.teslemetry.const import CLIENT_ID, DOMAIN
-from homeassistant.components.teslemetry.coordinator import VEHICLE_INTERVAL
+from homeassistant.components.teslemetry.coordinator import (
+    ENERGY_HISTORY_INTERVAL,
+    ENERGY_LIVE_INTERVAL,
+    VEHICLE_INTERVAL,
+)
 from homeassistant.components.teslemetry.models import TeslemetryData
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import (
@@ -32,7 +36,7 @@ from homeassistant.helpers import device_registry as dr
 from . import setup_platform
 from .const import CONFIG_V1, PRODUCTS_MODERN, UNIQUE_ID, VEHICLE_DATA_ALT
 
-from tests.common import MockConfigEntry
+from tests.common import MockConfigEntry, async_fire_time_changed
 
 ERRORS = [
     (InvalidToken, ConfigEntryState.SETUP_ERROR),
@@ -480,3 +484,54 @@ async def test_energy_live_empty_wall_connectors(
     # Verify wall_connectors is empty dict when not present
     wall_connectors = energy_live_coordinator.data.get("wall_connectors", {})
     assert wall_connectors == {}
+
+
+async def test_energy_live_coordinator_update_error(
+    hass: HomeAssistant,
+    mock_live_status: AsyncMock,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Test energy live coordinator handles TeslaFleetError during updates."""
+    entry = await setup_platform(hass, [Platform.SENSOR])
+    assert entry.state is ConfigEntryState.LOADED
+
+    # Check that sensor is available initially
+    state = hass.states.get("sensor.energy_site_grid_power")
+    assert state is not None
+    assert state.state != STATE_UNAVAILABLE
+
+    # Simulate TeslaFleetError on next update
+    mock_live_status.side_effect = TeslaFleetError
+    freezer.tick(ENERGY_LIVE_INTERVAL)
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+    # Sensor should become unavailable
+    state = hass.states.get("sensor.energy_site_grid_power")
+    assert state is not None
+    assert state.state == STATE_UNAVAILABLE
+
+
+async def test_energy_history_coordinator_update_error(
+    hass: HomeAssistant,
+    mock_energy_history: AsyncMock,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Test energy history coordinator handles TeslaFleetError during updates."""
+    entry = await setup_platform(hass, [Platform.SENSOR])
+    assert entry.state is ConfigEntryState.LOADED
+
+    # Check that history sensor exists initially (history sensors start as unknown)
+    state = hass.states.get("sensor.energy_site_grid_exported")
+    assert state is not None
+
+    # Simulate TeslaFleetError on next update
+    mock_energy_history.side_effect = TeslaFleetError
+    freezer.tick(ENERGY_HISTORY_INTERVAL)
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+    # Sensor should become unavailable
+    state = hass.states.get("sensor.energy_site_grid_exported")
+    assert state is not None
+    assert state.state == STATE_UNAVAILABLE
