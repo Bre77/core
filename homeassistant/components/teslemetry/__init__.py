@@ -313,7 +313,7 @@ async def async_migrate_entry(
         # Convert legacy access token to OAuth tokens using migrate endpoint
         try:
             data = await Teslemetry(session, access_token).migrate_to_oauth(
-                CLIENT_ID, access_token, hass.config.location_name
+                CLIENT_ID, hass.config.location_name
             )
         except ClientResponseError as e:
             raise ConfigEntryAuthFailed from e

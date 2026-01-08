@@ -1,6 +1,6 @@
 """Tesla Fleet integration."""
 
-from typing import Final
+from typing import Final, Literal
 
 from aiohttp.client_exceptions import ClientResponseError
 import jwt
@@ -80,9 +80,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslaFleetConfigEntry) -
 
     token = jwt.decode(access_token, options={"verify_signature": False})
     scopes: list[Scope] = [Scope(s) for s in token["scp"]]
-    region: str | None = token["ou_code"].lower()
-    if region not in ("na", "eu"):
-        region = None
+    region_str: str = token["ou_code"].lower()
+    region: Literal["na", "eu", "cn"] | None = (
+        region_str if region_str in ("na", "eu", "cn") else None
+    )
 
     oauth_session = OAuth2Session(hass, entry, implementation)
 
