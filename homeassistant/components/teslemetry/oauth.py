@@ -15,7 +15,13 @@ class TeslemetryImplementation(
 ):
     """Teslemetry OAuth2 implementation."""
 
-    def __init__(self, hass: HomeAssistant, domain: str, client_id: str) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        domain: str,
+        client_id: str,
+        refresh_token: str | None = None,
+    ) -> None:
         """Initialize OAuth2 implementation."""
 
         super().__init__(
@@ -25,6 +31,7 @@ class TeslemetryImplementation(
             AUTHORIZE_URL,
             TOKEN_URL,
         )
+        self._refresh_token = refresh_token
 
     @property
     def name(self) -> str:
@@ -46,5 +53,7 @@ class TeslemetryImplementation(
         data: dict = {
             "name": self.hass.config.location_name,
         }
+        if self._refresh_token:
+            data["refresh_token"] = self._refresh_token
         data.update(super().extra_token_resolve_data)
         return data

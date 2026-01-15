@@ -23,6 +23,7 @@ from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import CLIENT_ID, DOMAIN, LOGGER
+from .oauth import TeslemetryImplementation
 
 
 class OAuth2FlowHandler(
@@ -119,5 +120,21 @@ class OAuth2FlowHandler(
                 step_id="reauth_confirm",
                 description_placeholders={"name": "Teslemetry"},
             )
+
+        await async_import_client_credential(
+            self.hass,
+            DOMAIN,
+            ClientCredential(CLIENT_ID, "", name="Teslemetry"),
+        )
+
+        # Get refresh token from existing entry and register implementation with it
+        entry = self._get_reauth_entry()
+        refresh_token = entry.data.get("token", {}).get("refresh_token")
+
+        config_entry_oauth2_flow.async_register_implementation(
+            self.hass,
+            DOMAIN,
+            TeslemetryImplementation(self.hass, DOMAIN, CLIENT_ID, refresh_token),
+        )
 
         return await super().async_step_user()
