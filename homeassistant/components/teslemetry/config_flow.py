@@ -21,12 +21,13 @@ from homeassistant.components.application_credentials import (
 from homeassistant.config_entries import (
     SOURCE_REAUTH,
     SOURCE_RECONFIGURE,
+    ConfigEntry,
     ConfigFlowResult,
 )
 from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from .const import CLIENT_ID, DOMAIN, LOGGER
+from .const import CLIENT_ID, DOMAIN, LOGGER, OAUTH_REFRESH_TOKEN_KEY
 
 
 class OAuth2FlowHandler(
@@ -113,6 +114,17 @@ class OAuth2FlowHandler(
         self.uid = metadata["uid"]
         return {}
 
+    async def _async_prepare_existing_entry_flow(self, entry: ConfigEntry) -> None:
+        """Prepare OAuth flow for an existing entry by storing refresh token."""
+        if refresh_token := entry.data.get("token", {}).get("refresh_token"):
+            self.hass.data[OAUTH_REFRESH_TOKEN_KEY] = refresh_token
+
+        await async_import_client_credential(
+            self.hass,
+            DOMAIN,
+            ClientCredential(CLIENT_ID, "", name="Teslemetry"),
+        )
+
     async def async_step_reauth(
         self, entry_data: Mapping[str, Any]
     ) -> ConfigFlowResult:
@@ -129,36 +141,12 @@ class OAuth2FlowHandler(
                 description_placeholders={"name": "Teslemetry"},
             )
 
-        # Extract token_id from refresh_token (format: region.uid.id.secret)
-        entry = self._get_reauth_entry()
-        if refresh_token := entry.data.get("token", {}).get("refresh_token"):
-            parts = refresh_token.split(".")
-            if len(parts) >= 3:
-                self.hass.data.setdefault(DOMAIN, {})["token_id"] = parts[2]
-
-        await async_import_client_credential(
-            self.hass,
-            DOMAIN,
-            ClientCredential(CLIENT_ID, "", name="Teslemetry"),
-        )
-
+        await self._async_prepare_existing_entry_flow(self._get_reauth_entry())
         return await super().async_step_user()
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle reconfiguration."""
-        # Extract token_id from refresh_token (format: region.uid.id.secret)
-        entry = self._get_reconfigure_entry()
-        if refresh_token := entry.data.get("token", {}).get("refresh_token"):
-            parts = refresh_token.split(".")
-            if len(parts) >= 3:
-                self.hass.data.setdefault(DOMAIN, {})["token_id"] = parts[2]
-
-        await async_import_client_credential(
-            self.hass,
-            DOMAIN,
-            ClientCredential(CLIENT_ID, "", name="Teslemetry"),
-        )
-
+        await self._async_prepare_existing_entry_flow(self._get_reconfigure_entry())
         return await super().async_step_user()

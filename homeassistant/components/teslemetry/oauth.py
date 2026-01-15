@@ -7,7 +7,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_entry_oauth2_flow
 
-from .const import AUTHORIZE_URL, TOKEN_URL
+from .const import AUTHORIZE_URL, OAUTH_REFRESH_TOKEN_KEY, TOKEN_URL
 
 
 class TeslemetryImplementation(
@@ -20,7 +20,6 @@ class TeslemetryImplementation(
         hass: HomeAssistant,
         domain: str,
         client_id: str,
-        token_id: str | None = None,
     ) -> None:
         """Initialize OAuth2 implementation."""
 
@@ -31,7 +30,6 @@ class TeslemetryImplementation(
             AUTHORIZE_URL,
             TOKEN_URL,
         )
-        self._token_id = token_id
 
     @property
     def name(self) -> str:
@@ -44,8 +42,8 @@ class TeslemetryImplementation(
         data: dict = {
             "name": self.hass.config.location_name,
         }
-        if self._token_id:
-            data["token_id"] = self._token_id
+        if refresh_token := self.hass.data.pop(OAUTH_REFRESH_TOKEN_KEY, None):
+            data["refresh_token"] = refresh_token
         data.update(super().extra_authorize_data)
         return data
 

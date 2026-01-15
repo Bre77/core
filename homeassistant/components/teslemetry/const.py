@@ -13,6 +13,7 @@ LOGGER = logging.getLogger(__package__)
 AUTHORIZE_URL = "https://teslemetry.com/connect"
 TOKEN_URL = "https://api.teslemetry.com/oauth/token"
 CLIENT_ID = "homeassistant"
+OAUTH_REFRESH_TOKEN_KEY = f"{DOMAIN}_oauth_refresh_token"
 
 ENERGY_HISTORY_FIELDS = [
     "solar_energy_exported",
