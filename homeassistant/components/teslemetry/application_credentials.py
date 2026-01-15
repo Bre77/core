@@ -7,7 +7,7 @@ from homeassistant.components.application_credentials import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_entry_oauth2_flow
 
-from .const import AUTHORIZE_URL, TOKEN_URL
+from .const import AUTHORIZE_URL, DOMAIN, TOKEN_URL
 from .oauth import TeslemetryImplementation
 
 
@@ -23,8 +23,14 @@ async def async_get_auth_implementation(
     hass: HomeAssistant, auth_domain: str, credential: ClientCredential
 ) -> config_entry_oauth2_flow.AbstractOAuth2Implementation:
     """Return auth implementation."""
+    # Check for stored refresh_token from reauth/reconfigure flows
+    refresh_token: str | None = None
+    if DOMAIN in hass.data and "refresh_token" in hass.data[DOMAIN]:
+        refresh_token = hass.data[DOMAIN].pop("refresh_token")
+
     return TeslemetryImplementation(
         hass,
         auth_domain,
         credential.client_id,
+        refresh_token,
     )

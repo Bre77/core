@@ -27,7 +27,6 @@ from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import CLIENT_ID, DOMAIN, LOGGER
-from .oauth import TeslemetryImplementation
 
 
 class OAuth2FlowHandler(
@@ -130,20 +129,15 @@ class OAuth2FlowHandler(
                 description_placeholders={"name": "Teslemetry"},
             )
 
+        # Store refresh token for application_credentials to use
+        entry = self._get_reauth_entry()
+        refresh_token = entry.data.get("token", {}).get("refresh_token")
+        self.hass.data.setdefault(DOMAIN, {})["refresh_token"] = refresh_token
+
         await async_import_client_credential(
             self.hass,
             DOMAIN,
             ClientCredential(CLIENT_ID, "", name="Teslemetry"),
-        )
-
-        # Get refresh token from existing entry and register implementation with it
-        entry = self._get_reauth_entry()
-        refresh_token = entry.data.get("token", {}).get("refresh_token")
-
-        config_entry_oauth2_flow.async_register_implementation(
-            self.hass,
-            DOMAIN,
-            TeslemetryImplementation(self.hass, DOMAIN, CLIENT_ID, refresh_token),
         )
 
         return await super().async_step_user()
@@ -152,20 +146,15 @@ class OAuth2FlowHandler(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle reconfiguration."""
+        # Store refresh token for application_credentials to use
+        entry = self._get_reconfigure_entry()
+        refresh_token = entry.data.get("token", {}).get("refresh_token")
+        self.hass.data.setdefault(DOMAIN, {})["refresh_token"] = refresh_token
+
         await async_import_client_credential(
             self.hass,
             DOMAIN,
             ClientCredential(CLIENT_ID, "", name="Teslemetry"),
-        )
-
-        # Get refresh token from existing entry and register implementation with it
-        entry = self._get_reconfigure_entry()
-        refresh_token = entry.data.get("token", {}).get("refresh_token")
-
-        config_entry_oauth2_flow.async_register_implementation(
-            self.hass,
-            DOMAIN,
-            TeslemetryImplementation(self.hass, DOMAIN, CLIENT_ID, refresh_token),
         )
 
         return await super().async_step_user()
