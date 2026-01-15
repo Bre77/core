@@ -18,7 +18,11 @@ from homeassistant.components.application_credentials import (
     ClientCredential,
     async_import_client_credential,
 )
-from homeassistant.config_entries import SOURCE_REAUTH, ConfigFlowResult
+from homeassistant.config_entries import (
+    SOURCE_REAUTH,
+    SOURCE_RECONFIGURE,
+    ConfigFlowResult,
+)
 from homeassistant.helpers import config_entry_oauth2_flow
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -73,6 +77,11 @@ class OAuth2FlowHandler(
             self._abort_if_unique_id_mismatch(reason="reauth_account_mismatch")
             return self.async_update_reload_and_abort(
                 self._get_reauth_entry(), data=data
+            )
+        if self.source == SOURCE_RECONFIGURE:
+            self._abort_if_unique_id_mismatch(reason="reconfigure_account_mismatch")
+            return self.async_update_reload_and_abort(
+                self._get_reconfigure_entry(), data=data
             )
         self._abort_if_unique_id_configured()
 
@@ -129,6 +138,28 @@ class OAuth2FlowHandler(
 
         # Get refresh token from existing entry and register implementation with it
         entry = self._get_reauth_entry()
+        refresh_token = entry.data.get("token", {}).get("refresh_token")
+
+        config_entry_oauth2_flow.async_register_implementation(
+            self.hass,
+            DOMAIN,
+            TeslemetryImplementation(self.hass, DOMAIN, CLIENT_ID, refresh_token),
+        )
+
+        return await super().async_step_user()
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Handle reconfiguration."""
+        await async_import_client_credential(
+            self.hass,
+            DOMAIN,
+            ClientCredential(CLIENT_ID, "", name="Teslemetry"),
+        )
+
+        # Get refresh token from existing entry and register implementation with it
+        entry = self._get_reconfigure_entry()
         refresh_token = entry.data.get("token", {}).get("refresh_token")
 
         config_entry_oauth2_flow.async_register_implementation(
