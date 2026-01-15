@@ -129,10 +129,12 @@ class OAuth2FlowHandler(
                 description_placeholders={"name": "Teslemetry"},
             )
 
-        # Store refresh token for application_credentials to use
+        # Extract token_id from refresh_token (format: region.uid.id.secret)
         entry = self._get_reauth_entry()
-        refresh_token = entry.data.get("token", {}).get("refresh_token")
-        self.hass.data.setdefault(DOMAIN, {})["refresh_token"] = refresh_token
+        if refresh_token := entry.data.get("token", {}).get("refresh_token"):
+            parts = refresh_token.split(".")
+            if len(parts) >= 3:
+                self.hass.data.setdefault(DOMAIN, {})["token_id"] = parts[2]
 
         await async_import_client_credential(
             self.hass,
@@ -146,10 +148,12 @@ class OAuth2FlowHandler(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Handle reconfiguration."""
-        # Store refresh token for application_credentials to use
+        # Extract token_id from refresh_token (format: region.uid.id.secret)
         entry = self._get_reconfigure_entry()
-        refresh_token = entry.data.get("token", {}).get("refresh_token")
-        self.hass.data.setdefault(DOMAIN, {})["refresh_token"] = refresh_token
+        if refresh_token := entry.data.get("token", {}).get("refresh_token"):
+            parts = refresh_token.split(".")
+            if len(parts) >= 3:
+                self.hass.data.setdefault(DOMAIN, {})["token_id"] = parts[2]
 
         await async_import_client_credential(
             self.hass,

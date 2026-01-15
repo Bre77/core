@@ -23,14 +23,14 @@ async def async_get_auth_implementation(
     hass: HomeAssistant, auth_domain: str, credential: ClientCredential
 ) -> config_entry_oauth2_flow.AbstractOAuth2Implementation:
     """Return auth implementation."""
-    # Check for stored refresh_token from reauth/reconfigure flows
-    refresh_token: str | None = None
-    if DOMAIN in hass.data and "refresh_token" in hass.data[DOMAIN]:
-        refresh_token = hass.data[DOMAIN].pop("refresh_token")
+    # Check for stored token_id from reauth/reconfigure flows
+    token_id: str | None = None
+    if DOMAIN in hass.data and "token_id" in hass.data[DOMAIN]:
+        token_id = hass.data[DOMAIN].pop("token_id")
 
     return TeslemetryImplementation(
         hass,
         auth_domain,
         credential.client_id,
-        refresh_token,
+        token_id,
     )
