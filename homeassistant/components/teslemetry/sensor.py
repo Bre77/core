@@ -1570,7 +1570,7 @@ async def async_setup_entry(
                 and vehicle.firmware >= description.streaming_firmware
             ):
                 entities.append(TeslemetryStreamSensorEntity(vehicle, description))
-            elif description.polling:
+            elif description.polling and vehicle.poll:
                 entities.append(TeslemetryVehicleSensorEntity(vehicle, description))
 
         for time_description in VEHICLE_TIME_DESCRIPTIONS:

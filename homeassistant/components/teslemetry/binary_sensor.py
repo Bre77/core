@@ -549,7 +549,7 @@ async def async_setup_entry(
                 entities.append(
                     TeslemetryVehicleStreamingBinarySensorEntity(vehicle, description)
                 )
-            elif description.polling:
+            elif description.polling and vehicle.poll:
                 entities.append(
                     TeslemetryVehiclePollingBinarySensorEntity(vehicle, description)
                 )
