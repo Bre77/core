@@ -12,6 +12,10 @@
           "ip_address": "[%key:common::config_flow::data::ip%]",
           "port": "[%key:common::config_flow::data::port%]"
         },
+        "data_description": {
+          "ip_address": "The IP address of your Advantage Air tablet.",
+          "port": "The port number for the Advantage Air API."
+        },
         "description": "Connect to the API of your Advantage Air wall mounted tablet.",
         "title": "[%key:common::action::connect%]"
       }

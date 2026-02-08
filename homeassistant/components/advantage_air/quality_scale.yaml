@@ -2,15 +2,24 @@ rules:
   # Bronze
   action-setup:
     status: todo
-    comment: https://developers.home-assistant.io/blog/2025/09/25/entity-services-api-changes/
+    comment: |
+      Can still be set up in async_setup.
+      See https://developers.home-assistant.io/blog/2025/09/25/entity-services-api-changes/
   appropriate-polling: done
   brands: done
   common-modules:
     status: todo
-    comment: Move coordinator
+    comment: |
+      The coordinator exists in __init__.py instead, move it to coordinator.py.
+      If the coordinator is extended, the API could be accessed via coordinator,
+      which may allow removing the extra dataclass.
   config-flow-test-coverage:
     status: todo
-    comment: Needs improvement
+    comment: |
+      - Add mock_setup_entry as a common fixture.
+      - Test the unique_id of the entry in the happy flow.
+      - Split the duplicate entry test from the happy flow, use mock_config_entry.
+      - The error flow should end in CREATE_ENTRY to test recovery.
   config-flow: done
   dependency-transparency: done
   docs-actions: done
@@ -43,17 +52,28 @@ rules:
     comment: Integration connects to local device without authentication.
   test-coverage:
     status: todo
-    comment: Needs improvement
+    comment: |
+      - Can patch the library instead of mocking at integration level.
+      - Binary sensor tests can be split up (creation, enabling entities, etc.).
+      - Split tests into: Creation (entities created with right values),
+        Actions (right library calls), and Other behaviors.
 
   # Gold
   devices:
     status: todo
-    comment: Breaking change to split cover entities to separate devices
+    comment: |
+      Breaking change to split zone entities to separate devices.
+      Consider making every zone its own device to enhance naming and
+      allow assigning zones to rooms. AdvantageAirZone climate entity
+      is already on zone level.
+      Fix via_device referencing non-existing device (breaks in HA 2025.12.0).
   diagnostics: done
   discovery-update-info:
     status: exempt
     comment: Integration does not support discovery.
-  discovery: todo
+  discovery:
+    status: todo
+    comment: Check if device supports mDNS, DHCP, or SSDP for discovery.
   docs-data-update: todo
   docs-examples: todo
   docs-known-limitations: todo
@@ -65,12 +85,16 @@ rules:
     status: exempt
     comment: AC zones are static per unit and configured on the device itself.
   entity-category: done
-  entity-device-class: done
+  entity-device-class:
+    status: done
+    comment: |
+      Review: If there is no current version of the app available,
+      the update sensor might be better as a binary sensor with UPDATE device class.
   entity-disabled-by-default: done
   entity-translations: todo
   exception-translations:
     status: todo
-    comment: UpdateFailed in the coordinator
+    comment: The UpdateFailed in the coordinator can use translated exceptions.
   icon-translations: todo
   reconfiguration-flow: todo
   repair-issues:
@@ -84,3 +108,12 @@ rules:
   async-dependency: done
   inject-websession: done
   strict-typing: todo
+# Additional review feedback for future improvements:
+# - Consider using entity descriptions for binary_sensor and switch platforms.
+# - The supported features logic in climate entity could be simplified.
+# - Review _myzone property: if zone_id is not in zones, should entity be unavailable?
+#   (Currently returns None for temperature when MyZone is not enabled)
+# - Time-to entity: Consider if time or number entity would be more appropriate.
+#   Note: HA doesn't allow countdown number entities, and time entity has issues
+#   with minute granularity. Could use helpers for invariance (see starlink/homewizard)
+#   and raise ServiceValidationError for unsupported numbers.
