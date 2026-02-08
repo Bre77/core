@@ -272,6 +272,11 @@
         "name": "Wake"
       }
     },
+    "calendar": {
+      "charge_schedule_data_charge_schedules": {
+        "name": "Charging schedule"
+      }
+    },
     "climate": {
       "climate_state_cabin_overheat_protection": {
         "name": "Cabin overheat protection"
