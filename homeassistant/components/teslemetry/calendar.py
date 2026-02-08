@@ -181,12 +181,96 @@ class TeslemetryChargeSchedule(TeslemetryVehiclePollingEntity, CalendarEntity):
         self._attr_available = bool(self.schedules)
 
 
+class TeslemetryPreconditionSchedule(TeslemetryVehiclePollingEntity, CalendarEntity):
+    """Vehicle precondition schedule calendar."""
+
+    _attr_entity_registry_enabled_default = False
+
+    def __init__(self, data: TeslemetryVehicleData) -> None:
+        """Initialize the precondition schedule calendar."""
+        self.schedules: list[Schedule] = []
+        self.summary_format = (
+            f"Precondition scheduled for {data.device.get('name', 'Vehicle')}"
+        )
+        super().__init__(data, "preconditioning_schedule_data_precondition_schedules")
+
+    @property
+    def event(self) -> CalendarEvent | None:
+        """Return the next upcoming event."""
+        now = dt_util.now()
+        next_event: CalendarEvent | None = None
+        future_limit = now + timedelta(days=14)
+
+        for schedule in self.schedules:
+            first_occurrence = next(
+                schedule.generate_upcoming_events(now, future_limit), None
+            )
+            if first_occurrence and (
+                next_event is None or first_occurrence.start < next_event.start
+            ):
+                next_event = first_occurrence
+
+        return next_event
+
+    async def async_get_events(
+        self,
+        hass: HomeAssistant,
+        start_date: datetime,
+        end_date: datetime,
+    ) -> list[CalendarEvent]:
+        """Return calendar events within a datetime range."""
+        return await async_get_sorted_schedule_events(
+            self.schedules, start_date, end_date
+        )
+
+    def _async_update_attrs(self) -> None:
+        """Update the calendar events by parsing raw schedule data."""
+        raw_schedules_data = self._value or []
+        self.schedules = []
+        for schedule_data in raw_schedules_data:
+            if not schedule_data.get("enabled") or not schedule_data.get(
+                "days_of_week"
+            ):
+                continue
+
+            precondition_time_min = schedule_data.get("precondition_time", 0)
+            start_mins = timedelta(minutes=precondition_time_min)
+            end_mins = start_mins
+
+            days_of_week = schedule_data["days_of_week"]
+            rrule = None
+            if not schedule_data.get("one_time"):
+                rrule_days = get_rrule_days(days_of_week)
+                rrule = f"FREQ=WEEKLY;WKST=MO;BYDAY={','.join(rrule_days)}"
+
+            self.schedules.append(
+                Schedule(
+                    name=schedule_data.get("name") or self.summary_format,
+                    start_mins=start_mins,
+                    end_mins=end_mins,
+                    days_of_week=days_of_week,
+                    uid=str(
+                        schedule_data.get("id", f"precondition_{len(self.schedules)}")
+                    ),
+                    location=f"{schedule_data.get('latitude', '')},{schedule_data.get('longitude', '')}",
+                    rrule=rrule,
+                )
+            )
+        self._attr_available = bool(self.schedules)
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: TeslemetryConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the Teslemetry calendar platform from a config entry."""
-    async_add_entities(
+    entities: list[CalendarEntity] = []
+    entities.extend(
         TeslemetryChargeSchedule(vehicle) for vehicle in entry.runtime_data.vehicles
     )
+    entities.extend(
+        TeslemetryPreconditionSchedule(vehicle)
+        for vehicle in entry.runtime_data.vehicles
+    )
+    async_add_entities(entities)

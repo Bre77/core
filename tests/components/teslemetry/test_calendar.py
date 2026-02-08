@@ -42,6 +42,7 @@ async def test_calendar(
     "entity_id",
     [
         "calendar.test_charging_schedule",
+        "calendar.test_precondition_schedule",
     ],
 )
 @pytest.mark.usefixtures("entity_registry_enabled_by_default")

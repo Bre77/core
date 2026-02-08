@@ -275,6 +275,9 @@
     "calendar": {
       "charge_schedule_data_charge_schedules": {
         "name": "Charging schedule"
+      },
+      "preconditioning_schedule_data_precondition_schedules": {
+        "name": "Precondition schedule"
       }
     },
     "climate": {
