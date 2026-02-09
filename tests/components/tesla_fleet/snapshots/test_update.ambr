@@ -1,5 +1,5 @@
 # serializer version: 1
-# name: test_update[update.test_update-entry]
+# name: test_update[update.test-entry]
   EntityRegistryEntrySnapshot({
     'aliases': set({
     }),
@@ -12,7 +12,7 @@
     'disabled_by': None,
     'domain': 'update',
     'entity_category': <EntityCategory.CONFIG: 'config'>,
-    'entity_id': 'update.test_update',
+    'entity_id': 'update.test',
     'has_entity_name': True,
     'hidden_by': None,
     'icon': None,
@@ -20,12 +20,12 @@
     'labels': set({
     }),
     'name': None,
-    'object_id_base': 'Update',
+    'object_id_base': None,
     'options': dict({
     }),
     'original_device_class': None,
     'original_icon': None,
-    'original_name': 'Update',
+    'original_name': None,
     'platform': 'tesla_fleet',
     'previous_unique_id': None,
     'suggested_object_id': None,
@@ -35,13 +35,13 @@
     'unit_of_measurement': None,
   })
 # ---
-# name: test_update[update.test_update-state]
+# name: test_update[update.test-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
       'auto_update': False,
       'display_precision': 0,
       'entity_picture': 'https://brands.home-assistant.io/_/tesla_fleet/icon.png',
-      'friendly_name': 'Test Update',
+      'friendly_name': 'Test',
       'in_progress': False,
       'installed_version': '2023.44.30.8',
       'latest_version': '2024.12.0.0',
@@ -51,16 +51,17 @@
       'supported_features': <UpdateEntityFeature: 5>,
       'title': None,
       'update_percentage': None,
+      'update_status': 'available',
     }),
     'context': <ANY>,
-    'entity_id': 'update.test_update',
+    'entity_id': 'update.test',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,
     'state': 'on',
   })
 # ---
-# name: test_update_alt[update.test_update-entry]
+# name: test_update_alt[update.test-entry]
   EntityRegistryEntrySnapshot({
     'aliases': set({
     }),
@@ -73,7 +74,7 @@
     'disabled_by': None,
     'domain': 'update',
     'entity_category': <EntityCategory.DIAGNOSTIC: 'diagnostic'>,
-    'entity_id': 'update.test_update',
+    'entity_id': 'update.test',
     'has_entity_name': True,
     'hidden_by': None,
     'icon': None,
@@ -81,12 +82,12 @@
     'labels': set({
     }),
     'name': None,
-    'object_id_base': 'Update',
+    'object_id_base': None,
     'options': dict({
     }),
     'original_device_class': None,
     'original_icon': None,
-    'original_name': 'Update',
+    'original_name': None,
     'platform': 'tesla_fleet',
     'previous_unique_id': None,
     'suggested_object_id': None,
@@ -96,13 +97,13 @@
     'unit_of_measurement': None,
   })
 # ---
-# name: test_update_alt[update.test_update-state]
+# name: test_update_alt[update.test-state]
   StateSnapshot({
     'attributes': ReadOnlyDict({
       'auto_update': False,
       'display_precision': 0,
       'entity_picture': 'https://brands.home-assistant.io/_/tesla_fleet/icon.png',
-      'friendly_name': 'Test Update',
+      'friendly_name': 'Test',
       'in_progress': False,
       'installed_version': '2023.44.30.8',
       'latest_version': '2023.44.30.8',
@@ -112,9 +113,10 @@
       'supported_features': <UpdateEntityFeature: 4>,
       'title': None,
       'update_percentage': None,
+      'update_status': '',
     }),
     'context': <ANY>,
-    'entity_id': 'update.test_update',
+    'entity_id': 'update.test',
     'last_changed': <ANY>,
     'last_reported': <ANY>,
     'last_updated': <ANY>,

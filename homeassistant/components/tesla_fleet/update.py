@@ -119,3 +119,8 @@ class TeslaFleetUpdateEntity(TeslaFleetVehicleEntity, UpdateEntity):
         # Convert milliseconds to seconds and compare to current time
         scheduled_time_sec = scheduled_time_ms / 1000
         return scheduled_time_sec - time.time() < SCHEDULED_THRESHOLD_SECONDS
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str | None]:
+        """Return entity specific state attributes."""
+        return {"update_status": self._value}

@@ -9,7 +9,7 @@ from freezegun.api import FrozenDateTimeFactory
 from syrupy.assertion import SnapshotAssertion
 
 from homeassistant.components.tesla_fleet.coordinator import VEHICLE_INTERVAL
-from homeassistant.components.tesla_fleet.update import INSTALLING, SCHEDULED
+from homeassistant.components.tesla_fleet.update import AVAILABLE, INSTALLING, SCHEDULED
 from homeassistant.components.update import DOMAIN as UPDATE_DOMAIN, SERVICE_INSTALL
 from homeassistant.const import ATTR_ENTITY_ID, Platform
 from homeassistant.core import HomeAssistant
@@ -63,7 +63,7 @@ async def test_update_services(
 
     await setup_platform(hass, normal_config_entry, [Platform.UPDATE])
 
-    entity_id = "update.test_update"
+    entity_id = "update.test"
 
     with patch(
         "tesla_fleet_api.tesla.VehicleFleet.schedule_software_update",
@@ -99,7 +99,7 @@ async def test_update_scheduled_far_future_not_in_progress(
 
     await setup_platform(hass, normal_config_entry, [Platform.UPDATE])
 
-    entity_id = "update.test_update"
+    entity_id = "update.test"
 
     # Verify initial state (available) is not in_progress
     state = hass.states.get(entity_id)
@@ -133,7 +133,7 @@ async def test_update_scheduled_soon_in_progress(
 
     await setup_platform(hass, normal_config_entry, [Platform.UPDATE])
 
-    entity_id = "update.test_update"
+    entity_id = "update.test"
 
     # Simulate update being scheduled within threshold (1 minute from now)
     vehicle_scheduled = copy.deepcopy(VEHICLE_DATA)
@@ -162,7 +162,7 @@ async def test_update_scheduled_no_time_not_in_progress(
 
     await setup_platform(hass, normal_config_entry, [Platform.UPDATE])
 
-    entity_id = "update.test_update"
+    entity_id = "update.test"
 
     # Simulate update being scheduled but without scheduled_time_ms
     vehicle_scheduled = copy.deepcopy(VEHICLE_DATA)
@@ -177,3 +177,31 @@ async def test_update_scheduled_no_time_not_in_progress(
     state = hass.states.get(entity_id)
     assert state is not None
     assert state.attributes["in_progress"] is False
+
+
+async def test_update_status_attribute(
+    hass: HomeAssistant,
+    normal_config_entry: MockConfigEntry,
+    mock_vehicle_data: AsyncMock,
+    freezer: FrozenDateTimeFactory,
+) -> None:
+    """Tests that the update_status attribute reflects API status."""
+    await setup_platform(hass, normal_config_entry, [Platform.UPDATE])
+    entity_id = "update.test"
+
+    # Verify initial status is "available"
+    state = hass.states.get(entity_id)
+    assert state is not None
+    assert state.attributes["update_status"] == AVAILABLE
+
+    # Change to installing
+    vehicle_installing = copy.deepcopy(VEHICLE_DATA)
+    _get_software_update(vehicle_installing)["status"] = INSTALLING
+    mock_vehicle_data.return_value = vehicle_installing
+    freezer.tick(VEHICLE_INTERVAL)
+    async_fire_time_changed(hass)
+    await hass.async_block_till_done()
+
+    state = hass.states.get(entity_id)
+    assert state is not None
+    assert state.attributes["update_status"] == INSTALLING
