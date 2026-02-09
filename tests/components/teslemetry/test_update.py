@@ -58,7 +58,7 @@ async def test_update_services(
 
     await setup_platform(hass, [Platform.UPDATE])
 
-    entity_id = "update.test_update"
+    entity_id = "update.test"
 
     with patch(
         "tesla_fleet_api.teslemetry.Vehicle.schedule_software_update",
@@ -112,7 +112,7 @@ async def test_update_streaming(
     )
     await hass.async_block_till_done()
 
-    state = hass.states.get("update.test_update")
+    state = hass.states.get("update.test")
     assert state == snapshot(name="downloading")
 
     mock_add_listener.send(
@@ -129,7 +129,7 @@ async def test_update_streaming(
         }
     )
     await hass.async_block_till_done()
-    state = hass.states.get("update.test_update")
+    state = hass.states.get("update.test")
     assert state == snapshot(name="ready")
 
     mock_add_listener.send(
@@ -146,7 +146,7 @@ async def test_update_streaming(
         }
     )
     await hass.async_block_till_done()
-    state = hass.states.get("update.test_update")
+    state = hass.states.get("update.test")
     assert state == snapshot(name="installing")
 
     mock_add_listener.send(
@@ -163,10 +163,10 @@ async def test_update_streaming(
         }
     )
     await hass.async_block_till_done()
-    state = hass.states.get("update.test_update")
+    state = hass.states.get("update.test")
     assert state == snapshot(name="updated")
 
     await reload_platform(hass, entry, [Platform.UPDATE])
 
-    state = hass.states.get("update.test_update")
+    state = hass.states.get("update.test")
     assert state == snapshot(name="restored")

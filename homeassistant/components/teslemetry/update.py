@@ -21,6 +21,8 @@ from .entity import (
 from .helpers import handle_vehicle_command
 from .models import TeslemetryVehicleData
 
+ATTR_UPDATE_STATUS = "update_status"
+
 AVAILABLE = "available"
 DOWNLOADING = "downloading"
 INSTALLING = "installing"
@@ -50,6 +52,14 @@ class TeslemetryUpdateEntity(TeslemetryRootEntity, UpdateEntity):
 
     api: Vehicle
     _attr_supported_features = UpdateEntityFeature.PROGRESS
+    _attr_update_status: str | None = None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        """Return extra state attributes."""
+        if self._attr_update_status is None:
+            return None
+        return {ATTR_UPDATE_STATUS: self._attr_update_status}
 
     async def async_install(
         self, version: str | None, backup: bool, **kwargs: Any
@@ -81,6 +91,9 @@ class TeslemetryVehiclePollingUpdateEntity(
 
     def _async_update_attrs(self) -> None:
         """Update the attributes of the entity."""
+
+        # Update Status
+        self._attr_update_status = self._value or None
 
         # Supported Features
         if self.scoped and self._value in (
@@ -134,6 +147,7 @@ class TeslemetryStreamingUpdateEntity(
 
     _download_percentage: int = 0
     _install_percentage: int = 0
+    _scheduled: bool = False
 
     def __init__(
         self,
@@ -155,6 +169,7 @@ class TeslemetryStreamingUpdateEntity(
             self._install_percentage = state.attributes.get("install_percentage", False)
             self._attr_installed_version = state.attributes.get("installed_version")
             self._attr_latest_version = state.attributes.get("latest_version")
+            self._attr_update_status = state.attributes.get(ATTR_UPDATE_STATUS)
             self._attr_supported_features = UpdateEntityFeature(
                 state.attributes.get(
                     "supported_features", self._attr_supported_features
@@ -213,7 +228,9 @@ class TeslemetryStreamingUpdateEntity(
     def _async_handle_software_update_scheduled_start_time(self, value: str | None):
         """Handle software update scheduled start time."""
 
+        self._scheduled = value is not None
         self._attr_in_progress = value is not None
+        self._async_update_status()
         self.async_write_ha_state()
 
     def _async_handle_software_update_version(self, value: str | None):
@@ -222,6 +239,7 @@ class TeslemetryStreamingUpdateEntity(
         self._attr_latest_version = (
             value if value and value != " " else self._attr_installed_version
         )
+        self._async_update_status()
         self.async_write_ha_state()
 
     def _async_handle_version(self, value: str | None):
@@ -243,3 +261,24 @@ class TeslemetryStreamingUpdateEntity(
         else:
             self._attr_in_progress = False
             self._attr_update_percentage = None
+        self._async_update_status()
+
+    def _async_update_status(self) -> None:
+        """Derive update status from streaming data."""
+
+        if self._install_percentage > 10:
+            self._attr_update_status = INSTALLING
+        elif self._scheduled:
+            self._attr_update_status = SCHEDULED
+        elif self._download_percentage == 100:
+            self._attr_update_status = AVAILABLE
+        elif self._download_percentage > 1:
+            self._attr_update_status = DOWNLOADING
+        elif self._attr_latest_version and self._attr_latest_version not in (
+            " ",
+            self._attr_installed_version,
+        ):
+            # An update version is available but not downloading yet
+            self._attr_update_status = AVAILABLE
+        else:
+            self._attr_update_status = None
