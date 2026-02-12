@@ -1,6 +1,11 @@
 """Constants for the Splunk integration."""
 
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.helpers.entityfilter import EntityFilter
+
 DOMAIN = "splunk"
+
+type SplunkConfigEntry = ConfigEntry[EntityFilter]
 
 CONF_FILTER = "filter"
 

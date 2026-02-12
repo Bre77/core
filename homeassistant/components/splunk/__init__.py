@@ -12,7 +12,7 @@ from aiohttp import ClientConnectionError, ClientResponseError
 from hass_splunk import SplunkPayloadError, hass_splunk
 import voluptuous as vol
 
-from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
+from homeassistant.config_entries import SOURCE_IMPORT
 from homeassistant.const import (
     CONF_HOST,
     CONF_NAME,
@@ -48,6 +48,7 @@ from .const import (
     DEFAULT_PORT,
     DEFAULT_SSL,
     DOMAIN,
+    SplunkConfigEntry,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -146,7 +147,7 @@ async def _async_import_yaml(hass: HomeAssistant, conf: dict[str, Any]) -> None:
     )
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: SplunkConfigEntry) -> bool:
     """Set up Splunk from a config entry."""
     host = entry.data[CONF_HOST]
     port = entry.data[CONF_PORT]
@@ -155,8 +156,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     verify_ssl = entry.data[CONF_VERIFY_SSL]
     name = entry.data.get(CONF_NAME) or hass.config.location_name
 
-    # Get the entity filter from hass.data (set by async_setup or empty if no YAML)
-    entity_filter: EntityFilter = hass.data.get(DATA_FILTER, FILTER_SCHEMA({}))
+    # Get the entity filter from hass.data (set by async_setup from YAML or empty)
+    entry.runtime_data = hass.data.get(DATA_FILTER, FILTER_SCHEMA({}))
 
     event_collector = hass_splunk(
         session=async_get_clientsession(hass),
@@ -213,7 +214,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def splunk_event_listener(event: Event[EventStateChangedData]) -> None:
         """Listen for new messages on the bus and sends them to Splunk."""
         state = event.data.get("new_state")
-        if state is None or not entity_filter(state.entity_id):
+        if state is None or not entry.runtime_data(state.entity_id):
             return
 
         _state: float | str
@@ -259,7 +260,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: SplunkConfigEntry) -> bool:
     """Unload a config entry."""
     # The event listener is automatically removed by async_on_unload
     return True
