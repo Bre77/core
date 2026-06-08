@@ -7,8 +7,10 @@ from typing import TYPE_CHECKING, Any
 
 from tesla_fleet_api.const import TeslaEnergyPeriod, VehicleDataEndpoint
 from tesla_fleet_api.exceptions import (
+    InternalServerError,
     InvalidToken,
     LoginRequired,
+    NotFound,
     OAuthExpired,
     RateLimited,
     TeslaFleetError,
@@ -18,7 +20,7 @@ from tesla_fleet_api.tesla import EnergySite, VehicleFleet
 
 from homeassistant.const import CONF_TOKEN
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryAuthFailed
+from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 if TYPE_CHECKING:
@@ -35,6 +37,31 @@ VEHICLE_WAIT = timedelta(minutes=15)
 ENERGY_INTERVAL_SECONDS = 60
 ENERGY_INTERVAL = timedelta(seconds=ENERGY_INTERVAL_SECONDS)
 ENERGY_HISTORY_INTERVAL = timedelta(minutes=5)
+
+
+class StaleEnergySiteError(ConfigEntryError):
+    """Raised when an energy site's info endpoint is permanently stale.
+
+    Tesla can keep deactivated energy sites in the products API after an old
+    solar system is removed or replaced. Those stale sites still appear in the
+    products list but their site_info endpoint never recovers, so they are
+    skipped during setup instead of blocking the whole config entry.
+    """
+
+
+def _is_stale_site_info_error(err: TeslaFleetError) -> bool:
+    """Return whether a site_info error indicates a stale energy site."""
+    if isinstance(err, NotFound):
+        return True
+    # The known signature is a 500 with a null response and this exact message.
+    # It is a heuristic and may need updating if Tesla rewords the error.
+    if not isinstance(err, InternalServerError) or not isinstance(err.data, dict):
+        return False
+    return (
+        err.data.get("response") is None
+        and err.data.get("error") == "upstream internal error"
+    )
+
 
 ENDPOINTS = [
     VehicleDataEndpoint.CHARGE_STATE,
@@ -380,6 +407,8 @@ class TeslaFleetEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]])
         except LoginRequired as e:
             raise ConfigEntryAuthFailed from e
         except TeslaFleetError as e:
+            if not self.updated_once and _is_stale_site_info_error(e):
+                raise StaleEnergySiteError from e
             raise UpdateFailed(e.message) from e
 
         self.updated_once = True

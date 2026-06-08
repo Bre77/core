@@ -9,10 +9,12 @@ import pytest
 from syrupy.assertion import SnapshotAssertion
 from tesla_fleet_api.const import Scope, VehicleDataEndpoint
 from tesla_fleet_api.exceptions import (
+    InternalServerError,
     InvalidRegion,
     InvalidToken,
     LibraryError,
     LoginRequired,
+    NotFound,
     OAuthExpired,
     RateLimited,
     TeslaFleetError,
@@ -57,6 +59,25 @@ SETUP_ERRORS = [
 ]
 
 RUNTIME_ERRORS = [InvalidToken, OAuthExpired, LoginRequired, TeslaFleetError]
+
+# Errors that mark an energy site as stale and skip it during setup
+STALE_SITE_INFO_ERRORS = [
+    pytest.param(
+        InternalServerError({"response": None, "error": "upstream internal error"}),
+        id="upstream_internal_error",
+    ),
+    pytest.param(NotFound, id="not_found"),
+]
+
+# Errors that should retry setup instead of skipping the energy site
+RETRYABLE_SITE_INFO_ERRORS = [
+    pytest.param(TeslaFleetError, id="generic_error"),
+    pytest.param(
+        InternalServerError({"response": None, "error": "transient blip"}),
+        id="other_internal_error",
+    ),
+    pytest.param(InternalServerError("not a dict"), id="non_dict_data"),
+]
 
 
 async def test_load_unload(
@@ -532,6 +553,49 @@ async def test_energy_site_refresh_error(
 
     assert (state := hass.states.get("number.energy_site_backup_reserve"))
     assert state.state == "unavailable"
+
+
+@pytest.mark.parametrize("side_effect", STALE_SITE_INFO_ERRORS)
+async def test_energy_site_info_stale_skipped(
+    hass: HomeAssistant,
+    normal_config_entry: MockConfigEntry,
+    mock_site_info: AsyncMock,
+    device_registry: dr.DeviceRegistry,
+    caplog: pytest.LogCaptureFixture,
+    side_effect: TeslaFleetError | type[TeslaFleetError],
+) -> None:
+    """Test a stale energy site is skipped while other devices still load."""
+    mock_site_info.side_effect = side_effect
+
+    await setup_platform(hass, normal_config_entry)
+
+    # The entry still loads because the vehicle (and any healthy sites) remain
+    assert normal_config_entry.state is ConfigEntryState.LOADED
+    assert normal_config_entry.runtime_data.energysites == []
+    assert "Skipping stale Tesla energy site" in caplog.text
+
+    # The stale energy site device and its entities are not created
+    assert device_registry.async_get_device(identifiers={(DOMAIN, "123456")}) is None
+    assert hass.states.get("number.energy_site_backup_reserve") is None
+
+    # The vehicle still loads normally
+    assert (state := hass.states.get("sensor.test_battery_level"))
+    assert state.state != "unavailable"
+
+
+@pytest.mark.parametrize("side_effect", RETRYABLE_SITE_INFO_ERRORS)
+async def test_energy_site_info_retryable_error(
+    hass: HomeAssistant,
+    normal_config_entry: MockConfigEntry,
+    mock_site_info: AsyncMock,
+    side_effect: TeslaFleetError | type[TeslaFleetError],
+) -> None:
+    """Test a non-stale site_info error retries setup instead of skipping."""
+    mock_site_info.side_effect = side_effect
+
+    await setup_platform(hass, normal_config_entry)
+
+    assert normal_config_entry.state is ConfigEntryState.SETUP_RETRY
 
 
 async def test_energy_refresh_token_expired_recovery(

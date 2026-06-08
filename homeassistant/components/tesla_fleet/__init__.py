@@ -35,6 +35,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 
 from .const import DOMAIN, LOGGER, MODELS
 from .coordinator import (
+    StaleEnergySiteError,
     TeslaFleetEnergySiteHistoryCoordinator,
     TeslaFleetEnergySiteInfoCoordinator,
     TeslaFleetEnergySiteLiveCoordinator,
@@ -210,18 +211,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslaFleetConfigEntry) -
 
             api_energy = tesla.energySites.create(site_id)
 
+            # Tesla may keep deactivated energy sites in the products API after
+            # an old solar system is removed or replaced. Refresh site info
+            # first so a stale site whose info endpoint never recovers is
+            # skipped instead of blocking setup of vehicles and healthy sites.
+            info_coordinator = TeslaFleetEnergySiteInfoCoordinator(
+                hass, entry, api_energy, product
+            )
+            try:
+                await info_coordinator.async_config_entry_first_refresh()
+            except StaleEnergySiteError:
+                LOGGER.warning("Skipping stale Tesla energy site %s", site_id)
+                continue
+
             live_coordinator = TeslaFleetEnergySiteLiveCoordinator(
                 hass, entry, api_energy
             )
             history_coordinator = TeslaFleetEnergySiteHistoryCoordinator(
                 hass, entry, api_energy
             )
-            info_coordinator = TeslaFleetEnergySiteInfoCoordinator(
-                hass, entry, api_energy, product
-            )
 
             await live_coordinator.async_config_entry_first_refresh()
-            await info_coordinator.async_config_entry_first_refresh()
 
             # Create energy site model
             model = None
