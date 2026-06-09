@@ -84,7 +84,6 @@ def _is_stale_site_info_error(err: BaseException | None) -> bool:
         isinstance(cause, InternalServerError)
         and isinstance(cause.data, dict)
         and cause.data.get("response") is None
-        and cause.data.get("error") == "upstream internal error"
     )
 
 
