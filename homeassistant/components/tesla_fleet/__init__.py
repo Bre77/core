@@ -39,6 +39,7 @@ from .coordinator import (
     TeslaFleetEnergySiteInfoCoordinator,
     TeslaFleetEnergySiteLiveCoordinator,
     TeslaFleetVehicleDataCoordinator,
+    _is_stale_site_info_error,
 )
 from .models import TeslaFleetData, TeslaFleetEnergyData, TeslaFleetVehicleData
 
@@ -210,18 +211,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslaFleetConfigEntry) -
 
             api_energy = tesla.energySites.create(site_id)
 
+            info_coordinator = TeslaFleetEnergySiteInfoCoordinator(
+                hass, entry, api_energy, product
+            )
+            try:
+                await info_coordinator.async_config_entry_first_refresh()
+            except ConfigEntryNotReady as err:
+                # Tesla keeps deactivated energy sites in /products after a
+                # system is replaced; they still return live status but their
+                # site_info fails. Skip just that site instead of blocking the
+                # whole config entry.
+                if _is_stale_site_info_error(err.__cause__):
+                    LOGGER.warning("Skipping stale Tesla energy site %s", site_id)
+                    await info_coordinator.async_shutdown()
+                    continue
+                raise
+
             live_coordinator = TeslaFleetEnergySiteLiveCoordinator(
                 hass, entry, api_energy
             )
             history_coordinator = TeslaFleetEnergySiteHistoryCoordinator(
                 hass, entry, api_energy
             )
-            info_coordinator = TeslaFleetEnergySiteInfoCoordinator(
-                hass, entry, api_energy, product
-            )
 
             await live_coordinator.async_config_entry_first_refresh()
-            await info_coordinator.async_config_entry_first_refresh()
 
             # Create energy site model
             model = None

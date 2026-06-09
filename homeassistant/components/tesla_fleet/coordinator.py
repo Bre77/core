@@ -7,8 +7,10 @@ from typing import TYPE_CHECKING, Any
 
 from tesla_fleet_api.const import TeslaEnergyPeriod, VehicleDataEndpoint
 from tesla_fleet_api.exceptions import (
+    InternalServerError,
     InvalidToken,
     LoginRequired,
+    NotFound,
     OAuthExpired,
     RateLimited,
     TeslaFleetError,
@@ -65,6 +67,24 @@ def _invalidate_access_token(
                 "expires_at": 0,
             },
         },
+    )
+
+
+def _is_stale_site_info_error(err: BaseException | None) -> bool:
+    """Return whether a site_info failure indicates a stale energy site.
+
+    Tesla can keep an old/deactivated energy site in /products after it is
+    replaced. Such sites still return live status, but their site_info
+    endpoint consistently returns a 404 or a 500 "upstream internal error".
+    """
+    cause = err.__cause__ if isinstance(err, UpdateFailed) else err
+    if isinstance(cause, NotFound):
+        return True
+    return (
+        isinstance(cause, InternalServerError)
+        and isinstance(cause.data, dict)
+        and cause.data.get("response") is None
+        and cause.data.get("error") == "upstream internal error"
     )
 
 

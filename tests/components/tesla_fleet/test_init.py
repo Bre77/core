@@ -9,10 +9,12 @@ import pytest
 from syrupy.assertion import SnapshotAssertion
 from tesla_fleet_api.const import Scope, VehicleDataEndpoint
 from tesla_fleet_api.exceptions import (
+    InternalServerError,
     InvalidRegion,
     InvalidToken,
     LibraryError,
     LoginRequired,
+    NotFound,
     OAuthExpired,
     RateLimited,
     TeslaFleetError,
@@ -28,6 +30,7 @@ from homeassistant.components.tesla_fleet.coordinator import (
     VEHICLE_INTERVAL_SECONDS,
     VEHICLE_WAIT,
     _invalidate_access_token,
+    _is_stale_site_info_error,
 )
 from homeassistant.components.tesla_fleet.models import TeslaFleetData
 from homeassistant.config_entries import ConfigEntryState
@@ -42,10 +45,11 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.config_entry_oauth2_flow import (
     ImplementationUnavailableError,
 )
+from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from . import setup_platform
 from .conftest import create_config_entry
-from .const import LIVE_STATUS, VEHICLE_ASLEEP, VEHICLE_DATA_ALT
+from .const import LIVE_STATUS, PRODUCTS, SITE_INFO, VEHICLE_ASLEEP, VEHICLE_DATA_ALT
 
 from tests.common import MockConfigEntry, async_fire_time_changed
 
@@ -829,3 +833,111 @@ async def test_oauth_implementation_not_available(
         await hass.async_block_till_done()
 
     assert normal_config_entry.state is ConfigEntryState.SETUP_RETRY
+
+
+# Stale energy site handling
+STALE_SITE_ERRORS = [
+    pytest.param(NotFound(), id="not_found"),
+    pytest.param(
+        InternalServerError({"response": None, "error": "upstream internal error"}),
+        id="upstream_internal_error",
+    ),
+]
+
+
+@pytest.mark.parametrize("stale_error", STALE_SITE_ERRORS)
+async def test_energy_site_skips_stale(
+    hass: HomeAssistant,
+    normal_config_entry: MockConfigEntry,
+    mock_products: AsyncMock,
+    mock_site_info: AsyncMock,
+    stale_error: TeslaFleetError,
+) -> None:
+    """Test a stale energy site is skipped while everything else still loads."""
+    products = deepcopy(PRODUCTS)
+    healthy_site = next(
+        product
+        for product in products["response"]
+        if product.get("energy_site_id") == 123456
+    )
+    stale_site = deepcopy(healthy_site)
+    stale_site["energy_site_id"] = 999999
+    stale_site["site_name"] = "Stale Energy Site"
+    # Insert the stale site before the healthy one so it is refreshed first.
+    products["response"].insert(products["response"].index(healthy_site), stale_site)
+    mock_products.return_value = products
+
+    # The stale site's site_info fails, the healthy site's succeeds.
+    mock_site_info.side_effect = [stale_error, deepcopy(SITE_INFO)]
+
+    await setup_platform(hass, normal_config_entry)
+
+    assert normal_config_entry.state is ConfigEntryState.LOADED
+    assert normal_config_entry.runtime_data.vehicles
+    assert [
+        energysite.id for energysite in normal_config_entry.runtime_data.energysites
+    ] == [123456]
+
+
+async def test_energy_site_transient_error_blocks_setup(
+    hass: HomeAssistant,
+    normal_config_entry: MockConfigEntry,
+    mock_site_info: AsyncMock,
+) -> None:
+    """Test a transient site_info error is not mistaken for a stale site."""
+    # A 500 without the exact stale body should still drive setup retry.
+    mock_site_info.side_effect = InternalServerError(
+        {"response": None, "error": "temporary internal error"}
+    )
+
+    await setup_platform(hass, normal_config_entry)
+
+    assert normal_config_entry.state is ConfigEntryState.SETUP_RETRY
+
+
+def _update_failed_from(exc: BaseException) -> UpdateFailed:
+    """Wrap an exception in UpdateFailed like the coordinator does."""
+    err = UpdateFailed(str(exc))
+    err.__cause__ = exc
+    return err
+
+
+@pytest.mark.parametrize(
+    ("err", "expected"),
+    [
+        pytest.param(NotFound(), True, id="not_found"),
+        pytest.param(
+            InternalServerError({"response": None, "error": "upstream internal error"}),
+            True,
+            id="stale_500",
+        ),
+        pytest.param(
+            InternalServerError(
+                {"response": None, "error": "temporary internal error"}
+            ),
+            False,
+            id="transient_500",
+        ),
+        pytest.param(InternalServerError("not a dict"), False, id="non_dict_500"),
+        pytest.param(RateLimited({"after": 5}), False, id="rate_limited"),
+        pytest.param(_update_failed_from(NotFound()), True, id="wrapped_not_found"),
+        pytest.param(
+            _update_failed_from(
+                InternalServerError(
+                    {"response": None, "error": "upstream internal error"}
+                )
+            ),
+            True,
+            id="wrapped_stale_500",
+        ),
+        pytest.param(
+            _update_failed_from(RateLimited({"after": 5})),
+            False,
+            id="wrapped_rate_limited",
+        ),
+        pytest.param(None, False, id="none"),
+    ],
+)
+def test_is_stale_site_info_error(err: BaseException | None, expected: bool) -> None:
+    """Test classification of site_info failures."""
+    assert _is_stale_site_info_error(err) is expected
