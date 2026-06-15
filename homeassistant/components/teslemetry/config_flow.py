@@ -34,6 +34,7 @@ class OAuth2FlowHandler(
 
     DOMAIN = DOMAIN
     VERSION = 2
+    MINOR_VERSION = 2
 
     def __init__(self) -> None:
         """Initialize config flow."""
@@ -46,6 +47,15 @@ class OAuth2FlowHandler(
     def logger(self) -> logging.Logger:
         """Return logger."""
         return LOGGER
+
+    @classmethod
+    @callback
+    @override
+    def async_get_supported_subentry_types(
+        cls, config_entry: ConfigEntry
+    ) -> dict[str, type[ConfigSubentryFlow]]:
+        """Return the subentry types supported by this integration."""
+        return {SUBENTRY_TYPE_VEHICLE: VehicleSubentryFlowHandler}
 
     @override
     async def async_step_user(
