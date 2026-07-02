@@ -16,6 +16,17 @@ CLIENT_ID = "homeassistant"
 SUBENTRY_TYPE_VEHICLE = "vehicle"
 SUBENTRY_TYPE_ENERGY_SITE = "energy_site"
 
+# Subentry data keys. A vehicle subentry also stores CONF_ADDRESS (from
+# homeassistant.const) once paired; its presence enables Bluetooth-first routing.
+CONF_VIN = "vin"
+
+# File holding the integration's EC private key used to sign BLE commands. The
+# matching public/virtual key is what the user adds to the vehicle when pairing.
+PRIVATE_KEY_FILE = "teslemetry.key"
+
+# hass.data key for the shared TeslaBluetooth parent (holds the private key).
+BLE_PARENT_KEY = f"{DOMAIN}_ble_parent"
+
 ENERGY_HISTORY_FIELDS = [
     "solar_energy_exported",
     "generator_energy_exported",

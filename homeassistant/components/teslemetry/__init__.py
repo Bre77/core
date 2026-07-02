@@ -14,15 +14,18 @@ from tesla_fleet_api.exceptions import (
     SubscriptionRequired,
     TeslaFleetError,
 )
-from tesla_fleet_api.teslemetry import Teslemetry
+from tesla_fleet_api.tesla import VehicleRouter
+from tesla_fleet_api.tesla.bluetooth import TeslaBluetooth
+from tesla_fleet_api.teslemetry import Teslemetry, Vehicle
 from teslemetry_stream import TeslemetryStream
 
 from homeassistant.components.application_credentials import (
     ClientCredential,
     async_import_client_credential,
 )
+from homeassistant.components.bluetooth import async_ble_device_from_address
 from homeassistant.config_entries import ConfigEntry, ConfigSubentry
-from homeassistant.const import CONF_ACCESS_TOKEN, Platform
+from homeassistant.const import CONF_ACCESS_TOKEN, CONF_ADDRESS, Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import (
@@ -41,9 +44,12 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (
+    BLE_PARENT_KEY,
     CLIENT_ID,
+    CONF_VIN,
     DOMAIN,
     LOGGER,
+    PRIVATE_KEY_FILE,
     SUBENTRY_TYPE_ENERGY_SITE,
     SUBENTRY_TYPE_VEHICLE,
     VEHICLE_ISSUE_LEARN_MORE,
@@ -246,9 +252,12 @@ def _ensure_subentry(
     """Return the subentry id for unique_id, creating or updating it as needed."""
     for subentry in entry.subentries.values():
         if subentry.subentry_type == subentry_type and subentry.unique_id == unique_id:
-            if subentry.title != title or dict(subentry.data) != data:
+            # Merge over the existing data so keys added by a subentry flow (e.g.
+            # a paired Bluetooth ``address``) are preserved across reloads.
+            merged = {**subentry.data, **data}
+            if subentry.title != title or dict(subentry.data) != merged:
                 hass.config_entries.async_update_subentry(
-                    entry, subentry, title=title, data=data
+                    entry, subentry, title=title, data=merged
                 )
             return subentry.subentry_id
 
@@ -260,6 +269,50 @@ def _ensure_subentry(
     )
     hass.config_entries.async_add_subentry(entry, subentry)
     return subentry.subentry_id
+
+
+async def _async_get_ble_parent(hass: HomeAssistant) -> TeslaBluetooth:
+    """Return a shared TeslaBluetooth parent with the private key loaded.
+
+    Cached on ``hass.data`` so the key file is only read once even when several
+    vehicles are paired over Bluetooth.
+    """
+    if (parent := hass.data.get(BLE_PARENT_KEY)) is None:
+        parent = TeslaBluetooth()  # type: ignore[no-untyped-call]
+        await parent.get_private_key(hass.config.path(PRIVATE_KEY_FILE))
+        hass.data[BLE_PARENT_KEY] = parent
+    return parent
+
+
+async def _async_resolve_vehicle_api(
+    hass: HomeAssistant,
+    entry: TeslemetryConfigEntry,
+    subentry_id: str,
+    vin: str,
+    cloud_vehicle: Vehicle,
+) -> Vehicle | VehicleRouter:
+    """Return the API a vehicle's platforms should call.
+
+    When the subentry has been paired (its data carries a BLE ``address``) and the
+    vehicle is in Bluetooth range, wrap the cloud Vehicle in a VehicleRouter that
+    tries the local VehicleBluetooth first and fails over to cloud per command.
+    Otherwise, and for a vehicle out of BLE range at setup, return the plain
+    cloud Vehicle unchanged.
+    """
+    address = entry.subentries[subentry_id].data.get(CONF_ADDRESS)
+    if not address:
+        return cloud_vehicle
+
+    ble_device = async_ble_device_from_address(hass, address, connectable=True)
+    if ble_device is None:
+        LOGGER.warning(
+            "Bluetooth vehicle %s (%s) not in range; using cloud only", vin, address
+        )
+        return cloud_vehicle
+
+    parent = await _async_get_ble_parent(hass)
+    bluetooth_vehicle = parent.vehicles.createBluetooth(vin, device=ble_device)
+    return VehicleRouter(bluetooth_vehicle, cloud_vehicle)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
@@ -387,12 +440,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                 SUBENTRY_TYPE_VEHICLE,
                 vin,
                 product["display_name"],
-                {"vin": vin},
+                {CONF_VIN: vin},
+            )
+
+            # Route commands through Bluetooth first when the subentry has been
+            # paired; otherwise this returns the plain cloud Vehicle.
+            api = await _async_resolve_vehicle_api(
+                hass, entry, subentry_id, vin, vehicle
             )
 
             vehicles.append(
                 TeslemetryVehicleData(
-                    api=vehicle,
+                    api=api,
                     config_entry=entry,
                     coordinator=coordinator,
                     poll=poll,
