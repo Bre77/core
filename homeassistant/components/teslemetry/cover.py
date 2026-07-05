@@ -3,6 +3,7 @@
 from typing import Any, override
 
 from tesla_fleet_api.const import Scope, SunRoofCommand, Trunk, WindowCommand
+from tesla_fleet_api.tesla import VehicleRouter
 from tesla_fleet_api.teslemetry import Vehicle
 from teslemetry_stream import Signal
 from teslemetry_stream.const import WindowState
@@ -81,7 +82,7 @@ class CoverRestoreEntity(RestoreEntity, CoverEntity):
 class TeslemetryWindowEntity(TeslemetryRootEntity, CoverEntity):
     """Base class for window cover entities."""
 
-    api: Vehicle
+    api: Vehicle | VehicleRouter
     _attr_device_class = CoverDeviceClass.WINDOW
     _attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE
 
@@ -215,7 +216,7 @@ class TeslemetryChargePortEntity(
 ):
     """Base class for for charge port cover entities."""
 
-    api: Vehicle
+    api: Vehicle | VehicleRouter
     _attr_device_class = CoverDeviceClass.DOOR
     _attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE
 
@@ -300,7 +301,7 @@ class TeslemetryStreamingChargePortEntity(
 class TeslemetryFrontTrunkEntity(TeslemetryRootEntity, CoverEntity):
     """Base class for the front trunk cover entities."""
 
-    api: Vehicle
+    api: Vehicle | VehicleRouter
     _attr_device_class = CoverDeviceClass.DOOR
     _attr_supported_features = CoverEntityFeature.OPEN
 
@@ -366,7 +367,7 @@ class TeslemetryStreamingFrontTrunkEntity(
 class TeslemetryRearTrunkEntity(TeslemetryRootEntity, CoverEntity):
     """Cover entity for the rear trunk."""
 
-    api: Vehicle
+    api: Vehicle | VehicleRouter
     _attr_device_class = CoverDeviceClass.DOOR
     _attr_supported_features = CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE
 
@@ -440,7 +441,7 @@ class TeslemetryStreamingRearTrunkEntity(
 class TeslemetrySunroofEntity(TeslemetryVehiclePollingEntity, CoverEntity):
     """Cover entity for the sunroof."""
 
-    api: Vehicle
+    api: Vehicle | VehicleRouter
     _attr_device_class = CoverDeviceClass.WINDOW
     _attr_supported_features = (
         CoverEntityFeature.OPEN | CoverEntityFeature.CLOSE | CoverEntityFeature.STOP
