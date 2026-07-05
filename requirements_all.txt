@@ -371,6 +371,9 @@ aiopegelonline==0.1.1
 # homeassistant.components.opnsense
 aiopnsense==1.0.10
 
+# homeassistant.components.teslemetry
+aiopowerwall==0.1.1
+
 # homeassistant.components.ptdevices
 aioptdevices==2026.03.2
 
@@ -3141,9 +3144,11 @@ temescal==0.5
 temperusb==1.6.1
 
 # homeassistant.components.tesla_fleet
-# homeassistant.components.teslemetry
 # homeassistant.components.tessie
 tesla-fleet-api==1.4.7
+
+# homeassistant.components.teslemetry
+tesla-fleet-api==1.5.2
 
 # homeassistant.components.powerwall
 tesla-powerwall==0.5.3
@@ -3152,7 +3157,7 @@ tesla-powerwall==0.5.3
 tesla-wall-connector==1.1.0
 
 # homeassistant.components.teslemetry
-teslemetry-stream==0.9.0
+teslemetry-stream==0.9.1
 
 # homeassistant.components.tessie
 tessie-api==0.1.3
