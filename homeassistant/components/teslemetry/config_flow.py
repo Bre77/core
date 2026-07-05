@@ -5,6 +5,7 @@ import logging
 from typing import Any, override
 
 from aiohttp import ClientConnectionError
+from bleak.backends.device import BLEDevice
 from bleak.exc import BleakError
 from tesla_fleet_api.exceptions import (
     InvalidToken,
@@ -13,14 +14,18 @@ from tesla_fleet_api.exceptions import (
     TeslaFleetError,
 )
 from tesla_fleet_api.tesla.bluetooth import TeslaBluetooth
-from tesla_fleet_api.tesla.vehicle.bluetooth import VehicleBluetooth
+from tesla_fleet_api.tesla.vehicle.bluetooth import SERVICE_UUID, VehicleBluetooth
 from tesla_fleet_api.teslemetry import Teslemetry
+import voluptuous as vol
 
 from homeassistant.components.application_credentials import (
     ClientCredential,
     async_import_client_credential,
 )
-from homeassistant.components.bluetooth import async_discovered_service_info
+from homeassistant.components.bluetooth import (
+    BluetoothServiceInfoBleak,
+    async_discovered_service_info,
+)
 from homeassistant.config_entries import (
     SOURCE_REAUTH,
     SOURCE_RECONFIGURE,
@@ -183,6 +188,7 @@ class VehicleSubentryFlowHandler(ConfigSubentryFlow):
         self._vin: str | None = None
         self._address: str | None = None
         self._vehicle: VehicleBluetooth | None = None
+        self._discovered: dict[str, BluetoothServiceInfoBleak] = {}
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -202,39 +208,89 @@ class VehicleSubentryFlowHandler(ConfigSubentryFlow):
     ) -> SubentryFlowResult:
         """Find the vehicle over Bluetooth and connect to it."""
         assert self._vin is not None
-        errors: dict[str, str] = {}
 
         if user_input is not None:
             parent = TeslaBluetooth()  # type: ignore[no-untyped-call]
             # The advertised BLE name is a hash of the VIN; match on its prefix.
             expected = parent.get_name(self._vin)[:17]
-            device = None
             for info in async_discovered_service_info(self.hass, connectable=True):
                 if info.name and info.name.startswith(expected):
-                    device = info.device
                     self._address = info.address
-                    break
-
-            if device is None:
-                errors["base"] = "device_not_found"
-            else:
-                await parent.get_private_key(self.hass.config.path(PRIVATE_KEY_FILE))
-                self._vehicle = parent.vehicles.createBluetooth(
-                    self._vin, device=device
-                )
-                try:
-                    await self._vehicle.connect()
-                except (BleakError, TeslaFleetError, TimeoutError) as err:
-                    LOGGER.error("Failed to connect over Bluetooth: %s", err)
-                    errors["base"] = "cannot_connect"
-                else:
+                    if error := await self._async_connect(info.device):
+                        return self.async_show_form(
+                            step_id="scan",
+                            errors={"base": error},
+                            description_placeholders={"vin": self._vin},
+                        )
                     return await self.async_step_pair()
+            # The advertised name is not always the VIN hash (e.g. Core Bluetooth
+            # surfaces the display name), so let the user pick from nearby vehicles.
+            return await self.async_step_pick()
 
         return self.async_show_form(
             step_id="scan",
-            errors=errors,
             description_placeholders={"vin": self._vin},
         )
+
+    async def async_step_pick(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Let the user pick their vehicle from nearby Tesla Bluetooth devices."""
+        assert self._vin is not None
+
+        if user_input is not None:
+            info = self._discovered[user_input[CONF_ADDRESS]]
+            self._address = info.address
+            if error := await self._async_connect(info.device):
+                return self._async_show_pick({"base": error})
+            return await self.async_step_pair()
+
+        self._discovered = {
+            info.address: info
+            for info in async_discovered_service_info(self.hass, connectable=True)
+            if SERVICE_UUID in info.service_uuids
+        }
+        if not self._discovered:
+            return self.async_show_form(
+                step_id="scan",
+                errors={"base": "device_not_found"},
+                description_placeholders={"vin": self._vin},
+            )
+        return self._async_show_pick()
+
+    @callback
+    def _async_show_pick(
+        self, errors: dict[str, str] | None = None
+    ) -> SubentryFlowResult:
+        """Show the form listing nearby Tesla Bluetooth devices."""
+        return self.async_show_form(
+            step_id="pick",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_ADDRESS): vol.In(
+                        {
+                            address: f"{info.name} ({address})"
+                            for address, info in self._discovered.items()
+                        }
+                    )
+                }
+            ),
+            errors=errors,
+            description_placeholders={"vin": self._vin or ""},
+        )
+
+    async def _async_connect(self, device: BLEDevice) -> str | None:
+        """Connect to a BLE device, returning an error key on failure."""
+        assert self._vin is not None
+        parent = TeslaBluetooth()  # type: ignore[no-untyped-call]
+        await parent.get_private_key(self.hass.config.path(PRIVATE_KEY_FILE))
+        self._vehicle = parent.vehicles.createBluetooth(self._vin, device=device)
+        try:
+            await self._vehicle.connect()
+        except (BleakError, TeslaFleetError, TimeoutError) as err:
+            LOGGER.error("Failed to connect over Bluetooth: %s", err)
+            return "cannot_connect"
+        return None
 
     async def async_step_pair(
         self, user_input: dict[str, Any] | None = None

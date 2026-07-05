@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from tesla_fleet_api.exceptions import NotOnWhitelistFault
 from tesla_fleet_api.tesla import VehicleRouter
 from tesla_fleet_api.tesla.bluetooth import TeslaBluetooth
+from tesla_fleet_api.tesla.vehicle.bluetooth import SERVICE_UUID
 from tesla_fleet_api.teslemetry import Vehicle
 
 from homeassistant.components.teslemetry.const import CONF_VIN, SUBENTRY_TYPE_VEHICLE
@@ -104,6 +105,16 @@ def _discovered_info() -> MagicMock:
     info.name = TeslaBluetooth().get_name(VIN)
     info.address = ADDRESS
     info.device = MagicMock()
+    return info
+
+
+def _discovered_display_name_info() -> MagicMock:
+    """Return a Tesla advertising its display name instead of the VIN hash."""
+    info = MagicMock()
+    info.name = "🔑 Sonic"
+    info.address = ADDRESS
+    info.device = MagicMock()
+    info.service_uuids = [SERVICE_UUID]
     return info
 
 
@@ -226,6 +237,49 @@ async def test_subentry_scan_device_not_found(hass: HomeAssistant) -> None:
     assert result["step_id"] == "scan"
     assert result["errors"] == {"base": "device_not_found"}
     assert CONF_ADDRESS not in entry.subentries[subentry_id].data
+
+
+async def test_subentry_pick_fallback(hass: HomeAssistant) -> None:
+    """When the VIN hash is not advertised, the user picks the vehicle from a list."""
+    entry = await _setup_vehicle_subentry(hass)
+    subentry_id = entry.get_subentries_of_type(SUBENTRY_TYPE_VEHICLE)[0].subentry_id
+    vehicle = _mock_vehicle(on_whitelist=True)
+
+    with (
+        patch(
+            "homeassistant.components.teslemetry.config_flow.async_discovered_service_info",
+            return_value=[_discovered_display_name_info()],
+        ),
+        patch(
+            "homeassistant.components.teslemetry.config_flow.TeslaBluetooth"
+        ) as mock_parent,
+        patch.object(hass.config_entries, "async_schedule_reload") as mock_reload,
+    ):
+        mock_parent.return_value.get_name.return_value = TeslaBluetooth().get_name(VIN)
+        mock_parent.return_value.get_private_key = AsyncMock()
+        mock_parent.return_value.vehicles.createBluetooth.return_value = vehicle
+
+        result = await entry.start_subentry_reconfigure_flow(hass, subentry_id)
+        assert result["step_id"] == "scan"
+
+        # scan finds no VIN-hash match and falls back to the picker
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {}
+        )
+        assert result["type"] is FlowResultType.FORM
+        assert result["step_id"] == "pick"
+
+        # picking the device connects and finishes since it is already whitelisted
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {CONF_ADDRESS: ADDRESS}
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    assert entry.subentries[subentry_id].data[CONF_ADDRESS] == ADDRESS
+    mock_reload.assert_called_once_with(entry.entry_id)
+    vehicle.connect.assert_awaited_once()
 
 
 async def test_subentry_user_step_rejected(hass: HomeAssistant) -> None:
