@@ -131,8 +131,7 @@ iso4217!=1.10.20220401
 
 # protobuf must be in package constraints for the wheel
 # builder to build binary wheels
-# tesla-fleet-api 1.5.1 ships gencode that requires the 6.33.x runtime
-protobuf==6.33.4
+protobuf==6.32.0
 
 # faust-cchardet: Ensure we have a version we can build wheels
 # 2.1.18 is the first version that works with our wheel builder
