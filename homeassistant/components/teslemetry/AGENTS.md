@@ -12,6 +12,9 @@
   Do not add a blind retry around a routed command, and catch `TeslaFleetError` (a
   `BaseException` subclass, not `Exception`) around BLE calls - `handle_command`
   and the config flow already do.
+- That same `createBluetooth` call also passes `keepalive_interval=20`: an idle
+  GATT link hits Tesla's link-supervision timeout, so a passive read every 20s
+  keeps it alive. Keep this alongside `verify_commands=True` at that call site.
 - The full BLE behavior catalogue (verify-by-state, wake boot-delay, response-size
   caps, per-command quirks) lives in the `tesla_fleet_api` library's `AGENTS.md`;
   consult it before changing anything on the BLE command path.
