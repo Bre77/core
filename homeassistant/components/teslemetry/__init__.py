@@ -312,6 +312,10 @@ async def _async_resolve_vehicle_api(
 
     parent = await _async_get_ble_parent(hass)
     bluetooth_vehicle = parent.vehicles.createBluetooth(vin, device=ble_device)
+    # The Router fails a command over from Bluetooth to cloud on any error,
+    # including an inconclusive BluetoothTimeout on a mutating command that may
+    # already have executed, so a non-idempotent command (e.g. actuate_trunk)
+    # can run twice; accepted here as nearly all commands are idempotent setters.
     return VehicleRouter(bluetooth_vehicle, cloud_vehicle)
 
 
