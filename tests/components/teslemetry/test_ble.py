@@ -329,3 +329,27 @@ async def test_cover_link_loss_marks_unavailable(
     async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=6))
     await hass.async_block_till_done()
     assert hass.states.get(cover_id).state == STATE_UNAVAILABLE
+
+
+async def test_cover_command_routes_through_api(
+    hass: HomeAssistant, entity_registry: er.EntityRegistry
+) -> None:
+    """A broadcast cover still sends its command through the command router."""
+    entry, bluetooth = await _setup_ble(
+        hass, connected=True, platforms=(Platform.COVER,)
+    )
+    cover_id = entity_registry.async_get_entity_id(
+        "cover", "teslemetry", f"{VIN}-charge_state_charge_port_door_open"
+    )
+
+    _emit(bluetooth.listen_charge_port, ClosureState_E.CLOSURESTATE_CLOSED)
+    await hass.async_block_till_done()
+
+    router = entry.runtime_data.vehicles[0].api
+    router.charge_port_door_open = AsyncMock(
+        return_value={"response": {"result": True, "reason": ""}}
+    )
+    await hass.services.async_call(
+        "cover", "open_cover", {"entity_id": cover_id}, blocking=True
+    )
+    router.charge_port_door_open.assert_awaited_once()
