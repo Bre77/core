@@ -530,7 +530,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
 
             ble: TeslemetryBLEDataManager | None = None
             if bluetooth_vehicle is not None:
-                ble = TeslemetryBLEDataManager(hass, bluetooth_vehicle, vin)
+                ble = TeslemetryBLEDataManager(
+                    hass, bluetooth_vehicle, stream_vehicle, vin
+                )
                 ble.async_start()
                 entry.async_on_unload(ble.async_stop)
 
