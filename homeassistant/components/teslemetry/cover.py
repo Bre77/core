@@ -37,6 +37,7 @@ CLOSED = 0
 
 PARALLEL_UPDATES = 0
 
+
 def _closure_is_open(value: int) -> bool | None:
     """Map a VCSEC closure enum onto an open/closed state.
 
