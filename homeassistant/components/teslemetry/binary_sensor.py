@@ -44,16 +44,15 @@ WINDOW_STATES = {
     "Closed": False,
 }
 
-# VCSEC closure enums that carry no usable state; both mean "not false".
-_CLOSURE_UNAVAILABLE = (
-    ClosureState_E.CLOSURESTATE_UNKNOWN,
-    ClosureState_E.CLOSURESTATE_FAILED_UNLATCH,
-)
-
-
 def _closure_is_open(value: int) -> bool | None:
-    """Map a VCSEC closure enum onto an open/closed binary state."""
-    if value in _CLOSURE_UNAVAILABLE:
+    """Map a VCSEC closure enum onto an open/closed binary state.
+
+    UNKNOWN and FAILED_UNLATCH carry no usable state, so they are unavailable.
+    """
+    if value in (
+        ClosureState_E.CLOSURESTATE_UNKNOWN,
+        ClosureState_E.CLOSURESTATE_FAILED_UNLATCH,
+    ):
         return None
     return value != ClosureState_E.CLOSURESTATE_CLOSED
 
