@@ -14,6 +14,7 @@ evidence arrives.
 
 import asyncio
 from collections.abc import Awaitable, Callable
+import contextlib
 from datetime import datetime, timedelta
 from typing import Any, override
 
@@ -314,10 +315,8 @@ class TeslemetryBLEDataManager:
 
     async def _async_disconnect(self) -> None:
         """Drop the link so the vehicle can sleep; never surface failures."""
-        try:
+        with contextlib.suppress(BleakError, TeslaFleetError, TimeoutError):
             await self._bluetooth.disconnect()
-        except BleakError, TeslaFleetError, TimeoutError:
-            pass
 
     @callback
     def _async_scheduler_tick(self, now: datetime) -> None:
