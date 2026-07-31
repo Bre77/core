@@ -52,7 +52,6 @@ def _ble_backend() -> AsyncMock:
     return backend
 
 
-
 def _entry_with_ble() -> MockConfigEntry:
     """Return a config entry whose vehicle subentry is already BLE-paired."""
     entry = mock_config_entry()
