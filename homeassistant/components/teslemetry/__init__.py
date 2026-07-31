@@ -17,6 +17,7 @@ from tesla_fleet_api.exceptions import (
     TeslaFleetError,
 )
 from tesla_fleet_api.router import VehicleRouter
+from tesla_fleet_api.tesla.vehicle.bluetooth import VehicleBluetooth
 from tesla_fleet_api.teslemetry import Teslemetry, Vehicle
 from teslemetry_stream import TeslemetryStream
 
@@ -48,6 +49,7 @@ from homeassistant.helpers.config_entry_oauth2_flow import (
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.typing import ConfigType
 
+from .ble import TeslemetryBLEDataManager
 from .const import (
     CLIENT_ID,
     CONF_VIN,
@@ -335,20 +337,24 @@ async def _async_resolve_vehicle_api(
     subentry_id: str,
     vin: str,
     cloud_vehicle: Vehicle,
-) -> Vehicle | VehicleRouter:
-    """Return the API a vehicle's platforms should call.
+) -> tuple[Vehicle | VehicleRouter, VehicleBluetooth | None]:
+    """Return the command API and the direct BLE client a vehicle should use.
 
     An unpaired vehicle (its subentry carries no BLE ``address``) uses the cloud
-    Vehicle. A paired vehicle always gets a VehicleRouter, whether or not it is
-    in range right now: the router's health check re-reads Home Assistant's
-    Bluetooth discovery cache on every command, so a vehicle that drives away
-    and comes back resumes local routing on its own. A vehicle out of range is
-    skipped by the health check, sending the command straight to cloud without
-    attempting Bluetooth.
+    Vehicle and has no BLE client. A paired vehicle always gets a VehicleRouter,
+    whether or not it is in range right now: the router's health check re-reads
+    Home Assistant's Bluetooth discovery cache on every command, so a vehicle
+    that drives away and comes back resumes local routing on its own. A vehicle
+    out of range is skipped by the health check, sending the command straight to
+    cloud without attempting Bluetooth.
+
+    The same BLE client is returned directly alongside the router so local data
+    readers can take unsolicited broadcasts from it without going through the
+    router, for which cloud fallback is forbidden on BLE-sourced state.
     """
     address = entry.subentries[subentry_id].data.get(CONF_ADDRESS)
     if not address:
-        return cloud_vehicle
+        return cloud_vehicle, None
 
     parent = await async_get_ble_parent(hass)
     # verify + raise_unconfirmed=False so an ambiguous BLE timeout resolves as a
@@ -374,7 +380,8 @@ async def _async_resolve_vehicle_api(
         bluetooth_vehicle.set_device(device)
         return True
 
-    return VehicleRouter(bluetooth_vehicle, cloud_vehicle, health=_in_range)
+    router = VehicleRouter(bluetooth_vehicle, cloud_vehicle, health=_in_range)
+    return router, bluetooth_vehicle
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
@@ -511,14 +518,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
             )
 
             # Route commands through Bluetooth first when the subentry has been
-            # paired; otherwise this returns the plain cloud Vehicle.
-            vehicle_api = await _async_resolve_vehicle_api(
+            # paired; otherwise this returns the plain cloud Vehicle. The direct
+            # BLE client comes back too so local data reads can bypass the router.
+            vehicle_api, bluetooth_vehicle = await _async_resolve_vehicle_api(
                 hass,
                 entry,
                 subentry_id,
                 vin,
                 vehicle,
             )
+
+            ble: TeslemetryBLEDataManager | None = None
+            if bluetooth_vehicle is not None:
+                ble = TeslemetryBLEDataManager(hass, bluetooth_vehicle, vin)
+                ble.async_start()
+                entry.async_on_unload(ble.async_stop)
 
             vehicles.append(
                 TeslemetryVehicleData(
@@ -532,6 +546,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                     firmware=firmware or "Unknown",
                     device=device,
                     subentry_id=subentry_id,
+                    ble=ble,
                 )
             )
 
