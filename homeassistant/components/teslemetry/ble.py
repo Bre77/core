@@ -10,7 +10,9 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any, override
 
+from tesla_fleet_api.router import VehicleRouter
 from tesla_fleet_api.tesla.vehicle.bluetooth import VehicleBluetooth
+from tesla_fleet_api.teslemetry import Vehicle
 
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.event import async_track_time_interval
@@ -140,6 +142,7 @@ class TeslemetryVehicleBluetoothEntity(TeslemetryRootEntity):
     """Parent class for entities sourced from a vehicle's BLE broadcasts."""
 
     manager: TeslemetryBLEDataManager
+    api: Vehicle | VehicleRouter
     _value: Any = None
     _generation: int = -1
 
@@ -148,6 +151,8 @@ class TeslemetryVehicleBluetoothEntity(TeslemetryRootEntity):
         assert data.ble is not None
         self.vehicle = data
         self.manager = data.ble
+        # Commands still route through the router; only reads are local.
+        self.api = data.api
         self.vin = data.vin
         self._attr_translation_key = key
         self._attr_unique_id = f"{data.vin}-{key}"
