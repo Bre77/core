@@ -6,6 +6,8 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+
+# pylint: disable-next=no-name-in-module
 from tesla_fleet_api.tesla.vehicle.proto.vcsec_pb2 import (
     ClosureState_E,
     UserPresence_E,

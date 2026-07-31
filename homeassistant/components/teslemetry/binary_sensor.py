@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from typing import Any, cast, override
 
 from tesla_fleet_api import firmware_at_least
+
+# pylint: disable-next=no-name-in-module
 from tesla_fleet_api.tesla.vehicle.proto.vcsec_pb2 import (
     ClosureState_E,
     UserPresence_E,
