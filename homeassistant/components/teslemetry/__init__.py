@@ -17,7 +17,6 @@ from tesla_fleet_api.exceptions import (
     TeslaFleetError,
 )
 from tesla_fleet_api.router import VehicleRouter
-from tesla_fleet_api.tesla.vehicle.bluetooth import VehicleBluetooth
 from tesla_fleet_api.teslemetry import Teslemetry, Vehicle
 from teslemetry_stream import TeslemetryStream
 
@@ -337,24 +336,24 @@ async def _async_resolve_vehicle_api(
     subentry_id: str,
     vin: str,
     cloud_vehicle: Vehicle,
-) -> tuple[Vehicle | VehicleRouter, VehicleBluetooth | None]:
-    """Return the command API and the direct BLE client a vehicle should use.
+) -> Vehicle | VehicleRouter:
+    """Return the API a vehicle's platforms should call.
 
     An unpaired vehicle (its subentry carries no BLE ``address``) uses the cloud
-    Vehicle and has no BLE client. A paired vehicle always gets a VehicleRouter,
-    whether or not it is in range right now: the router's health check re-reads
-    Home Assistant's Bluetooth discovery cache on every command, so a vehicle
-    that drives away and comes back resumes local routing on its own. A vehicle
-    out of range is skipped by the health check, sending the command straight to
-    cloud without attempting Bluetooth.
+    Vehicle. A paired vehicle always gets a VehicleRouter, whether or not it is
+    in range right now: the router's health check re-reads Home Assistant's
+    Bluetooth discovery cache on every command, so a vehicle that drives away
+    and comes back resumes local routing on its own. A vehicle out of range is
+    skipped by the health check, sending the command straight to cloud without
+    attempting Bluetooth.
 
-    The same BLE client is returned directly alongside the router so local data
-    readers can take unsolicited broadcasts from it without going through the
-    router, for which cloud fallback is forbidden on BLE-sourced state.
+    The router's ``primary`` is the direct BLE client local data readers take
+    unsolicited broadcasts from, without going through the router, for which
+    cloud fallback is forbidden on BLE-sourced state.
     """
     address = entry.subentries[subentry_id].data.get(CONF_ADDRESS)
     if not address:
-        return cloud_vehicle, None
+        return cloud_vehicle
 
     parent = await async_get_ble_parent(hass)
     # verify + raise_unconfirmed=False so an ambiguous BLE timeout resolves as a
@@ -380,8 +379,7 @@ async def _async_resolve_vehicle_api(
         bluetooth_vehicle.set_device(device)
         return True
 
-    router = VehicleRouter(bluetooth_vehicle, cloud_vehicle, health=_in_range)
-    return router, bluetooth_vehicle
+    return VehicleRouter(bluetooth_vehicle, cloud_vehicle, health=_in_range)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -> bool:
@@ -518,9 +516,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
             )
 
             # Route commands through Bluetooth first when the subentry has been
-            # paired; otherwise this returns the plain cloud Vehicle. The direct
-            # BLE client comes back too so local data reads can bypass the router.
-            vehicle_api, bluetooth_vehicle = await _async_resolve_vehicle_api(
+            # paired; otherwise this returns the plain cloud Vehicle.
+            vehicle_api = await _async_resolve_vehicle_api(
                 hass,
                 entry,
                 subentry_id,
@@ -528,9 +525,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                 vehicle,
             )
 
+            # A paired vehicle's router exposes the direct BLE client as its
+            # primary; local data reads take broadcasts from it, never the router.
             ble: TeslemetryBLEDataManager | None = None
-            if bluetooth_vehicle is not None:
-                ble = TeslemetryBLEDataManager(hass, bluetooth_vehicle, vin)
+            if isinstance(vehicle_api, VehicleRouter):
+                ble = TeslemetryBLEDataManager(hass, vehicle_api.primary, vin)
                 ble.async_start()
                 entry.async_on_unload(ble.async_stop)
 
