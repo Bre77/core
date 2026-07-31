@@ -44,6 +44,7 @@ WINDOW_STATES = {
     "Closed": False,
 }
 
+
 def _closure_is_open(value: int) -> bool | None:
     """Map a VCSEC closure enum onto an open/closed binary state.
 
