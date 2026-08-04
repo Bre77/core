@@ -40,6 +40,19 @@ CLOUD_RESULT = {"response": {"result": True, "reason": "cloud"}}
 BLE_RESULT = {"response": {"result": True, "reason": "bluetooth"}}
 
 
+def _ble_backend() -> AsyncMock:
+    """Return a BLE backend mock whose synchronous listener registration stays sync.
+
+    ``AsyncMock`` would otherwise make the manager's ``listen_*`` gate
+    registrations return coroutines instead of unsubscribe callables.
+    """
+    backend = AsyncMock()
+    backend.listen_connection_status = MagicMock(return_value=MagicMock())
+    backend.listen_vehicle_sleep_status = MagicMock(return_value=MagicMock())
+    backend.listen_user_presence = MagicMock(return_value=MagicMock())
+    return backend
+
+
 def _entry_with_ble() -> MockConfigEntry:
     """Return a config entry whose vehicle subentry is already BLE-paired."""
     entry = mock_config_entry()
@@ -117,7 +130,7 @@ async def _paired_entry(
     """
     entry = _entry_with_ble()
     entry.add_to_hass(hass)
-    bluetooth_vehicle = AsyncMock()
+    bluetooth_vehicle = _ble_backend()
     bluetooth_vehicle.set_device = MagicMock()
 
     with (
@@ -271,7 +284,7 @@ async def test_vehicle_paired_but_never_seen(hass: HomeAssistant) -> None:
         patch("homeassistant.components.teslemetry.PLATFORMS", []),
     ):
         mock_parent.return_value.get_private_key = AsyncMock()
-        mock_parent.return_value.vehicles.createBluetooth.return_value = AsyncMock()
+        mock_parent.return_value.vehicles.createBluetooth.return_value = _ble_backend()
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
@@ -292,10 +305,8 @@ async def test_unload_disconnects_bluetooth(
     """Unloading a routed entry disconnects its Bluetooth backend, errors and all."""
     entry = _entry_with_ble()
     entry.add_to_hass(hass)
-    bluetooth_vehicle = AsyncMock()
+    bluetooth_vehicle = _ble_backend()
     bluetooth_vehicle.disconnect = AsyncMock(side_effect=disconnect_error)
-    # listen_connection_status is synchronous and returns an unsubscribe callable.
-    bluetooth_vehicle.listen_connection_status = MagicMock(return_value=MagicMock())
 
     with (
         patch(
@@ -329,9 +340,7 @@ async def test_unload_never_connected_bluetooth(hass: HomeAssistant) -> None:
     """
     entry = _entry_with_ble()
     entry.add_to_hass(hass)
-    bluetooth_vehicle = AsyncMock()
-    # listen_connection_status is synchronous and returns an unsubscribe callable.
-    bluetooth_vehicle.listen_connection_status = MagicMock(return_value=MagicMock())
+    bluetooth_vehicle = _ble_backend()
 
     with (
         patch(
