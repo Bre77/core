@@ -47,6 +47,7 @@ def _ble_backend() -> AsyncMock:
     registrations return coroutines instead of unsubscribe callables.
     """
     backend = AsyncMock()
+    backend.listen_connection_status = MagicMock(return_value=MagicMock())
     backend.listen_vehicle_sleep_status = MagicMock(return_value=MagicMock())
     backend.listen_user_presence = MagicMock(return_value=MagicMock())
     return backend
