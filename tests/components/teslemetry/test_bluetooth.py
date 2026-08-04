@@ -294,6 +294,8 @@ async def test_unload_disconnects_bluetooth(
     entry.add_to_hass(hass)
     bluetooth_vehicle = AsyncMock()
     bluetooth_vehicle.disconnect = AsyncMock(side_effect=disconnect_error)
+    # listen_connection_status is synchronous and returns an unsubscribe callable.
+    bluetooth_vehicle.listen_connection_status = MagicMock(return_value=MagicMock())
 
     with (
         patch(
@@ -328,6 +330,8 @@ async def test_unload_never_connected_bluetooth(hass: HomeAssistant) -> None:
     entry = _entry_with_ble()
     entry.add_to_hass(hass)
     bluetooth_vehicle = AsyncMock()
+    # listen_connection_status is synchronous and returns an unsubscribe callable.
+    bluetooth_vehicle.listen_connection_status = MagicMock(return_value=MagicMock())
 
     with (
         patch(
