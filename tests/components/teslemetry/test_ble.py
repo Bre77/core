@@ -1,7 +1,6 @@
 """Test the Teslemetry BLE broadcast data source."""
 
 from collections.abc import Callable
-from datetime import timedelta
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -27,11 +26,10 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
-from homeassistant.util import dt as dt_util
 
 from . import mock_config_entry, setup_platform
 
-from tests.common import MockConfigEntry, async_fire_time_changed
+from tests.common import MockConfigEntry
 
 VIN = "LRW3F7EK4NC700000"
 ADDRESS = "AA:BB:CC:DD:EE:FF"
@@ -59,18 +57,21 @@ def _entry_with_ble() -> MockConfigEntry:
 
 async def _setup_ble(
     hass: HomeAssistant,
-    connected: bool = False,
+    connected: bool = True,
     platforms: tuple[Platform, ...] = (Platform.BINARY_SENSOR,),
 ) -> tuple[MockConfigEntry, MagicMock]:
     """Set up the given platforms for a BLE-paired vehicle.
 
     Returns the entry and the BLE client mock. The client's ``listen_*`` methods
-    record the manager's broadcast callbacks so tests can feed them raw values.
+    record the manager's broadcast callbacks so tests can feed them raw values;
+    ``listen_connection_status`` records the manager's connection callback. When
+    ``connected`` the link is brought up via that callback, as the library does
+    once a session is established.
     """
     entry = _entry_with_ble()
     entry.add_to_hass(hass)
     bluetooth_vehicle = MagicMock()
-    bluetooth_vehicle.client = MagicMock(is_connected=connected)
+    bluetooth_vehicle.client = MagicMock()
 
     with (
         patch(
@@ -89,6 +90,10 @@ async def _setup_ble(
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
+    if connected:
+        _emit_connection(bluetooth_vehicle, True)
+        await hass.async_block_till_done()
+
     return entry, bluetooth_vehicle
 
 
@@ -96,6 +101,13 @@ def _emit(mock_listener: MagicMock, value: Any) -> None:
     """Invoke the manager's captured broadcast callback with a raw value."""
     callback: Callable[[Any], None] = mock_listener.call_args[0][0]
     callback(value)
+
+
+def _emit_connection(bluetooth: MagicMock, connected: bool) -> None:
+    """Fire the library's connection-status callback the manager subscribed with."""
+    listener = bluetooth.listen_connection_status
+    callback: Callable[[bool], None] = listener.call_args[0][0]
+    callback(connected)
 
 
 async def test_paired_vehicle_uses_broadcasts(
@@ -207,8 +219,8 @@ async def test_unknown_sleep_never_false(
 async def test_link_loss_marks_unavailable(
     hass: HomeAssistant, entity_registry: er.EntityRegistry
 ) -> None:
-    """An unexpected link drop makes every broadcast sensor unavailable."""
-    _entry, bluetooth = await _setup_ble(hass, connected=True)
+    """A library disconnect event makes every broadcast sensor unavailable."""
+    _entry, bluetooth = await _setup_ble(hass)
     state_id = entity_registry.async_get_entity_id(
         "binary_sensor", "teslemetry", f"{VIN}-state"
     )
@@ -220,17 +232,42 @@ async def test_link_loss_marks_unavailable(
     await hass.async_block_till_done()
     assert hass.states.get(state_id).state == STATE_ON
 
-    bluetooth.client.is_connected = False
-    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=6))
+    _emit_connection(bluetooth, False)
     await hass.async_block_till_done()
     assert hass.states.get(state_id).state == STATE_UNAVAILABLE
+
+
+async def test_broadcast_without_connection_stays_unavailable(
+    hass: HomeAssistant, entity_registry: er.EntityRegistry
+) -> None:
+    """A broadcast alone no longer implies the link is up; state stays unavailable."""
+    _entry, bluetooth = await _setup_ble(hass, connected=False)
+    state_id = entity_registry.async_get_entity_id(
+        "binary_sensor", "teslemetry", f"{VIN}-state"
+    )
+
+    _emit(
+        bluetooth.listen_vehicle_sleep_status,
+        VehicleSleepStatus_E.VEHICLE_SLEEP_STATUS_AWAKE,
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(state_id).state == STATE_UNAVAILABLE
+
+    # Only the library's connection event brings the sensor online.
+    _emit_connection(bluetooth, True)
+    _emit(
+        bluetooth.listen_vehicle_sleep_status,
+        VehicleSleepStatus_E.VEHICLE_SLEEP_STATUS_AWAKE,
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(state_id).state == STATE_ON
 
 
 async def test_reconnect_invalidates_stale_value(
     hass: HomeAssistant, entity_registry: er.EntityRegistry
 ) -> None:
     """A value from a prior connection stays unavailable until a fresh broadcast."""
-    _entry, bluetooth = await _setup_ble(hass, connected=True)
+    _entry, bluetooth = await _setup_ble(hass)
     state_id = entity_registry.async_get_entity_id(
         "binary_sensor", "teslemetry", f"{VIN}-state"
     )
@@ -242,14 +279,12 @@ async def test_reconnect_invalidates_stale_value(
     await hass.async_block_till_done()
     assert hass.states.get(state_id).state == STATE_ON
 
-    bluetooth.client.is_connected = False
-    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=6))
+    _emit_connection(bluetooth, False)
     await hass.async_block_till_done()
     assert hass.states.get(state_id).state == STATE_UNAVAILABLE
 
     # The link is back, but the pre-drop value is stale until a new broadcast.
-    bluetooth.client.is_connected = True
-    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=12))
+    _emit_connection(bluetooth, True)
     await hass.async_block_till_done()
     assert hass.states.get(state_id).state == STATE_UNAVAILABLE
 
@@ -325,8 +360,7 @@ async def test_cover_link_loss_marks_unavailable(
     await hass.async_block_till_done()
     assert hass.states.get(cover_id).state == STATE_CLOSED
 
-    bluetooth.client.is_connected = False
-    async_fire_time_changed(hass, dt_util.utcnow() + timedelta(seconds=6))
+    _emit_connection(bluetooth, False)
     await hass.async_block_till_done()
     assert hass.states.get(cover_id).state == STATE_UNAVAILABLE
 
