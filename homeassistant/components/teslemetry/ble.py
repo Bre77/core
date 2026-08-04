@@ -38,11 +38,6 @@ from homeassistant.util import dt as dt_util
 from .entity import TeslemetryRootEntity
 from .models import TeslemetryVehicleData
 
-# Poll only local process state to notice an unexpected link drop; the library
-# has no connection-status callback yet. This issues no GATT call and never
-# reconnects, scans, or wakes the vehicle.
-CONNECTION_WATCH_INTERVAL = timedelta(seconds=5)
-
 # How often the scheduler re-evaluates whether a due INFO read may run.
 SCHEDULER_INTERVAL = timedelta(seconds=5)
 
@@ -99,7 +94,7 @@ class TeslemetryBLEDataManager:
         self._generation = 0
         self._connected = False
         self._connection_listeners: list[Callable[[], None]] = []
-        self._unsub_watcher: Callable[[], None] | None = None
+        self._unsub_connection: Callable[[], None] | None = None
         self._unsub_scheduler: Callable[[], None] | None = None
         self._gate_unsubs: list[Callable[[], None]] = []
         # Scheduler gate state; ``None`` means unknown, which never permits a read.
@@ -127,9 +122,9 @@ class TeslemetryBLEDataManager:
 
     @callback
     def async_start(self) -> None:
-        """Watch the link and gate signals, and run the INFO scheduler."""
-        self._unsub_watcher = async_track_time_interval(
-            self.hass, self._async_watch_connection, CONNECTION_WATCH_INTERVAL
+        """Subscribe to connection-status and gate signals, and run the scheduler."""
+        self._unsub_connection = self._bluetooth.listen_connection_status(
+            self._handle_connection_status
         )
         self._unsub_scheduler = async_track_time_interval(
             self.hass, self._async_scheduler_tick, SCHEDULER_INTERVAL
@@ -146,10 +141,10 @@ class TeslemetryBLEDataManager:
 
     @callback
     def async_stop(self) -> None:
-        """Stop all timers and gate listeners on unload."""
-        if self._unsub_watcher is not None:
-            self._unsub_watcher()
-            self._unsub_watcher = None
+        """Stop the connection listener, scheduler, and gate listeners on unload."""
+        if self._unsub_connection is not None:
+            self._unsub_connection()
+            self._unsub_connection = None
         if self._unsub_scheduler is not None:
             self._unsub_scheduler()
             self._unsub_scheduler = None
@@ -158,13 +153,13 @@ class TeslemetryBLEDataManager:
         self._gate_unsubs = []
 
     @callback
-    def _async_watch_connection(self, now: datetime) -> None:
-        """Reconcile the cached link state with the client's, invalidating on loss."""
-        client = self._bluetooth.client
-        connected = client is not None and client.is_connected
-        if connected == self._connected:
-            return
-        # A drop makes every value received on the old link stale.
+    def _handle_connection_status(self, connected: bool) -> None:
+        """Drive cached link state from the library's connection event.
+
+        The library fires only genuine transitions and owns the stale-client
+        identity guard, so this just records the new state and, on a drop, bumps
+        the generation to make every value from the lost link stale.
+        """
         if not connected:
             self._generation += 1
         self._connected = connected
@@ -205,11 +200,6 @@ class TeslemetryBLEDataManager:
 
         @callback
         def handle(raw: Any) -> None:
-            # A broadcast is itself proof the link is up, so surface it at once
-            # rather than waiting up to a watch interval.
-            if not self._connected:
-                self._connected = True
-                self._async_notify_connection()
             update(convert(raw), self._generation)
 
         return register(self._bluetooth, handle)
