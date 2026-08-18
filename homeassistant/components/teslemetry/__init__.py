@@ -24,7 +24,7 @@ from homeassistant.components.application_credentials import (
     async_import_client_credential,
 )
 from homeassistant.components.bluetooth import async_ble_device_from_address
-from homeassistant.config_entries import ConfigEntry, ConfigEntryState
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState, ConfigSubentry
 from homeassistant.const import CONF_ACCESS_TOKEN, CONF_ADDRESS, Platform
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import (
@@ -276,14 +276,16 @@ def _setup_subentry_change_reload(
     entry.async_on_unload(entry.add_update_listener(_handle_update))
 
 
-def _ble_address_for_vin(entry: TeslemetryConfigEntry, vin: str) -> str | None:
-    """Return the paired Bluetooth address for a vehicle, if one was added."""
+def _ble_subentry_for_vin(
+    entry: TeslemetryConfigEntry, vin: str
+) -> ConfigSubentry | None:
+    """Return the Bluetooth vehicle subentry for a VIN, if one was added."""
     for subentry in entry.subentries.values():
         if (
             subentry.subentry_type == SUBENTRY_TYPE_VEHICLE
             and subentry.data.get(CONF_VIN) == vin
         ):
-            return subentry.data.get(CONF_ADDRESS)
+            return subentry
     return None
 
 
@@ -294,8 +296,20 @@ async def _async_resolve_vehicle_api(
     cloud_vehicle: Vehicle,
 ) -> Vehicle | VehicleRouter:
     """Return the API a vehicle's platforms should call."""
-    address = _ble_address_for_vin(entry, vin)
+    subentry = _ble_subentry_for_vin(entry, vin)
+    if subentry is None:
+        return cloud_vehicle
+
+    address = subentry.data.get(CONF_ADDRESS)
     if not address:
+        # A subentry with no address means Bluetooth was enabled but never
+        # finished pairing (partial data, hand-edited .storage, or a future
+        # migration). Surface it instead of silently serving cloud-only forever.
+        LOGGER.warning(
+            "Vehicle %s has a Bluetooth subentry but no paired address; "
+            "using cloud control only. Reconfigure it to repair Bluetooth pairing",
+            vin,
+        )
         return cloud_vehicle
 
     parent = await async_get_ble_parent(hass)

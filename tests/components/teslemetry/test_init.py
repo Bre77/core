@@ -1268,6 +1268,39 @@ async def test_vehicle_cloud_without_bluetooth(hass: HomeAssistant) -> None:
     assert not isinstance(vehicle.api, VehicleRouter)
 
 
+async def test_vehicle_subentry_without_address_warns(
+    hass: HomeAssistant, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A vehicle subentry with no address warns before falling back to cloud."""
+    base = mock_config_entry()
+    entry = MockConfigEntry(
+        domain=base.domain,
+        version=base.version,
+        minor_version=base.minor_version,
+        unique_id=base.unique_id,
+        data=dict(base.data),
+        subentries_data=[
+            ConfigSubentryData(
+                subentry_type=SUBENTRY_TYPE_VEHICLE,
+                unique_id=VIN,
+                title="Test",
+                data={CONF_VIN: VIN},
+            )
+        ],
+    )
+    entry.add_to_hass(hass)
+
+    with patch("homeassistant.components.teslemetry.PLATFORMS", []):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    vehicle = entry.runtime_data.vehicles[0]
+    # An enabled-but-unpaired subentry must not silently pass as "never paired".
+    assert isinstance(vehicle.api, Vehicle)
+    assert not isinstance(vehicle.api, VehicleRouter)
+    assert "no paired address" in caplog.text
+
+
 @asynccontextmanager
 async def _paired_entry(
     hass: HomeAssistant, ble_lookup: MagicMock
