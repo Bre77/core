@@ -54,6 +54,7 @@
   "config_subentries": {
     "vehicle": {
       "abort": {
+        "already_configured": "[%key:common::config_flow::abort::already_configured_device%]",
         "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
         "no_vehicles": "Every vehicle in your Teslemetry account has already been added over Bluetooth.",
         "reconfigure_successful": "[%key:common::config_flow::abort::reconfigure_successful%]"

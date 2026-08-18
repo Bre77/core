@@ -32,6 +32,7 @@ from homeassistant.components.teslemetry.const import (
 from homeassistant.config_entries import (
     SOURCE_USER,
     ConfigEntryState,
+    ConfigSubentry,
     ConfigSubentryData,
     SubentryFlowResult,
 )
@@ -681,6 +682,47 @@ async def test_subentry_pairing_already_whitelisted(hass: HomeAssistant) -> None
     assert subentries[0].data == {CONF_VIN: VIN, CONF_ADDRESS: ADDRESS}
     vehicle.connect.assert_awaited_once()
     vehicle.disconnect.assert_awaited_once()
+
+
+async def test_subentry_pairing_already_configured(hass: HomeAssistant) -> None:
+    """A second add flow racing on the same VIN aborts with already_configured."""
+    entry = await _setup_account_entry(hass)
+    vehicle = _mock_vehicle(on_whitelist=True)
+
+    with (
+        patch(
+            "homeassistant.components.teslemetry.config_flow.async_discovered_service_info",
+            return_value=[_discovered_info()],
+        ),
+        patch(
+            "homeassistant.components.teslemetry.config_flow.async_get_ble_parent",
+            return_value=_mock_ble_parent(vehicle),
+        ),
+        patch.object(hass.config_entries, "async_schedule_reload"),
+    ):
+        result = await _start_pairing_at_scan(hass, entry)
+
+        # Another add flow finishes pairing this VIN first, between flow start and
+        # this flow committing its subentry.
+        hass.config_entries.async_add_subentry(
+            entry,
+            ConfigSubentry(
+                data={CONF_VIN: VIN, CONF_ADDRESS: ADDRESS},
+                subentry_type=SUBENTRY_TYPE_VEHICLE,
+                title="Test",
+                unique_id=VIN,
+            ),
+        )
+
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {}
+        )
+        await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+    # The duplicate flow does not add a second subentry for the VIN.
+    assert len(entry.get_subentries_of_type(SUBENTRY_TYPE_VEHICLE)) == 1
 
 
 async def test_subentry_pairing_requires_key_approval(hass: HomeAssistant) -> None:
