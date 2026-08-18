@@ -353,7 +353,20 @@ class VehicleSubentryFlowHandler(ConfigSubentryFlow):
             LOGGER.error("Bluetooth pairing was rejected: %s", err)
             self._pair_error = {"base": "pair_failed"}
             return self.async_show_progress_done(next_step_id="instructions")
+        except (Exception, asyncio.CancelledError) as err:  # noqa: BLE001
+            # Any other result - shutdown cancellation, or a crypto/transport
+            # error pair() did not wrap - must still release the open BLE link
+            # rather than exit the step with it dangling.
+            LOGGER.error("Unexpected error during Bluetooth pairing: %s", err)
+            await self._async_disconnect()
+            return self.async_show_progress_done(next_step_id="pair_failed")
         return self.async_show_progress_done(next_step_id="pair")
+
+    async def async_step_pair_failed(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Abort after an unexpected pairing failure, link already released."""
+        return self.async_abort(reason="cannot_connect")
 
     async def _async_finish(self) -> SubentryFlowResult:
         """Persist the paired BLE address, deferring the reload to the subentry-change listener so setup sees the committed address."""

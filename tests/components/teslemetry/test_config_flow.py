@@ -820,6 +820,59 @@ async def test_subentry_authorize_failure(
     vehicle.pair.assert_awaited_once()
 
 
+@pytest.mark.parametrize(
+    "pair_error",
+    [ValueError("boom"), asyncio.CancelledError()],
+    ids=["unexpected", "cancelled"],
+)
+async def test_subentry_authorize_unexpected_error_aborts(
+    hass: HomeAssistant, pair_error: BaseException
+) -> None:
+    """An unexpected pair() result disconnects the link and aborts, never leaks it."""
+    entry = await _setup_account_entry(hass)
+    vehicle = _mock_vehicle(on_whitelist=False)
+    release = asyncio.Event()
+
+    async def _pair() -> None:
+        await release.wait()
+        raise pair_error
+
+    vehicle.pair = AsyncMock(side_effect=_pair)
+
+    with (
+        patch(
+            "homeassistant.components.teslemetry.config_flow.async_discovered_service_info",
+            return_value=[_discovered_info()],
+        ),
+        patch(
+            "homeassistant.components.teslemetry.config_flow.async_get_ble_parent",
+            return_value=_mock_ble_parent(vehicle),
+        ),
+    ):
+        result = await _start_pairing_at_scan(hass, entry)
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {}
+        )
+        assert result["step_id"] == "instructions"
+
+        # confirm instructions -> authorize runs pair() as a progress task
+        result = await hass.config_entries.subentries.async_configure(
+            result["flow_id"], {}
+        )
+        assert result["type"] is FlowResultType.SHOW_PROGRESS
+
+        # pair() fails unexpectedly -> link released -> flow aborts
+        release.set()
+        await hass.async_block_till_done()
+        result = await hass.config_entries.subentries.async_configure(result["flow_id"])
+        await hass.async_block_till_done()
+
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "cannot_connect"
+    assert not entry.get_subentries_of_type(SUBENTRY_TYPE_VEHICLE)
+    vehicle.disconnect.assert_awaited_once()
+
+
 async def test_subentry_authorize_existing_key_finishes(hass: HomeAssistant) -> None:
     """Approving the key after a timeout, then retrying, completes the pairing."""
     entry = await _setup_account_entry(hass)
