@@ -287,7 +287,9 @@ class VehicleSubentryFlowHandler(ConfigSubentryFlow):
             await self._vehicle.handshakeVehicleSecurity()
         except NotOnWhitelistFault:
             return await self.async_step_instructions()
-        except TeslaFleetError as err:
+        except (BleakError, TeslaFleetError, TimeoutError) as err:
+            # A link drop or reply timeout must abort through the same path so
+            # the open BLE link is disconnected, not left dangling.
             LOGGER.error("Bluetooth security handshake failed: %s", err)
             return await self._async_abort("cannot_connect")
         return await self._async_finish()

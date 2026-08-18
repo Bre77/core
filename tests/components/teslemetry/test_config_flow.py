@@ -890,11 +890,23 @@ async def test_subentry_authorize_existing_key_finishes(hass: HomeAssistant) -> 
     vehicle.disconnect.assert_awaited_once()
 
 
-async def test_subentry_handshake_error_aborts(hass: HomeAssistant) -> None:
-    """A handshake failure aborts with cannot_connect; a disconnect error is swallowed."""
+@pytest.mark.parametrize(
+    "handshake_error",
+    [TeslaFleetError(), BleakError("boom"), TimeoutError()],
+    ids=["fleet", "bleak", "timeout"],
+)
+async def test_subentry_handshake_error_aborts(
+    hass: HomeAssistant, handshake_error: Exception
+) -> None:
+    """A handshake failure aborts with cannot_connect; a disconnect error is swallowed.
+
+    A link drop (BleakError) or reply timeout (TimeoutError) must be handled the
+    same as a TeslaFleetError, so the open BLE link is disconnected instead of
+    escaping the step and leaking the connection.
+    """
     entry = await _setup_account_entry(hass)
     vehicle = _mock_vehicle()
-    vehicle.handshakeVehicleSecurity = AsyncMock(side_effect=TeslaFleetError())
+    vehicle.handshakeVehicleSecurity = AsyncMock(side_effect=handshake_error)
     vehicle.disconnect = AsyncMock(side_effect=BleakError("boom"))
 
     with (
