@@ -1513,33 +1513,43 @@ async def test_ble_parent_concurrent_first_init(hass: HomeAssistant) -> None:
     mock_parent.return_value.get_private_key.assert_awaited_once()
 
 
-async def test_router_does_not_fail_over_on_unconfirmed() -> None:
-    """An unconfirmed BLE command is never replayed on the cloud backend."""
-    bluetooth = AsyncMock()
-    bluetooth.actuate_trunk = AsyncMock(side_effect=BluetoothUnconfirmedCommand())
-    cloud = AsyncMock()
-    cloud.actuate_trunk = AsyncMock(return_value={"response": {"result": True}})
-    router = VehicleRouter(bluetooth, cloud)
+async def test_router_does_not_fail_over_on_unconfirmed(hass: HomeAssistant) -> None:
+    """An unconfirmed BLE command is never replayed on the cloud backend.
 
-    with pytest.raises(BluetoothUnconfirmedCommand):
-        await router.actuate_trunk()
+    Driven through the integration's `_async_resolve_vehicle_api` so the router
+    and its health check are the ones the feature actually builds, not a bare
+    library router.
+    """
+    async with _paired_entry(hass, MagicMock(return_value=MagicMock())) as (
+        router,
+        bluetooth_vehicle,
+        cloud,
+    ):
+        bluetooth_vehicle.flash_lights.side_effect = BluetoothUnconfirmedCommand()
 
-    cloud.actuate_trunk.assert_not_called()
+        with pytest.raises(BluetoothUnconfirmedCommand):
+            await router.flash_lights()
+
+        cloud.assert_not_called()
 
 
-async def test_router_fails_over_on_command_failed() -> None:
-    """A command proven not to have applied over BLE fails over to the cloud."""
-    bluetooth = AsyncMock()
-    bluetooth.actuate_trunk = AsyncMock(side_effect=BluetoothCommandFailed())
-    cloud = AsyncMock()
-    cloud.actuate_trunk = AsyncMock(return_value={"response": {"result": True}})
-    router = VehicleRouter(bluetooth, cloud)
+async def test_router_fails_over_on_command_failed(hass: HomeAssistant) -> None:
+    """A command proven not to have applied over BLE fails over to the cloud.
 
-    result = await router.actuate_trunk()
+    Driven through the integration's `_async_resolve_vehicle_api` rather than a
+    bare library router.
+    """
+    async with _paired_entry(hass, MagicMock(return_value=MagicMock())) as (
+        router,
+        bluetooth_vehicle,
+        cloud,
+    ):
+        bluetooth_vehicle.flash_lights.side_effect = BluetoothCommandFailed()
 
-    assert result == {"response": {"result": True}}
-    bluetooth.actuate_trunk.assert_awaited_once()
-    cloud.actuate_trunk.assert_awaited_once()
+        assert await router.flash_lights() == CLOUD_RESULT
+
+        bluetooth_vehicle.flash_lights.assert_awaited_once()
+        cloud.assert_awaited_once()
 
 
 async def _setup_paired_entry(hass: HomeAssistant) -> MockConfigEntry:
