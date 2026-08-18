@@ -1480,6 +1480,44 @@ async def test_unload_never_connected_bluetooth(hass: HomeAssistant) -> None:
     bluetooth_vehicle.disconnect.assert_awaited_once()
 
 
+async def test_unload_bounds_wedged_disconnect(hass: HomeAssistant) -> None:
+    """A disconnect that never returns times out instead of wedging unload."""
+    entry = _entry_with_ble()
+    entry.add_to_hass(hass)
+    bluetooth_vehicle = AsyncMock()
+
+    async def _never_returns() -> None:
+        await asyncio.Event().wait()
+
+    bluetooth_vehicle.disconnect = AsyncMock(side_effect=_never_returns)
+
+    with (
+        patch(
+            "homeassistant.components.teslemetry.async_ble_device_from_address",
+            return_value=MagicMock(),
+        ),
+        patch(
+            "homeassistant.components.teslemetry.helpers.TeslaBluetooth"
+        ) as mock_parent,
+        patch("homeassistant.components.teslemetry.PLATFORMS", []),
+        patch("homeassistant.components.teslemetry.BLE_DISCONNECT_TIMEOUT", 0.01),
+    ):
+        mock_parent.return_value.get_private_key = AsyncMock()
+        mock_parent.return_value.vehicles.createBluetooth.return_value = (
+            bluetooth_vehicle
+        )
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+        assert isinstance(entry.runtime_data.vehicles[0].api, VehicleRouter)
+
+        # Unload still completes even though the adapter never acknowledges.
+        assert await hass.config_entries.async_unload(entry.entry_id)
+        await hass.async_block_till_done()
+
+    bluetooth_vehicle.disconnect.assert_awaited_once()
+    assert entry.state is ConfigEntryState.NOT_LOADED
+
+
 async def test_ble_parent_shared_and_cached(hass: HomeAssistant) -> None:
     """The BLE parent (holding the private key) is created once and reused."""
     with patch(

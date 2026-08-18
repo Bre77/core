@@ -86,6 +86,10 @@ type TeslemetryConfigEntry = ConfigEntry[TeslemetryData]
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
+# Best-effort teardown: bound the BLE disconnect on unload so a wedged adapter
+# cannot leave the entry stuck unloading.
+BLE_DISCONNECT_TIMEOUT: Final = 5.0
+
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Telemetry integration."""
@@ -643,7 +647,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) 
         for vehicle in entry.runtime_data.vehicles:
             if isinstance(vehicle.api, VehicleRouter):
                 try:
-                    await vehicle.api.primary.disconnect()
+                    async with asyncio.timeout(BLE_DISCONNECT_TIMEOUT):
+                        await vehicle.api.primary.disconnect()
                 except (BleakError, TeslaFleetError, TimeoutError) as err:
                     LOGGER.debug(
                         "Error disconnecting Bluetooth for %s: %s", vehicle.vin, err
