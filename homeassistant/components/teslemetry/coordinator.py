@@ -78,6 +78,7 @@ LOCAL_LIVE_COORDINATOR_KEYS: frozenset[str] = frozenset(
         "grid_power",
         "generator_power",
         "island_status",
+        "grid_status",
     }
 )
 
