@@ -15,6 +15,7 @@ from tesla_fleet_api.exceptions import (
     SubscriptionRequired,
     TeslaFleetError,
 )
+from tesla_fleet_api.tesla import EnergySiteRouter
 from tesla_fleet_api.teslemetry import EnergySite, Teslemetry, Vehicle
 
 from homeassistant.core import HomeAssistant
@@ -62,6 +63,23 @@ ENDPOINTS = [
     VehicleDataEndpoint.VEHICLE_STATE,
     VehicleDataEndpoint.VEHICLE_CONFIG,
 ]
+
+# live_status keys a local Powerwall can serve. Entities for these keys read
+# the local live coordinator on a paired site; every other live key stays on
+# the cloud live coordinator because the local gateway has no equivalent.
+LOCAL_LIVE_COORDINATOR_KEYS: frozenset[str] = frozenset(
+    {
+        "solar_power",
+        "energy_left",
+        "total_pack_energy",
+        "percentage_charged",
+        "battery_power",
+        "load_power",
+        "grid_power",
+        "generator_power",
+        "island_status",
+    }
+)
 
 
 class TeslemetryMetadataCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -185,7 +203,7 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
         self,
         hass: HomeAssistant,
         config_entry: TeslemetryConfigEntry,
-        api: EnergySite,
+        api: EnergySite | EnergySiteRouter,
         data: dict[str, Any],
     ) -> None:
         """Initialize Teslemetry Energy Site Live coordinator."""
@@ -229,6 +247,28 @@ class TeslemetryEnergySiteLiveCoordinator(DataUpdateCoordinator[dict[str, Any]])
             wc["din"]: wc for wc in (data.get("wall_connectors") or [])
         }
         return data
+
+
+class TeslemetryEnergySiteLiveLocalCoordinator(TeslemetryEnergySiteLiveCoordinator):
+    """Local-first live coordinator for a paired Powerwall energy site.
+
+    Reuses the cloud coordinator's fetch and retry logic but is handed the
+    local-first ``EnergySiteRouter`` as its api, so the paired site's locally
+    supported live keys read from the LAN gateway with cloud fallback. It runs
+    alongside the separate cloud live coordinator, which keeps serving the
+    cloud-only live entities from one shared snapshot each.
+    """
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: TeslemetryConfigEntry,
+        api: EnergySiteRouter,
+        data: dict[str, Any],
+    ) -> None:
+        """Initialize Teslemetry Energy Site Local Live coordinator."""
+        super().__init__(hass, config_entry, api, data)
+        self.name = "Teslemetry Energy Site Local Live"
 
 
 class TeslemetryEnergySiteInfoCoordinator(DataUpdateCoordinator[dict[str, Any]]):

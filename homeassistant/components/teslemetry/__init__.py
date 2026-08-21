@@ -2,6 +2,7 @@
 
 import asyncio
 from collections.abc import Callable
+from copy import deepcopy
 from functools import partial
 from pathlib import Path
 from typing import Any, Final, cast
@@ -60,6 +61,7 @@ from .coordinator import (
     TeslemetryEnergyHistoryCoordinator,
     TeslemetryEnergySiteInfoCoordinator,
     TeslemetryEnergySiteLiveCoordinator,
+    TeslemetryEnergySiteLiveLocalCoordinator,
     TeslemetryMetadataCoordinator,
     TeslemetryVehicleDataCoordinator,
 )
@@ -604,6 +606,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                 hass, entry, bool(battery), site_id, energy_site
             )
 
+            # A paired site gets a second, local-first live coordinator for the
+            # Powerwall-supported live keys; the cloud live coordinator keeps
+            # serving the cloud-only live entities. Seed the local one from an
+            # independent copy so the cloud coordinator's in-place wall-connector
+            # normalisation does not corrupt the shared snapshot.
+            live_local_coordinator = (
+                TeslemetryEnergySiteLiveLocalCoordinator(
+                    hass, entry, energy_site_api, deepcopy(live_status)
+                )
+                if isinstance(energy_site_api, EnergySiteRouter)
+                and isinstance(live_status, dict)
+                else None
+            )
+
             energysites.append(
                 TeslemetryEnergyData(
                     api=energy_site_api,
@@ -614,6 +630,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                         if isinstance(live_status, dict)
                         else None
                     ),
+                    live_local_coordinator=live_local_coordinator,
                     info_coordinator=TeslemetryEnergySiteInfoCoordinator(
                         hass, entry, energy_site, product
                     ),
