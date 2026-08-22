@@ -2,6 +2,7 @@
 
 from collections.abc import Generator
 from copy import deepcopy
+import logging
 import time
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, PropertyMock, patch
@@ -9,7 +10,6 @@ from urllib.parse import parse_qs, urlparse
 
 from aiohttp import ClientConnectionError, ClientError
 from aiopowerwall import (
-    DEFAULT_GATEWAY_HOST,
     PowerwallAuthenticationError,
     PowerwallConnectionError,
     PowerwallFaultError,
@@ -25,6 +25,7 @@ from tesla_fleet_api.exceptions import (
     TeslaFleetError,
 )
 from tesla_fleet_api.teslemetry.energysite import AuthorizedClient, AuthorizedClients
+import voluptuous as vol
 
 from homeassistant.components.application_credentials import (
     ClientCredential,
@@ -53,7 +54,7 @@ from homeassistant.setup import async_setup_component
 from . import mock_config_entry, setup_platform
 from .const import CONFIG_V1, METADATA, PRODUCTS, UNIQUE_ID
 
-from tests.common import MockConfigEntry
+from tests.common import MockConfigEntry, load_json_object_fixture
 from tests.test_util.aiohttp import AiohttpClientMocker
 from tests.typing import ClientSessionGenerator
 
@@ -686,6 +687,11 @@ GATEWAY_DIN = "ABC123"
 PUBLIC_KEY_DER = b"public-key-der"
 PUBLIC_KEY_B64 = "cHVibGljLWtleS1kZXI="
 
+# Teslemetry serves gateway addresses as dotted-quad strings (Tesla Fleet's own
+# API serves uint32 ints); this is the Teslemetry-format networking_status shape,
+# with the Wi-Fi interface active-routed and the Ethernet one gateway-internal.
+NETWORKING_STATUS = load_json_object_fixture("powerwall_networking_status.json", DOMAIN)
+
 # aiopowerwall's PowerwallClient parses the PEM at construction time, so tests
 # that build one need a real (if undersized, for speed) RSA key rather than
 # arbitrary bytes.
@@ -827,10 +833,12 @@ async def _setup_account_no_subentry(hass: HomeAssistant) -> MockConfigEntry:
     return entry
 
 
-def _credentials_host_default(result: SubentryFlowResult) -> str:
-    """Return the CONF_HOST field's schema default from a credentials form result."""
+def _credentials_host_default(result: SubentryFlowResult) -> Any:
+    """Return the CONF_HOST schema default, or vol.UNDEFINED when it has none."""
     for key in result["data_schema"].schema:
         if key == CONF_HOST:
+            if key.default is vol.UNDEFINED:
+                return vol.UNDEFINED
             return key.default()
     raise AssertionError("CONF_HOST field not found in credentials schema")
 
@@ -1004,6 +1012,45 @@ async def test_subentry_credentials_prefills_discovered_host(
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "credentials"
     assert _credentials_host_default(result) == discovered_host
+
+
+@pytest.mark.usefixtures("mock_rsa_key")
+async def test_subentry_credentials_prefills_active_route_lan_address(
+    hass: HomeAssistant,
+) -> None:
+    """The resolved active-route LAN address, not the gateway-internal one, prefills."""
+    entry = await _setup_account_no_subentry(hass)
+
+    response = NETWORKING_STATUS["response"]
+    lan_address = response["wifi"]["ipv4_config"]["address"]
+    gateway_internal_address = response["eth"]["ipv4_config"]["address"]
+    # The realistic capture carries two interfaces: an active-routed Wi-Fi LAN
+    # address and a non-routed gateway-internal Ethernet address.
+    assert response["wifi"]["active_route"] is True
+    assert "active_route" not in response["eth"]
+    assert lan_address != gateway_internal_address
+
+    # Active-route selection lives in the library; find_gateway_address resolves
+    # the LAN address and the integration surfaces whatever it returns. Mock that
+    # boundary rather than decoding the body, which the pinned library cannot yet do.
+    with (
+        patch(
+            "tesla_fleet_api.teslemetry.energysite.TeslemetryEnergySite.find_gateway_address",
+            new=AsyncMock(return_value=lan_address),
+        ),
+        patch(
+            "tesla_fleet_api.teslemetry.energysite.TeslemetryEnergySite.find_authorized_clients",
+            new=AsyncMock(
+                return_value=_own_key_clients(AuthorizedClientState.VERIFIED)
+            ),
+        ),
+    ):
+        result = await _start_add_flow_select_site(hass, entry)
+
+    assert result["type"] is FlowResultType.FORM
+    assert result["step_id"] == "credentials"
+    assert _credentials_host_default(result) == lan_address
+    assert _credentials_host_default(result) != gateway_internal_address
 
 
 @pytest.mark.usefixtures("mock_rsa_key")
@@ -1200,16 +1247,26 @@ async def test_add_flow_aborts_when_entry_not_loaded(hass: HomeAssistant) -> Non
 
 
 @pytest.mark.usefixtures("mock_rsa_key")
-async def test_gateway_discovery_failure_proceeds_without_host(
+@pytest.mark.parametrize(
+    "discovery",
+    [
+        pytest.param({"return_value": None}, id="no_address_returned"),
+        pytest.param({"side_effect": ClientError}, id="client_error"),
+        pytest.param({"side_effect": TeslaFleetError}, id="tesla_fleet_error"),
+    ],
+)
+async def test_gateway_discovery_failure_leaves_host_blank(
     hass: HomeAssistant,
+    caplog: pytest.LogCaptureFixture,
+    discovery: dict[str, Any],
 ) -> None:
-    """A failed gateway-address discovery leaves the host default unset."""
+    """Failed gateway discovery leaves the host field blank and logs a warning."""
     entry = await _setup_account_no_subentry(hass)
 
     with (
         patch(
             "tesla_fleet_api.teslemetry.energysite.TeslemetryEnergySite.find_gateway_address",
-            new=AsyncMock(side_effect=ClientError),
+            new=AsyncMock(**discovery),
         ),
         patch(
             "tesla_fleet_api.teslemetry.energysite.TeslemetryEnergySite.find_authorized_clients",
@@ -1217,12 +1274,19 @@ async def test_gateway_discovery_failure_proceeds_without_host(
                 return_value=_own_key_clients(AuthorizedClientState.VERIFIED)
             ),
         ),
+        caplog.at_level(logging.WARNING),
     ):
         result = await _start_add_flow_select_site(hass, entry)
 
     assert result["type"] is FlowResultType.FORM
     assert result["step_id"] == "credentials"
-    assert _credentials_host_default(result) == DEFAULT_GATEWAY_HOST
+    # No pre-filled default at all: neither the setup-AP address nor any value.
+    assert _credentials_host_default(result) is vol.UNDEFINED
+    assert any(
+        record.levelno == logging.WARNING
+        and "gateway address discovery" in record.getMessage().lower()
+        for record in caplog.records
+    )
 
 
 @pytest.mark.usefixtures("mock_rsa_key")

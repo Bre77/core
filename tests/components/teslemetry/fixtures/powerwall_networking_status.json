@@ -1,0 +1,57 @@
+{
+  "response": {
+    "request_id": "00000000000000000000000000000000",
+    "wifi_config": {
+      "ssid": "HomeNetwork"
+    },
+    "wifi": {
+      "mac_address": "00:00:00:00:00:11",
+      "enabled": true,
+      "active_route": true,
+      "ipv4_config": {
+        "dhcp_enabled": true,
+        "address": "192.168.1.50",
+        "subnet_mask": "255.255.255.0",
+        "gateway": "192.168.1.1"
+      },
+      "connectivity_status": {
+        "connected_physical": true,
+        "connected_internet": true,
+        "connected_tesla": true,
+        "rssi": {
+          "signal_strength_percent": 45
+        }
+      },
+      "device_state": 6,
+      "device_state_reason": 1
+    },
+    "eth": {
+      "mac_address": "00:00:00:00:00:22",
+      "enabled": true,
+      "ipv4_config": {
+        "dhcp_enabled": true,
+        "address": "192.168.90.2",
+        "subnet_mask": "255.255.255.0"
+      },
+      "connectivity_status": {
+        "rssi": {}
+      }
+    },
+    "gsm": {
+      "enabled": true,
+      "ipv4_config": {
+        "address": "10.0.0.2",
+        "subnet_mask": "255.255.255.255",
+        "gateway": "10.0.0.2"
+      },
+      "connectivity_status": {
+        "connected_physical": true,
+        "connected_internet": true,
+        "connected_tesla": true,
+        "rssi": {
+          "signal_strength_percent": 60
+        }
+      }
+    }
+  }
+}
