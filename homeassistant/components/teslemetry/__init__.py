@@ -537,7 +537,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                 )
                 ble.async_start()
                 entry.async_on_unload(ble.async_stop)
-                funnel = async_setup_funnel(entry, vehicle_api.primary, coordinator)
+                funnel = async_setup_funnel(entry, vehicle_api.primary)
 
             vehicles.append(
                 TeslemetryVehicleData(

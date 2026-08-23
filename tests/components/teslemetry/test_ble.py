@@ -380,7 +380,7 @@ async def test_cover_link_loss_marks_unavailable(
         hass, connected=True, platforms=(Platform.COVER,)
     )
     # The rear trunk stays on the single-source BLE path; the charge port and
-    # front trunk moved to the multi-source funnel (see test_cover_funnel_*).
+    # front trunk moved to the funnel (see test_cover_funnel_*).
     cover_id = entity_registry.async_get_entity_id(
         "cover", "teslemetry", f"{VIN}-vehicle_state_rt"
     )
@@ -411,30 +411,10 @@ async def test_cover_funnel_ble_only(
     assert hass.states.get(cover_id).state == STATE_OPEN
 
 
-async def test_cover_funnel_vehicle_data_only(
+async def test_cover_funnel_link_loss_marks_unavailable(
     hass: HomeAssistant, entity_registry: er.EntityRegistry
 ) -> None:
-    """A funnel cover renders vehicle_data when no BLE broadcast reports."""
-    entry, _bluetooth = await _setup_ble(
-        hass, connected=True, platforms=(Platform.COVER,)
-    )
-    cover_id = entity_registry.async_get_entity_id(
-        "cover", "teslemetry", f"{VIN}-charge_state_charge_port_door_open"
-    )
-    assert hass.states.get(cover_id).state == STATE_UNAVAILABLE
-
-    coordinator = entry.runtime_data.vehicles[0].coordinator
-    coordinator.async_set_updated_data(
-        {**coordinator.data, "charge_state_charge_port_door_open": False}
-    )
-    await hass.async_block_till_done()
-    assert hass.states.get(cover_id).state == STATE_CLOSED
-
-
-async def test_cover_funnel_survives_ble_link_loss(
-    hass: HomeAssistant, entity_registry: er.EntityRegistry
-) -> None:
-    """A funnel cover keeps its value across a BLE link loss (multi-source)."""
+    """A funnel cover clears its BLE value when the link drops."""
     _entry, bluetooth = await _setup_ble(
         hass, connected=True, platforms=(Platform.COVER,)
     )
@@ -446,10 +426,10 @@ async def test_cover_funnel_survives_ble_link_loss(
     await hass.async_block_till_done()
     assert hass.states.get(cover_id).state == STATE_OPEN
 
-    # A BLE drop is not a null reading, so the funnelled value still stands.
+    # Single-source BLE: a link drop makes the last broadcast stale.
     _emit_connection(bluetooth, False)
     await hass.async_block_till_done()
-    assert hass.states.get(cover_id).state == STATE_OPEN
+    assert hass.states.get(cover_id).state == STATE_UNAVAILABLE
 
 
 async def test_cover_funnel_unload_releases_sources(
