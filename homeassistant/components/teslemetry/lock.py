@@ -5,50 +5,30 @@ from typing import Any, override
 
 from tesla_fleet_api import firmware_at_least
 from tesla_fleet_api.const import Scope
+from tesla_fleet_api.funnel import FieldPath
 from tesla_fleet_api.router import VehicleRouter
-
-# pylint: disable-next=no-name-in-module
-from tesla_fleet_api.tesla.vehicle.proto.vcsec_pb2 import VehicleLockState_E
 from tesla_fleet_api.teslemetry import Vehicle
 
 from homeassistant.components.lock import LockEntity
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
 from . import TeslemetryConfigEntry
-from .ble import TeslemetryVehicleBluetoothEntity
 from .const import DOMAIN
 from .entity import (
     TeslemetryRootEntity,
     TeslemetryVehiclePollingEntity,
     TeslemetryVehicleStreamEntity,
 )
+from .funnel import TeslemetryVehicleFunnelEntity
 from .helpers import handle_vehicle_command
 from .models import TeslemetryVehicleData
 
 ENGAGED = "Engaged"
 
 PARALLEL_UPDATES = 0
-
-_LOCKED_STATES = (
-    VehicleLockState_E.VEHICLELOCKSTATE_LOCKED,
-    VehicleLockState_E.VEHICLELOCKSTATE_INTERNAL_LOCKED,
-)
-_UNLOCKED_STATES = (
-    VehicleLockState_E.VEHICLELOCKSTATE_UNLOCKED,
-    VehicleLockState_E.VEHICLELOCKSTATE_SELECTIVE_UNLOCKED,
-)
-
-
-def _lock_is_locked(value: int) -> bool | None:
-    """Map the VCSEC lock enum; an unrecognized value is unavailable."""
-    if value in _LOCKED_STATES:
-        return True
-    if value in _UNLOCKED_STATES:
-        return False
-    return None
 
 
 async def async_setup_entry(
@@ -166,37 +146,21 @@ class TeslemetryStreamingVehicleLockEntity(
 
 
 class TeslemetryBluetoothVehicleLockEntity(
-    TeslemetryVehicleBluetoothEntity, TeslemetryVehicleLockEntity
+    TeslemetryVehicleFunnelEntity, TeslemetryVehicleLockEntity
 ):
-    """Bluetooth vehicle lock entity for Teslemetry."""
+    """Vehicle lock served by the vehicle's observation funnel."""
 
     _attr_is_locked: bool | None = None
 
     def __init__(self, data: TeslemetryVehicleData, scoped: bool) -> None:
         """Initialize the lock."""
-        super().__init__(data, "vehicle_state_locked")
+        super().__init__(data, "vehicle_state_locked", FieldPath.LOCKED)
         self.scoped = scoped
 
     @override
-    async def async_added_to_hass(self) -> None:
-        """Register the lock-state broadcast listener."""
-        await super().async_added_to_hass()
-        self.async_on_remove(
-            self.manager.async_on_broadcast(
-                lambda ble, callback: ble.listen_vehicle_lock_state(callback),
-                _lock_is_locked,
-                self._handle_broadcast,
-            )
-        )
-
-    @callback
-    @override
-    def _handle_broadcast(self, value: Any, generation: int) -> None:
-        """Render the broadcast lock state."""
-        self._value = value
-        self._generation = generation
-        self._attr_is_locked = value
-        self.async_write_ha_state()
+    def _render_value(self) -> None:
+        """Render the funnelled lock state."""
+        self._attr_is_locked = self._value
 
 
 class TeslemetryCableLockEntity(TeslemetryRootEntity, LockEntity):

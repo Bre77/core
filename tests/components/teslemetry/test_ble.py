@@ -502,22 +502,28 @@ async def test_lock_state_conversion(
     raw: int,
     expected: str,
 ) -> None:
-    """The vehicle lock maps its VCSEC enum; an unrecognized value is unavailable."""
+    """The funnelled lock renders every VCSEC state, including the partial ones.
+
+    INTERNAL_LOCKED and SELECTIVE_UNLOCKED resolve on the BLE-only funnel path
+    rather than being dropped; an unrecognized value leaves the lock
+    unavailable.
+    """
     _entry, bluetooth = await _setup_ble(hass, platforms=(Platform.LOCK,))
     lock_id = entity_registry.async_get_entity_id(
         "lock", "teslemetry", f"{VIN}-vehicle_state_locked"
     )
     assert lock_id is not None
+    assert hass.states.get(lock_id).state == STATE_UNAVAILABLE
 
     _emit(bluetooth.listen_vehicle_lock_state, raw)
     await hass.async_block_till_done()
     assert hass.states.get(lock_id).state == expected
 
 
-async def test_lock_link_loss_marks_unavailable(
+async def test_lock_funnel_link_loss_marks_unavailable(
     hass: HomeAssistant, entity_registry: er.EntityRegistry
 ) -> None:
-    """The broadcast vehicle lock goes unavailable on link loss, no cloud fallback."""
+    """The funnelled lock clears its BLE value when the link drops."""
     _entry, bluetooth = await _setup_ble(
         hass, connected=True, platforms=(Platform.LOCK,)
     )
@@ -531,15 +537,42 @@ async def test_lock_link_loss_marks_unavailable(
     await hass.async_block_till_done()
     assert hass.states.get(lock_id).state == LockState.LOCKED
 
+    # Single-source BLE: a link drop makes the last broadcast stale.
     _emit_connection(bluetooth, False)
     await hass.async_block_till_done()
+    assert hass.states.get(lock_id).state == STATE_UNAVAILABLE
+
+
+async def test_lock_funnel_unload_releases_sources(
+    hass: HomeAssistant, entity_registry: er.EntityRegistry
+) -> None:
+    """Unloading releases the funnel's BLE subscription and removes the lock."""
+    entry, bluetooth = await _setup_ble(
+        hass, connected=True, platforms=(Platform.LOCK,)
+    )
+    lock_id = entity_registry.async_get_entity_id(
+        "lock", "teslemetry", f"{VIN}-vehicle_state_locked"
+    )
+
+    _emit(
+        bluetooth.listen_vehicle_lock_state, VehicleLockState_E.VEHICLELOCKSTATE_LOCKED
+    )
+    await hass.async_block_till_done()
+    assert hass.states.get(lock_id).state == LockState.LOCKED
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # The funnelled BLE broadcast subscription is released on unload...
+    bluetooth.listen_vehicle_lock_state.return_value.assert_called()
+    # ...and the lock is not left live.
     assert hass.states.get(lock_id).state == STATE_UNAVAILABLE
 
 
 async def test_lock_command_routes_through_api(
     hass: HomeAssistant, entity_registry: er.EntityRegistry
 ) -> None:
-    """The broadcast vehicle lock still sends lock through the command router."""
+    """The funnelled vehicle lock still sends lock through the command router."""
     entry, bluetooth = await _setup_ble(
         hass, connected=True, platforms=(Platform.LOCK,)
     )
