@@ -16,8 +16,8 @@ from tesla_fleet_api.exceptions import (
     SubscriptionRequired,
     TeslaFleetError,
 )
-from tesla_fleet_api.funnel import ObservationFunnel
 from tesla_fleet_api.router import VehicleRouter
+from tesla_fleet_api.tesla.vehicle.stream_glue import BleBroadcastStreamGlue
 from tesla_fleet_api.teslemetry import Teslemetry, Vehicle
 from teslemetry_stream import TeslemetryStream
 
@@ -65,7 +65,6 @@ from .coordinator import (
     TeslemetryMetadataCoordinator,
     TeslemetryVehicleDataCoordinator,
 )
-from .funnel import async_setup_funnel
 from .helpers import async_get_ble_parent, async_update_device_sw_version, flatten
 from .models import TeslemetryData, TeslemetryEnergyData, TeslemetryVehicleData
 from .services import async_setup_services
@@ -530,14 +529,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
             # A paired vehicle's router exposes the direct BLE client as its
             # primary; local data reads take broadcasts from it, never the router.
             ble: TeslemetryBLEDataManager | None = None
-            funnel: ObservationFunnel | None = None
             if isinstance(vehicle_api, VehicleRouter):
                 ble = TeslemetryBLEDataManager(
                     hass, vehicle_api.primary, stream_vehicle, vin
                 )
                 ble.async_start()
                 entry.async_on_unload(ble.async_stop)
-                funnel = async_setup_funnel(entry, vehicle_api.primary)
+                # Publish the vehicle's BLE broadcasts into its stream so fields
+                # fed by both channels reach the one streaming entity per field.
+                # The glue takes any structural ingest() sink; the concrete
+                # stream vehicle narrows the params to dict, which mypy rejects.
+                glue = BleBroadcastStreamGlue(vehicle_api.primary, stream_vehicle)  # type: ignore[arg-type]
+                entry.async_on_unload(glue.stop)
 
             vehicles.append(
                 TeslemetryVehicleData(
@@ -552,7 +555,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                     device=device,
                     subentry_id=subentry_id,
                     ble=ble,
-                    funnel=funnel,
                 )
             )
 
@@ -835,11 +837,6 @@ async def async_setup_stream(
 ) -> None:
     """Set up the stream for a vehicle."""
     await vehicle.stream_vehicle.get_config()
-    entry.async_create_background_task(
-        hass,
-        vehicle.stream_vehicle.prefer_typed(True),
-        f"Prefer typed for {vehicle.vin}",
-    )
 
     entry.async_on_unload(
         vehicle.stream_vehicle.listen_Version(

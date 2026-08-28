@@ -5,7 +5,6 @@ from typing import Any, override
 
 from tesla_fleet_api import firmware_at_least
 from tesla_fleet_api.const import Scope, SunRoofCommand, Trunk, WindowCommand
-from tesla_fleet_api.funnel import FieldPath
 from tesla_fleet_api.router import VehicleRouter
 
 # pylint: disable-next=no-name-in-module
@@ -30,7 +29,6 @@ from .entity import (
     TeslemetryVehiclePollingEntity,
     TeslemetryVehicleStreamEntity,
 )
-from .funnel import TeslemetryVehicleFunnelEntity
 from .helpers import handle_vehicle_command
 from .models import TeslemetryVehicleData
 
@@ -69,9 +67,7 @@ async def async_setup_entry(
                 for vehicle in entry.runtime_data.vehicles
             ),
             (
-                TeslemetryBluetoothChargePortEntity(vehicle, entry.runtime_data.scopes)
-                if vehicle.ble is not None
-                else TeslemetryVehiclePollingChargePortEntity(
+                TeslemetryVehiclePollingChargePortEntity(
                     vehicle, entry.runtime_data.scopes
                 )
                 if vehicle.poll or not firmware_at_least(vehicle.firmware, "2024.44.25")
@@ -81,9 +77,7 @@ async def async_setup_entry(
                 for vehicle in entry.runtime_data.vehicles
             ),
             (
-                TeslemetryBluetoothFrontTrunkEntity(vehicle, entry.runtime_data.scopes)
-                if vehicle.ble is not None
-                else TeslemetryVehiclePollingFrontTrunkEntity(
+                TeslemetryVehiclePollingFrontTrunkEntity(
                     vehicle, entry.runtime_data.scopes
                 )
                 if vehicle.poll or not firmware_at_least(vehicle.firmware, "2024.26")
@@ -576,50 +570,6 @@ class TeslemetryBluetoothClosureCover(TeslemetryVehicleBluetoothEntity):
         self._generation = generation
         self._attr_is_closed = None if value is None else not value
         self.async_write_ha_state()
-
-
-class TeslemetryFunnelClosureCover(TeslemetryVehicleFunnelEntity):
-    """Mixin rendering a funnelled closure value (open=True) as closed state."""
-
-    _attr_is_closed: bool | None = None
-
-    @override
-    def _render_value(self) -> None:
-        """Render the funnelled open state as closed/not-closed."""
-        self._attr_is_closed = None if self._value is None else not self._value
-
-
-class TeslemetryBluetoothChargePortEntity(
-    TeslemetryFunnelClosureCover, TeslemetryChargePortEntity
-):
-    """Charge port door cover served by the vehicle's observation funnel."""
-
-    def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
-        """Initialize the cover."""
-        super().__init__(
-            vehicle,
-            "charge_state_charge_port_door_open",
-            FieldPath.CHARGE_PORT_DOOR_OPEN,
-        )
-        self.scoped = any(
-            scope in scopes
-            for scope in (Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS)
-        )
-        if not self.scoped:
-            self._attr_supported_features = CoverEntityFeature(0)
-
-
-class TeslemetryBluetoothFrontTrunkEntity(
-    TeslemetryFunnelClosureCover, TeslemetryFrontTrunkEntity
-):
-    """Front trunk cover served by the vehicle's observation funnel."""
-
-    def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
-        """Initialize the cover."""
-        super().__init__(vehicle, "vehicle_state_ft", FieldPath.DOOR_STATE_TRUNK_FRONT)
-        self.scoped = Scope.VEHICLE_CMDS in scopes
-        if not self.scoped:
-            self._attr_supported_features = CoverEntityFeature(0)
 
 
 class TeslemetryBluetoothRearTrunkEntity(
