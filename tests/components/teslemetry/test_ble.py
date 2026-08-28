@@ -137,6 +137,20 @@ def _emit_connection(bluetooth: MagicMock, connected: bool) -> None:
     callback(connected)
 
 
+def _stream_dispatch_to_mock(mock_add_listener: MagicMock) -> Any:
+    """Route the stream's real ingest dispatch to the mocked listener set.
+
+    ``async_add_listener`` is mocked, so ``listen_*`` callbacks live in
+    ``mock_add_listener`` rather than the stream's own registry. The glue calls
+    the real ``ingest``; point its dispatch at the mocked set so an ingested BLE
+    broadcast reaches the same ``listen_*`` callbacks a native stream event would.
+    """
+    return patch(
+        "teslemetry_stream.TeslemetryStream._dispatch",
+        lambda self, event: mock_add_listener.send(event),
+    )
+
+
 async def test_paired_vehicle_uses_broadcasts(
     hass: HomeAssistant, entity_registry: er.EntityRegistry
 ) -> None:
@@ -333,14 +347,6 @@ async def test_no_info_requests(hass: HomeAssistant) -> None:
 
 
 @pytest.mark.parametrize(
-    ("listener", "entity_key"),
-    [
-        ("listen_charge_port", "charge_state_charge_port_door_open"),
-        ("listen_front_trunk", "vehicle_state_ft"),
-        ("listen_rear_trunk", "vehicle_state_rt"),
-    ],
-)
-@pytest.mark.parametrize(
     ("raw", "expected"),
     [
         (ClosureState_E.CLOSURESTATE_CLOSED, STATE_CLOSED),
@@ -355,19 +361,21 @@ async def test_no_info_requests(hass: HomeAssistant) -> None:
 async def test_cover_closure_conversion(
     hass: HomeAssistant,
     entity_registry: er.EntityRegistry,
-    listener: str,
-    entity_key: str,
     raw: int,
     expected: str,
 ) -> None:
-    """Each broadcast cover maps its closure enum; unknown is unavailable."""
+    """The rear-trunk broadcast cover maps its closure enum; unknown is unavailable.
+
+    The charge port and front trunk moved to the stream (see the glue tests); the
+    rear trunk stays on the single-source BLE broadcast path.
+    """
     _entry, bluetooth = await _setup_ble(hass, platforms=(Platform.COVER,))
     cover_id = entity_registry.async_get_entity_id(
-        "cover", "teslemetry", f"{VIN}-{entity_key}"
+        "cover", "teslemetry", f"{VIN}-vehicle_state_rt"
     )
     assert cover_id is not None
 
-    _emit(getattr(bluetooth, listener), raw)
+    _emit(bluetooth.listen_rear_trunk, raw)
     await hass.async_block_till_done()
     assert hass.states.get(cover_id).state == expected
 
@@ -375,21 +383,138 @@ async def test_cover_closure_conversion(
 async def test_cover_link_loss_marks_unavailable(
     hass: HomeAssistant, entity_registry: er.EntityRegistry
 ) -> None:
-    """A broadcast cover goes unavailable on link loss with no cloud fallback."""
+    """A single-source broadcast cover goes unavailable on link loss.
+
+    The rear trunk has no cloud fallback, so a dropped link makes its last
+    broadcast stale; the glue-fed covers behave differently (see below).
+    """
     _entry, bluetooth = await _setup_ble(
         hass, connected=True, platforms=(Platform.COVER,)
     )
     cover_id = entity_registry.async_get_entity_id(
-        "cover", "teslemetry", f"{VIN}-vehicle_state_ft"
+        "cover", "teslemetry", f"{VIN}-vehicle_state_rt"
     )
 
-    _emit(bluetooth.listen_front_trunk, ClosureState_E.CLOSURESTATE_CLOSED)
+    _emit(bluetooth.listen_rear_trunk, ClosureState_E.CLOSURESTATE_CLOSED)
     await hass.async_block_till_done()
     assert hass.states.get(cover_id).state == STATE_CLOSED
 
     _emit_connection(bluetooth, False)
     await hass.async_block_till_done()
     assert hass.states.get(cover_id).state == STATE_UNAVAILABLE
+
+
+@pytest.mark.parametrize(
+    ("listener", "entity_key"),
+    [
+        ("listen_charge_port", "charge_state_charge_port_door_open"),
+        ("listen_front_trunk", "vehicle_state_ft"),
+    ],
+)
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        (ClosureState_E.CLOSURESTATE_CLOSED, STATE_CLOSED),
+        (ClosureState_E.CLOSURESTATE_OPEN, STATE_OPEN),
+        (ClosureState_E.CLOSURESTATE_AJAR, STATE_OPEN),
+    ],
+)
+async def test_cover_glue_broadcast_reaches_stream(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_add_listener: MagicMock,
+    listener: str,
+    entity_key: str,
+    raw: int,
+    expected: str,
+) -> None:
+    """A BLE closure broadcast reaches the streaming cover through the glue.
+
+    The glue publishes the broadcast into the vehicle's stream, so it lands on
+    the same streaming entity a native stream event would, with no BLE-specific
+    cover class involved.
+    """
+    _entry, bluetooth = await _setup_ble(
+        hass, connected=True, platforms=(Platform.COVER,)
+    )
+    cover_id = entity_registry.async_get_entity_id(
+        "cover", "teslemetry", f"{VIN}-{entity_key}"
+    )
+    assert cover_id is not None
+
+    with _stream_dispatch_to_mock(mock_add_listener):
+        _emit(getattr(bluetooth, listener), raw)
+        await hass.async_block_till_done()
+    assert hass.states.get(cover_id).state == expected
+
+
+@pytest.mark.parametrize(
+    ("listener", "entity_key"),
+    [
+        ("listen_charge_port", "charge_state_charge_port_door_open"),
+        ("listen_front_trunk", "vehicle_state_ft"),
+    ],
+)
+async def test_cover_glue_survives_link_loss(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_add_listener: MagicMock,
+    listener: str,
+    entity_key: str,
+) -> None:
+    """A glue-fed cover keeps its streamed value when the BLE link drops.
+
+    Availability now follows the stream, not the BLE link, so a dropped link no
+    longer makes the charge port or front trunk unavailable.
+    """
+    _entry, bluetooth = await _setup_ble(
+        hass, connected=True, platforms=(Platform.COVER,)
+    )
+    cover_id = entity_registry.async_get_entity_id(
+        "cover", "teslemetry", f"{VIN}-{entity_key}"
+    )
+
+    with _stream_dispatch_to_mock(mock_add_listener):
+        _emit(getattr(bluetooth, listener), ClosureState_E.CLOSURESTATE_OPEN)
+        await hass.async_block_till_done()
+    assert hass.states.get(cover_id).state == STATE_OPEN
+
+    _emit_connection(bluetooth, False)
+    await hass.async_block_till_done()
+    assert hass.states.get(cover_id).state == STATE_OPEN
+
+
+async def test_cover_glue_unload_stops(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+    mock_add_listener: MagicMock,
+) -> None:
+    """Unloading stops the glue: its broadcast subscriptions are released."""
+    entry, bluetooth = await _setup_ble(
+        hass, connected=True, platforms=(Platform.COVER,)
+    )
+    charge_id = entity_registry.async_get_entity_id(
+        "cover", "teslemetry", f"{VIN}-charge_state_charge_port_door_open"
+    )
+    frunk_id = entity_registry.async_get_entity_id(
+        "cover", "teslemetry", f"{VIN}-vehicle_state_ft"
+    )
+
+    with _stream_dispatch_to_mock(mock_add_listener):
+        _emit(bluetooth.listen_charge_port, ClosureState_E.CLOSURESTATE_CLOSED)
+        _emit(bluetooth.listen_front_trunk, ClosureState_E.CLOSURESTATE_CLOSED)
+        await hass.async_block_till_done()
+    assert hass.states.get(charge_id).state == STATE_CLOSED
+
+    assert await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+    # The glue unsubscribed from both broadcasts it forwards to the stream...
+    bluetooth.listen_charge_port.return_value.assert_called()
+    bluetooth.listen_front_trunk.return_value.assert_called()
+    # ...and neither cover is left live.
+    assert hass.states.get(charge_id).state == STATE_UNAVAILABLE
+    assert hass.states.get(frunk_id).state == STATE_UNAVAILABLE
 
 
 async def test_cover_command_routes_through_api(

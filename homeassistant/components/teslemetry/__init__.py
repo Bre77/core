@@ -17,6 +17,7 @@ from tesla_fleet_api.exceptions import (
     TeslaFleetError,
 )
 from tesla_fleet_api.router import VehicleRouter
+from tesla_fleet_api.tesla.vehicle.stream_glue import BleBroadcastStreamGlue
 from tesla_fleet_api.teslemetry import Teslemetry, Vehicle
 from teslemetry_stream import TeslemetryStream
 
@@ -534,6 +535,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: TeslemetryConfigEntry) -
                 )
                 ble.async_start()
                 entry.async_on_unload(ble.async_stop)
+                # Publish the vehicle's BLE broadcasts into its stream so fields
+                # fed by both channels reach the one streaming entity per field.
+                # The glue takes any structural ingest() sink; the concrete
+                # stream vehicle narrows the params to dict, which mypy rejects.
+                glue = BleBroadcastStreamGlue(vehicle_api.primary, stream_vehicle)  # type: ignore[arg-type]
+                entry.async_on_unload(glue.stop)
 
             vehicles.append(
                 TeslemetryVehicleData(
@@ -830,11 +837,6 @@ async def async_setup_stream(
 ) -> None:
     """Set up the stream for a vehicle."""
     await vehicle.stream_vehicle.get_config()
-    entry.async_create_background_task(
-        hass,
-        vehicle.stream_vehicle.prefer_typed(True),
-        f"Prefer typed for {vehicle.vin}",
-    )
 
     entry.async_on_unload(
         vehicle.stream_vehicle.listen_Version(

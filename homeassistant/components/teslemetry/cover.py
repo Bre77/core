@@ -67,9 +67,7 @@ async def async_setup_entry(
                 for vehicle in entry.runtime_data.vehicles
             ),
             (
-                TeslemetryBluetoothChargePortEntity(vehicle, entry.runtime_data.scopes)
-                if vehicle.ble is not None
-                else TeslemetryVehiclePollingChargePortEntity(
+                TeslemetryVehiclePollingChargePortEntity(
                     vehicle, entry.runtime_data.scopes
                 )
                 if vehicle.poll or not firmware_at_least(vehicle.firmware, "2024.44.25")
@@ -79,9 +77,7 @@ async def async_setup_entry(
                 for vehicle in entry.runtime_data.vehicles
             ),
             (
-                TeslemetryBluetoothFrontTrunkEntity(vehicle, entry.runtime_data.scopes)
-                if vehicle.ble is not None
-                else TeslemetryVehiclePollingFrontTrunkEntity(
+                TeslemetryVehiclePollingFrontTrunkEntity(
                     vehicle, entry.runtime_data.scopes
                 )
                 if vehicle.poll or not firmware_at_least(vehicle.firmware, "2024.26")
@@ -574,59 +570,6 @@ class TeslemetryBluetoothClosureCover(TeslemetryVehicleBluetoothEntity):
         self._generation = generation
         self._attr_is_closed = None if value is None else not value
         self.async_write_ha_state()
-
-
-class TeslemetryBluetoothChargePortEntity(
-    TeslemetryBluetoothClosureCover, TeslemetryChargePortEntity
-):
-    """Bluetooth cover entity for the charge port door."""
-
-    def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
-        """Initialize the cover."""
-        super().__init__(vehicle, "charge_state_charge_port_door_open")
-        self.scoped = any(
-            scope in scopes
-            for scope in (Scope.VEHICLE_CMDS, Scope.VEHICLE_CHARGING_CMDS)
-        )
-        if not self.scoped:
-            self._attr_supported_features = CoverEntityFeature(0)
-
-    @override
-    async def async_added_to_hass(self) -> None:
-        """Register the charge port closure broadcast listener."""
-        await super().async_added_to_hass()
-        self.async_on_remove(
-            self.manager.async_on_broadcast(
-                lambda ble, callback: ble.listen_charge_port(callback),
-                _closure_is_open,
-                self._handle_broadcast,
-            )
-        )
-
-
-class TeslemetryBluetoothFrontTrunkEntity(
-    TeslemetryBluetoothClosureCover, TeslemetryFrontTrunkEntity
-):
-    """Bluetooth cover entity for the front trunk."""
-
-    def __init__(self, vehicle: TeslemetryVehicleData, scopes: list[Scope]) -> None:
-        """Initialize the cover."""
-        super().__init__(vehicle, "vehicle_state_ft")
-        self.scoped = Scope.VEHICLE_CMDS in scopes
-        if not self.scoped:
-            self._attr_supported_features = CoverEntityFeature(0)
-
-    @override
-    async def async_added_to_hass(self) -> None:
-        """Register the front trunk closure broadcast listener."""
-        await super().async_added_to_hass()
-        self.async_on_remove(
-            self.manager.async_on_broadcast(
-                lambda ble, callback: ble.listen_front_trunk(callback),
-                _closure_is_open,
-                self._handle_broadcast,
-            )
-        )
 
 
 class TeslemetryBluetoothRearTrunkEntity(
