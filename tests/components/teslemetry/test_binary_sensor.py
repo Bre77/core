@@ -8,12 +8,13 @@ from syrupy.assertion import SnapshotAssertion
 from teslemetry_stream import Signal
 
 from homeassistant.components.teslemetry.coordinator import VEHICLE_INTERVAL
-from homeassistant.const import Platform
+from homeassistant.const import STATE_OFF, STATE_ON, STATE_UNAVAILABLE, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
 from . import assert_entities, assert_entities_alt, setup_platform
 from .const import VEHICLE_DATA_ALT
+from .test_ble import VIN, _emit_connection, _setup_ble
 
 from tests.common import async_fire_time_changed
 
@@ -140,3 +141,26 @@ async def test_binary_sensors_connectivity(
     # Assert the entities have correct state with concrete assertions
     assert hass.states.get("binary_sensor.test_cellular").state == "on"
     assert hass.states.get("binary_sensor.test_wi_fi").state == "off"
+
+
+async def test_binary_sensor_bluetooth_connection(
+    hass: HomeAssistant,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """The Bluetooth connection sensor stays available and reads off on link loss."""
+    _entry, bluetooth = await _setup_ble(hass, connected=True)
+
+    entity_id = entity_registry.async_get_entity_id(
+        "binary_sensor", "teslemetry", f"{VIN}-bluetooth_connection"
+    )
+    assert entity_id is not None
+    assert hass.states.get(entity_id).state == STATE_ON
+
+    _emit_connection(bluetooth, False)
+    await hass.async_block_till_done()
+
+    # A connectivity sensor must report the disconnect, so it stays available
+    # and off rather than following the other BLE entities into unavailable.
+    state = hass.states.get(entity_id)
+    assert state.state == STATE_OFF
+    assert state.state != STATE_UNAVAILABLE
