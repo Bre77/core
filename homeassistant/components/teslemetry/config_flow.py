@@ -7,7 +7,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast, override
 
 from aiohttp import ClientError
-from aiopowerwall import PowerwallAuthenticationError, PowerwallClient, PowerwallError
+from aiopowerwall import (
+    PowerwallAuthenticationError,
+    PowerwallClient,
+    PowerwallEnergySite,
+    PowerwallError,
+)
 from bleak.exc import BleakError
 import probatio
 from tesla_fleet_api.const import (
@@ -94,6 +99,19 @@ def _cloud_energy_site(energy_data: TeslemetryEnergyData) -> TeslemetryEnergySit
         energy_data.api.secondary
         if isinstance(energy_data.api, EnergySiteRouter)
         else energy_data.api,
+    )
+
+
+def _local_authorized_client(entry: dict[str, Any]) -> AuthorizedClient:
+    """Return a local gateway authorized-client entry as an AuthorizedClient."""
+    state = entry["state"]
+    return AuthorizedClient(
+        public_key=entry["public_key"],
+        # A state name AuthorizedClientState does not know is kept verbatim.
+        state=AuthorizedClientState.__members__.get(state, state),
+        roles=entry["roles"],
+        verification=entry["verification"],
+        raw=entry,
     )
 
 
@@ -445,6 +463,7 @@ class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):
     def __init__(self) -> None:
         """Initialize the energy site subentry flow."""
         self._energy_site: TeslemetryEnergySite | None = None
+        self._local_energy_site: PowerwallEnergySite | None = None
         self._key_pem: bytes | None = None
         self._public_key_der: bytes = b""
         self._public_key_b64: str = ""
@@ -524,6 +543,8 @@ class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):
         )
         if energy_data is None:
             return self.async_abort(reason="cannot_connect")
+        if isinstance(energy_data.api, EnergySiteRouter):
+            self._local_energy_site = cast(PowerwallEnergySite, energy_data.api.primary)
         if abort := await self._prepare_energy_site(_cloud_energy_site(energy_data)):
             return abort
         return await self._async_begin_pairing()
@@ -626,6 +647,22 @@ class EnergySiteSubentryFlowHandler(ConfigSubentryFlow):
         """Return our RSA key's authorized-client entry on the gateway, or None."""
         if TYPE_CHECKING:
             assert self._energy_site is not None
+        if self._local_energy_site is not None:
+            try:
+                payload = await self._local_energy_site.list_authorized_clients()
+            except PowerwallError as err:
+                # Stale stored credentials or an unapproved key fail locally; use the cloud.
+                LOGGER.debug("Local list_authorized_clients failed: %s", err)
+                self._local_energy_site = None
+            else:
+                return next(
+                    (
+                        _local_authorized_client(entry)
+                        for entry in payload["response"]["clients"]
+                        if entry["public_key"] == self._public_key_b64
+                    ),
+                    None,
+                )
         try:
             result = await self._energy_site.find_authorized_clients()
         except (ClientError, TeslaFleetError) as err:
